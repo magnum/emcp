@@ -54,6 +54,8 @@ Rails.application.routes.draw do
 
       get ".well-known/oauth-authorization-server", to: "mcp_servers/oauth#authorization_server"
       match ".well-known/oauth-authorization-server", to: "mcp_servers/oauth#options", via: :options
+      get ".well-known/openid-configuration", to: "mcp_servers/oauth#authorization_server"
+      match ".well-known/openid-configuration", to: "mcp_servers/oauth#options", via: :options
     end
   end
 
@@ -68,6 +70,18 @@ Rails.application.routes.draw do
   get "/.well-known/oauth-authorization-server/servers/:server_id/mcp",
       to: "mcp_servers/oauth#authorization_server"
   match "/.well-known/oauth-authorization-server/servers/:server_id/mcp",
+        to: "mcp_servers/oauth#options", via: :options
+  get "/.well-known/openid-configuration/servers/:server_id",
+      to: "mcp_servers/oauth#authorization_server"
+  match "/.well-known/openid-configuration/servers/:server_id",
+        to: "mcp_servers/oauth#options", via: :options
+  get "/.well-known/openid-configuration/servers/:server_id/mcp",
+      to: "mcp_servers/oauth#authorization_server"
+  match "/.well-known/openid-configuration/servers/:server_id/mcp",
+        to: "mcp_servers/oauth#options", via: :options
+  get "/.well-known/openid-configuration",
+      to: "mcp_servers/oauth#missing_openid_configuration"
+  match "/.well-known/openid-configuration",
         to: "mcp_servers/oauth#options", via: :options
 
   concern :apiable do
