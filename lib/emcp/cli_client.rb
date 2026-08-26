@@ -19,13 +19,13 @@ module Emcp
       raise CliError, "binary '#{@bin}' not found in PATH" unless bin_available?
 
       child_env = ENV.to_h.dup
+      # jemalloc is preloaded into Puma; musl CLIs (gws) inherit it and then
+      # fail getaddrinfo. spawn merges env hashes, so a missing key is kept —
+      # nil is required to actually unset it in the child.
+      child_env["LD_PRELOAD"] = nil
       @env.each do |key, value|
         key = key.to_s
-        if value.nil?
-          child_env.delete(key)
-        else
-          child_env[key] = value.to_s
-        end
+        child_env[key] = value.nil? ? nil : value.to_s
       end
 
       Open3.popen3(child_env, @bin, *args) do |stdin, stdout, stderr, wait_thr|

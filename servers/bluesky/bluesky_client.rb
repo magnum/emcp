@@ -96,7 +96,7 @@ module Emcp
           end
           result
         rescue Timeout::Error, SocketError, SystemCallError => e
-          raise Error, "Bluesky request failed: #{e.message}"
+          raise Error, bluesky_network_error(e)
         end
 
         def create_session!
@@ -147,6 +147,14 @@ module Emcp
           host = ENV["BLUESKY_PDS_HOST"] if host.nil?
           host = DEFAULT_PDS if Emcp.sanitize_env_value(host).empty?
           Emcp.sanitize_env_value(host).sub(%r{/\z}, "")
+        end
+
+        def bluesky_network_error(error)
+          if error.message.match?(/getaddrinfo|name resolution|Temporary failure|Failed to open TCP connection/i)
+            "Bluesky network/DNS failure (could not reach #{pds_base}). This is not an auth error. #{error.message}"
+          else
+            "Bluesky request failed: #{error.message}"
+          end
         end
 
         def access_jwt

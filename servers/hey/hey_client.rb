@@ -23,7 +23,7 @@ module Emcp
           args
         end
 
-        def boxes(limit: nil, fetch_all: false) = limited(json("boxes"), limit: limit, fetch_all: fetch_all)
+        def boxes(limit: nil, fetch_all: false) = limited(json("box", "list"), limit: limit, fetch_all: fetch_all)
         def box(name, limit: nil, fetch_all: false) = limited(json("box", name), limit: limit, fetch_all: fetch_all)
         def threads(topic_id, html: false) = json("threads", topic_id).tap { |a| a << "--html" if html }
         def drafts(limit: nil, fetch_all: false) = limited(json("drafts"), limit: limit, fetch_all: fetch_all)

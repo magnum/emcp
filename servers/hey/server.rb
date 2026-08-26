@@ -255,7 +255,7 @@ module Emcp
 
           define_tool(
             name: "hey_boxes",
-            description: "List HEY inbox boxes.",
+            description: "List HEY inbox boxes via `hey box list`.",
             properties: LIMIT_PROPERTIES,
           ) { |limit: nil, fetch_all: false| cli_response(@client, @client.boxes(limit: limit, fetch_all: fetch_all)) }
 
