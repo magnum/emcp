@@ -3,6 +3,11 @@
 module McpServer::Tools
   extend ActiveSupport::Concern
 
+  MODERN_PROTOCOL_VERSION = "2026-07-28"
+  PROTOCOL_VERSION_META_KEY = "io.modelcontextprotocol/protocolVersion"
+  SERVER_INFO_META_KEY = "io.modelcontextprotocol/serverInfo"
+  CACHEABLE_RESULT_KEYS = %w[tools prompts resources resourceTemplates contents].freeze
+
   def tool_catalog
     configure_once!
     tools.map do |tool|
@@ -30,7 +35,23 @@ module McpServer::Tools
     @mcp_protocol_server ||= build_mcp_protocol_server
   end
 
+  # ChatGPT web (openai-mcp) speaks MCP 2026-07-28: it probes `server/discover`
+  # and then lists tools without the legacy `initialize` handshake. The mcp 0.25
+  # gem answers discover with only 2025 versions, so ChatGPT treats the 200 as a
+  # failed connector refresh. Shape the modern result here until we can bump the gem.
   def handle_mcp_json(body)
+    parsed = JSON.parse(body)
+    return mcp_protocol_server.handle_json(body) unless parsed.is_a?(Hash)
+
+    if parsed["method"] == "server/discover"
+      return jsonrpc_result(parsed["id"], modern_discover_result)
+    end
+
+    response = mcp_protocol_server.handle_json(body)
+    return response unless response.is_a?(String) && modern_mcp_request?(parsed)
+
+    stamp_modern_result(response)
+  rescue JSON::ParserError
     mcp_protocol_server.handle_json(body)
   end
 
@@ -117,6 +138,48 @@ module McpServer::Tools
   def filter_tool_arguments(definition, arguments)
     allowed = definition.input_schema.fetch(:properties, {}).keys.map(&:to_sym)
     arguments.to_h.transform_keys(&:to_sym).select { |key, _| allowed.include?(key) }
+  end
+
+  def modern_mcp_request?(parsed)
+    parsed.dig("params", "_meta", PROTOCOL_VERSION_META_KEY) == MODERN_PROTOCOL_VERSION
+  end
+
+  def modern_discover_result
+    configure_once!
+    capabilities = { "tools" => {} }
+    capabilities["resources"] = {} if resources.any?
+
+    {
+      "resultType" => "complete",
+      "supportedVersions" => [MODERN_PROTOCOL_VERSION],
+      "capabilities" => capabilities,
+      "instructions" => instructions,
+      "ttlMs" => 0,
+      "cacheScope" => "private",
+      "_meta" => {
+        SERVER_INFO_META_KEY => { "name" => code, "version" => version },
+      },
+    }
+  end
+
+  def jsonrpc_result(id, result)
+    JSON.generate("jsonrpc" => "2.0", "id" => id, "result" => result)
+  end
+
+  def stamp_modern_result(json_string)
+    payload = JSON.parse(json_string)
+    result = payload["result"]
+    return json_string unless result.is_a?(Hash)
+
+    result["resultType"] ||= "complete"
+    if CACHEABLE_RESULT_KEYS.any? { |key| result.key?(key) }
+      result["ttlMs"] ||= 0
+      result["cacheScope"] ||= "private"
+    end
+    payload["result"] = result
+    JSON.generate(payload)
+  rescue JSON::ParserError
+    json_string
   end
 
   # ChatGPT web requires these hints on every tool; Claude is lenient without them.

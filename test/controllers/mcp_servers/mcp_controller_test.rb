@@ -79,4 +79,55 @@ class McpServers::McpControllerTest < ActionDispatch::IntegrationTest
     assert_equal "object", listed.first.dig("inputSchema", "type")
     assert_equal "*", response.headers["Access-Control-Allow-Origin"]
   end
+
+  test "server/discover returns ChatGPT 2026-07-28 shape" do
+    body = {
+      jsonrpc: "2.0",
+      id: "teslamate",
+      method: "server/discover",
+      params: {
+        _meta: {
+          "io.modelcontextprotocol/protocolVersion" => "2026-07-28",
+          "io.modelcontextprotocol/clientInfo" => { name: "openai-mcp", version: "1.0.0" },
+        },
+      },
+    }
+    post mcp_mcp_server_path("teslamate"),
+         params: body.to_json,
+         headers: {
+           "CONTENT_TYPE" => "application/json",
+           "AUTHORIZATION" => "Bearer #{@access_token}",
+         }
+    assert_response :success
+    result = JSON.parse(response.body).fetch("result")
+    assert_equal "complete", result["resultType"]
+    assert_includes result.fetch("supportedVersions"), "2026-07-28"
+    assert result.dig("capabilities", "tools")
+  end
+
+  test "modern tools/list stamps resultType for ChatGPT" do
+    body = {
+      jsonrpc: "2.0",
+      id: 2,
+      method: "tools/list",
+      params: {
+        _meta: {
+          "io.modelcontextprotocol/protocolVersion" => "2026-07-28",
+          "io.modelcontextprotocol/clientInfo" => { name: "openai-mcp", version: "1.0.0" },
+        },
+      },
+    }
+    post mcp_mcp_server_path("teslamate"),
+         params: body.to_json,
+         headers: {
+           "CONTENT_TYPE" => "application/json",
+           "AUTHORIZATION" => "Bearer #{@access_token}",
+         }
+    assert_response :success
+    result = JSON.parse(response.body).fetch("result")
+    assert result["tools"].present?
+    assert_equal "complete", result["resultType"]
+    assert_equal 0, result["ttlMs"]
+    assert_equal "private", result["cacheScope"]
+  end
 end

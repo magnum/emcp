@@ -15,6 +15,10 @@ module McpServers
       render json: oauth_provider.authorization_server_metadata
     end
 
+    def missing_openid_configuration
+      render json: { error: "not_found" }, status: :not_found
+    end
+
     def authorize
       url = oauth_provider.start_authorization(params.to_unsafe_h)
       redirect_to url, allow_other_host: true

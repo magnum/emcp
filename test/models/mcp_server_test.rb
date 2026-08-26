@@ -58,6 +58,32 @@ class McpServerTest < ActiveSupport::TestCase
     assert_includes names, "teslamate_get_database_schema"
   end
 
+  test "server/discover advertises MCP 2026-07-28 for ChatGPT web" do
+    server = McpServer.fetch!("teslamate")
+    payload = JSON.parse(
+      server.handle_mcp_json({
+        jsonrpc: "2.0",
+        id: "teslamate",
+        method: "server/discover",
+        params: {
+          _meta: {
+            "io.modelcontextprotocol/protocolVersion" => "2026-07-28",
+            "io.modelcontextprotocol/clientInfo" => { name: "openai-mcp", version: "1.0.0" },
+          },
+        },
+      }.to_json),
+    )
+    result = payload.fetch("result")
+    assert_equal "teslamate", payload["id"]
+    assert_equal "complete", result["resultType"]
+    assert_includes result.fetch("supportedVersions"), "2026-07-28"
+    assert result.dig("capabilities", "tools")
+    refute result.dig("capabilities", "tools", "listChanged")
+    assert_equal "teslamate", result.dig("_meta", "io.modelcontextprotocol/serverInfo", "name")
+    assert_equal 0, result["ttlMs"]
+    assert_equal "private", result["cacheScope"]
+  end
+
   test "tools/list includes object schemas and ChatGPT-required annotations" do
     server = McpServer.fetch!("teslamate")
     payload = JSON.parse(
