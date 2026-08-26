@@ -4,15 +4,22 @@ require "test_helper"
 
 class McpServers::McpControllerTest < ActionDispatch::IntegrationTest
   setup do
-    ENV["API_KEY_HMAC_SECRET_KEY"] ||= "test-api-key-hmac-secret"
     McpServer.discover!
-    @user = User.find_or_create_by!(email: "user1@emcp.local") do |user|
-      user.firstname = "User"
-      user.lastname = "One"
-      user.password = "emcp-dev-password"
-      user.password_confirmation = "emcp-dev-password"
-    end
-    @raw_token = @user.api_key!
+    @server = McpServer.fetch!("teslamate")
+    client = @server.mcp_oauth_clients.create!(
+      client_id: SecureRandom.uuid,
+      redirect_uris: ["https://chatgpt.com/aip/callback"],
+      token_endpoint_auth_method: "none",
+      grant_types: %w[authorization_code refresh_token],
+      response_types: ["code"],
+      client_id_issued_at: Time.now.to_i,
+    )
+    @access_token = @server.mcp_oauth_access_tokens.create!(
+      mcp_oauth_client: client,
+      token: "emcp_#{SecureRandom.hex(16)}",
+      scope: "emcp:teslamate",
+      expires_at: 1.hour.from_now,
+    ).token
   end
 
   test "mcp endpoint rejects missing bearer" do
@@ -22,7 +29,7 @@ class McpServers::McpControllerTest < ActionDispatch::IntegrationTest
     assert_response :unauthorized
   end
 
-  test "mcp endpoint accepts api key bearer" do
+  test "mcp endpoint accepts oauth bearer" do
     body = {
       jsonrpc: "2.0",
       id: 1,
@@ -37,8 +44,39 @@ class McpServers::McpControllerTest < ActionDispatch::IntegrationTest
          params: body.to_json,
          headers: {
            "CONTENT_TYPE" => "application/json",
-           "AUTHORIZATION" => "Bearer #{@raw_token}",
+           "AUTHORIZATION" => "Bearer #{@access_token}",
          }
     assert_includes [200, 202], response.status
+  end
+
+  test "mcp endpoint answers CORS preflight without auth" do
+    process :options, mcp_mcp_server_path("teslamate"),
+            headers: {
+              "ORIGIN" => "https://chatgpt.com",
+              "ACCESS_CONTROL_REQUEST_METHOD" => "POST",
+              "ACCESS_CONTROL_REQUEST_HEADERS" => "authorization,content-type",
+            }
+    assert_response :no_content
+    assert_equal "*", response.headers["Access-Control-Allow-Origin"]
+    assert_match(/POST/, response.headers["Access-Control-Allow-Methods"])
+    assert_match(/Authorization/i, response.headers["Access-Control-Allow-Headers"])
+  end
+
+  test "tools/list returns teslamate actions with annotations" do
+    body = { jsonrpc: "2.0", id: 2, method: "tools/list", params: {} }
+    post mcp_mcp_server_path("teslamate"),
+         params: body.to_json,
+         headers: {
+           "CONTENT_TYPE" => "application/json",
+           "AUTHORIZATION" => "Bearer #{@access_token}",
+           "ORIGIN" => "https://chatgpt.com",
+         }
+    assert_response :success
+    listed = JSON.parse(response.body).dig("result", "tools")
+    assert listed.present?
+    assert listed.any? { |tool| tool["name"] == "teslamate_run_sql" }
+    assert listed.first.dig("annotations", "readOnlyHint")
+    assert_equal "object", listed.first.dig("inputSchema", "type")
+    assert_equal "*", response.headers["Access-Control-Allow-Origin"]
   end
 end

@@ -3,8 +3,8 @@ class ApplicationController < ActionController::Base
   include WithLocale
   include Pundit::Authorization
 
-  # Only allow modern browsers supporting webp images, web push, badges, import maps, CSS nesting, and CSS :has.
-  allow_browser versions: :modern
+  # HTML only — MCP/OAuth clients (ChatGPT web, Claude, bots) must not get 406.
+  allow_browser versions: :modern, if: -> { request.format.html? }
 
   # Changes to the importmap will invalidate the etag for HTML responses
   stale_when_importmap_changes

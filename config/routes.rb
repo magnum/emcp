@@ -26,6 +26,7 @@ Rails.application.routes.draw do
   resources :mcp_servers, path: "servers", param: :id, only: %i[index show] do
     member do
       post "mcp", to: "mcp_servers/mcp#create"
+      match "mcp", to: "mcp_servers/mcp#options", via: :options
       get "mcp", to: "mcp_servers/mcp#method_not_allowed"
       delete "mcp", to: "mcp_servers/mcp#method_not_allowed"
 
@@ -43,21 +44,31 @@ Rails.application.routes.draw do
       post "auth/register", to: "mcp_servers/oauth#register"
       post "auth/token", to: "mcp_servers/oauth#token"
       post "auth/revoke", to: "mcp_servers/oauth#revoke"
+      match "auth/register", to: "mcp_servers/oauth#options", via: :options
+      match "auth/token", to: "mcp_servers/oauth#options", via: :options
+      match "auth/revoke", to: "mcp_servers/oauth#options", via: :options
 
       post "oauth", to: "mcp_servers/provider_oauth#create", as: :provider_oauth
       get "oauth_callback", to: "mcp_servers/provider_oauth#callback", as: :oauth_callback
       post "auth/save_oauth_token", to: "mcp_servers/provider_oauth#save_token", as: :save_oauth_token
 
       get ".well-known/oauth-authorization-server", to: "mcp_servers/oauth#authorization_server"
+      match ".well-known/oauth-authorization-server", to: "mcp_servers/oauth#options", via: :options
     end
   end
 
   get "/.well-known/oauth-protected-resource/servers/:server_id/mcp",
       to: "mcp_servers/oauth#protected_resource"
+  match "/.well-known/oauth-protected-resource/servers/:server_id/mcp",
+        to: "mcp_servers/oauth#options", via: :options
   get "/.well-known/oauth-authorization-server/servers/:server_id",
       to: "mcp_servers/oauth#authorization_server"
+  match "/.well-known/oauth-authorization-server/servers/:server_id",
+        to: "mcp_servers/oauth#options", via: :options
   get "/.well-known/oauth-authorization-server/servers/:server_id/mcp",
       to: "mcp_servers/oauth#authorization_server"
+  match "/.well-known/oauth-authorization-server/servers/:server_id/mcp",
+        to: "mcp_servers/oauth#options", via: :options
 
   concern :apiable do
     get "test", to: "test#index"

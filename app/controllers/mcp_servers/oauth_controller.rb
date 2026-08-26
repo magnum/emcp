@@ -3,9 +3,9 @@
 module McpServers
   class OauthController < ApplicationController
     include McpAuthenticatable
+    include McpCors
 
-    skip_before_action :verify_authenticity_token
-    before_action :set_cors
+    skip_before_action :verify_authenticity_token, raise: false
 
     def protected_resource
       render json: oauth_provider.protected_resource_metadata
@@ -37,12 +37,6 @@ module McpServers
     def revoke
       oauth_provider.revoke_token(params[:token].to_s)
       head :ok
-    end
-
-    private
-
-    def set_cors
-      headers["Access-Control-Allow-Origin"] = "*"
     end
   end
 end

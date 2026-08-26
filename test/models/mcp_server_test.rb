@@ -58,6 +58,25 @@ class McpServerTest < ActiveSupport::TestCase
     assert_includes names, "teslamate_get_database_schema"
   end
 
+  test "tools/list includes object schemas and ChatGPT-required annotations" do
+    server = McpServer.fetch!("teslamate")
+    payload = JSON.parse(
+      server.handle_mcp_json({ jsonrpc: "2.0", id: 1, method: "tools/list", params: {} }.to_json),
+    )
+    listed = payload.dig("result", "tools")
+    assert listed.present?
+
+    listed.each do |tool|
+      schema = tool.fetch("inputSchema")
+      assert_equal "object", schema["type"], "#{tool["name"]} inputSchema.type must be object"
+      assert schema.key?("properties"), "#{tool["name"]} must declare properties"
+      annotations = tool.fetch("annotations")
+      %w[readOnlyHint destructiveHint openWorldHint].each do |key|
+        assert_includes [true, false], annotations[key], "#{tool["name"]} missing boolean #{key}"
+      end
+    end
+  end
+
   test "registered servers implement the runtime contract" do
     McpServer.integration_classes.each do |klass|
       server = McpServer.fetch!(klass.server_id)
