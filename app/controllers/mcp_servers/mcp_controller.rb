@@ -3,9 +3,10 @@
 module McpServers
   class McpController < ApplicationController
     include McpAuthenticatable
+    include McpCors
 
-    skip_before_action :verify_authenticity_token
-    before_action :authorize_mcp!
+    skip_before_action :verify_authenticity_token, raise: false
+    before_action :authorize_mcp!, except: :options
 
     def create
       body = request.body.read
@@ -24,7 +25,7 @@ module McpServers
     end
 
     def method_not_allowed
-      response.set_header("Allow", "POST")
+      response.set_header("Allow", "POST, OPTIONS")
       head :method_not_allowed
     end
   end

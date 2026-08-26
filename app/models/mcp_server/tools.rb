@@ -37,10 +37,17 @@ module McpServer::Tools
   protected
 
   def define_tool(name:, description:, properties: {}, required: [], write: false, &handler)
+    schema = {
+      type: "object",
+      properties: properties,
+      additionalProperties: false,
+    }
+    schema[:required] = required if required.present?
+
     tools << Emcp::ToolDefinition.new(
       name: name,
       description: description,
-      input_schema: { properties: properties, required: required },
+      input_schema: schema,
       write: write,
       handler: handler,
     )
@@ -112,6 +119,25 @@ module McpServer::Tools
     arguments.to_h.transform_keys(&:to_sym).select { |key, _| allowed.include?(key) }
   end
 
+  # ChatGPT web requires these hints on every tool; Claude is lenient without them.
+  def protocol_tool_annotations(definition)
+    if definition.write
+      {
+        read_only_hint: false,
+        destructive_hint: false,
+        idempotent_hint: false,
+        open_world_hint: true,
+      }
+    else
+      {
+        read_only_hint: true,
+        destructive_hint: false,
+        idempotent_hint: true,
+        open_world_hint: true,
+      }
+    end
+  end
+
   def build_mcp_protocol_server
     integration = self
     server = MCP::Server.new(
@@ -143,8 +169,10 @@ module McpServer::Tools
     tools.each do |definition|
       server.define_tool(
         name: definition.name,
+        title: definition.name.tr("_", " "),
         description: definition.description,
         input_schema: definition.input_schema,
+        annotations: protocol_tool_annotations(definition),
       ) do |**arguments|
         if definition.write && !integration.allow_write_methods?
           integration.send(
