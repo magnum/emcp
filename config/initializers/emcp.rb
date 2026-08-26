@@ -58,6 +58,7 @@ Emcp.apply_env_sanitization!
 # to_prepare re-runs after each code reload in development so STI subclasses
 # under servers/ are rebound to the current McpServer class.
 Rails.application.config.to_prepare do
+  next if ENV["EMCP_SKIP_DISCOVER"] == "1"
   next unless ActiveRecord::Base.connection.data_source_exists?("mcp_servers")
 
   McpServer.discover!

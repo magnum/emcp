@@ -5,7 +5,9 @@ mkdir -p /rails/storage/home/.config/gws /rails/storage/home/.cache
 
 # If running the rails server then create or migrate existing database
 if [ "${@: -2:1}" == "./bin/rails" ] && [ "${@: -1:1}" == "server" ]; then
-  ./bin/rails db:prepare
+  echo "Preparing database..."
+  EMCP_SKIP_DISCOVER=1 ./bin/rails db:prepare
+  echo "Database ready, starting server."
 fi
 
 exec "${@}"
