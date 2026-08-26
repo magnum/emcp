@@ -77,6 +77,10 @@ class McpServers::McpControllerTest < ActionDispatch::IntegrationTest
     assert listed.any? { |tool| tool["name"] == "teslamate_run_sql" }
     assert listed.first.dig("annotations", "readOnlyHint")
     assert_equal "object", listed.first.dig("inputSchema", "type")
+    assert_equal "object", listed.first.dig("outputSchema", "type")
+    listed.each do |tool|
+      assert tool["outputSchema"].present?, "#{tool["name"]} missing outputSchema"
+    end
     assert_equal "*", response.headers["Access-Control-Allow-Origin"]
   end
 

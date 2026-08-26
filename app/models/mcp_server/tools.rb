@@ -15,6 +15,7 @@ module McpServer::Tools
         name: tool.name,
         description: tool.description,
         input_schema: tool.input_schema,
+        output_schema: tool.output_schema,
         write: tool.write,
         enabled: !tool.write || allow_write_methods?,
       }
@@ -57,7 +58,7 @@ module McpServer::Tools
 
   protected
 
-  def define_tool(name:, description:, properties: {}, required: [], write: false, &handler)
+  def define_tool(name:, description:, properties: {}, required: [], write: false, output_schema: nil, &handler)
     schema = {
       type: "object",
       properties: properties,
@@ -69,6 +70,7 @@ module McpServer::Tools
       name: name,
       description: description,
       input_schema: schema,
+      output_schema: output_schema || default_output_schema,
       write: write,
       handler: handler,
     )
@@ -85,12 +87,12 @@ module McpServer::Tools
   end
 
   def text_response(text)
-    MCP::Tool::Response.new([{ type: "text", text: text.to_s }])
+    structured_tool_result(text.to_s, data: nil)
   end
 
   def api_response(result = nil)
     payload = block_given? ? yield : result
-    text_response(JSON.pretty_generate(payload))
+    structured_tool_result(JSON.pretty_generate(payload), data: payload)
   rescue StandardError => e
     text_response("ERROR: #{e.message}")
   end
@@ -138,6 +140,25 @@ module McpServer::Tools
   def filter_tool_arguments(definition, arguments)
     allowed = definition.input_schema.fetch(:properties, {}).keys.map(&:to_sym)
     arguments.to_h.transform_keys(&:to_sym).select { |key, _| allowed.include?(key) }
+  end
+
+  def default_output_schema
+    {
+      type: "object",
+      properties: {
+        text: { type: "string", description: "Human-readable tool output." },
+        data: { description: "Structured JSON payload when the tool returns data." },
+      },
+      required: ["text"],
+      additionalProperties: false,
+    }
+  end
+
+  def structured_tool_result(text, data:)
+    MCP::Tool::Response.new(
+      [{ type: "text", text: text }],
+      structured_content: { "text" => text, "data" => data },
+    )
   end
 
   def modern_mcp_request?(parsed)
@@ -235,6 +256,7 @@ module McpServer::Tools
         title: definition.name.tr("_", " "),
         description: definition.description,
         input_schema: definition.input_schema,
+        output_schema: definition.output_schema,
         annotations: protocol_tool_annotations(definition),
       ) do |**arguments|
         if definition.write && !integration.allow_write_methods?
