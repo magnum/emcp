@@ -9,7 +9,7 @@ triggers:
   - hey
   - /hey
   # Email actions
-  - hey boxes
+  - hey box list
   - hey box
   - hey threads
   - hey reply
@@ -84,7 +84,7 @@ CLI for HEY email: mailboxes, email threads, replies, compose, calendars, todos,
 
 | Task | Command |
 |------|---------|
-| List mailboxes | `hey boxes --json` |
+| List mailboxes | `hey box list --json` |
 | List emails in a box | `hey box imbox --json` |
 | Read email thread | `hey threads <topic_id> --json` |
 | Reply to email | `hey reply <topic_id> -m "Thanks!"` |
@@ -119,7 +119,7 @@ CLI for HEY email: mailboxes, email threads, replies, compose, calendars, todos,
 
 ```
 Want to read email?
-├── Which mailbox? → hey boxes --json
+├── Which mailbox? → hey box list --json
 ├── List emails in box? → hey box <name|id> --json
 ├── Read full thread? → hey threads <topic_id> --json
 ├── Mark as seen? → hey seen <posting-id>
@@ -156,7 +156,7 @@ Want to manage todos?
 ### Email - Boxes
 
 ```bash
-hey boxes --json                              # List all mailboxes
+hey box list --json                           # List all mailboxes
 hey box imbox --json                          # List emails in Imbox (by name)
 hey box 123 --json                            # List emails in box (by ID)
 ```

@@ -36,8 +36,8 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /tmp
 RUN case "${TARGETARCH}" in \
-      amd64) target="x86_64-unknown-linux-musl" ;; \
-      arm64) target="aarch64-unknown-linux-musl" ;; \
+      amd64) target="x86_64-unknown-linux-gnu" ;; \
+      arm64) target="aarch64-unknown-linux-gnu" ;; \
       *) echo "Unsupported TARGETARCH: ${TARGETARCH}" >&2; exit 1 ;; \
     esac \
     && archive="google-workspace-cli-${target}.tar.gz" \
@@ -63,6 +63,15 @@ RUN apt-get update -qq && \
     python3 -m venv /opt/hass-cli && \
     /opt/hass-cli/bin/pip install --no-cache-dir homeassistant-cli && \
     ln -sf /opt/hass-cli/bin/hass-cli /usr/local/bin/hass-cli && \
+    printf '%s\n' \
+      '# Prefer IPv4. Docker DNS often returns AAAA for Google APIs while the' \
+      '# container has no working IPv6, which surfaces as getaddrinfo/dns errors.' \
+      'precedence ::ffff:0:0/96  100' \
+      'precedence ::/0            40' \
+      'precedence 2002::/16       30' \
+      'precedence ::/96           20' \
+      'precedence ::1/128         10' \
+      > /etc/gai.conf && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
 # Set production environment variables and enable jemalloc for reduced memory usage and latency.

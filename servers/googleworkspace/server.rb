@@ -882,7 +882,16 @@ module Emcp
         def gws_call
           text_response(yield)
         rescue CliError => e
-          text_response("ERROR: #{e.message}")
+          text_response("ERROR: #{format_gws_error(e)}")
+        end
+
+        def format_gws_error(error)
+          message = error.message.to_s
+          if message.match?(/dns error|failed to lookup address|getaddrinfo|name resolution/i)
+            "Google Workspace network/DNS failure (could not reach Google APIs). This is not an OAuth credential error. #{message}"
+          else
+            message
+          end
         end
       end
     end
