@@ -9,7 +9,7 @@ require "json"
 module Emcp
   VERSION = "0.1.0" unless const_defined?(:VERSION)
 
-  ToolDefinition = Data.define(:name, :description, :input_schema, :write, :handler) unless const_defined?(:ToolDefinition)
+  ToolDefinition = Data.define(:name, :description, :input_schema, :output_schema, :write, :handler) unless const_defined?(:ToolDefinition)
   ResourceDefinition = Data.define(:uri, :name, :description, :mime_type, :handler) unless const_defined?(:ResourceDefinition)
 
   module_function

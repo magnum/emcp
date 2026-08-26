@@ -56,6 +56,9 @@ class McpServerTest < ActiveSupport::TestCase
     assert_includes names, "get_battery_capacity_trend"
     assert_includes names, "teslamate_run_sql"
     assert_includes names, "teslamate_get_database_schema"
+    server.tool_catalog.each do |tool|
+      assert_equal "object", tool[:output_schema][:type], "#{tool[:name]} missing output schema"
+    end
   end
 
   test "server/discover advertises MCP 2026-07-28 for ChatGPT web" do
@@ -96,6 +99,9 @@ class McpServerTest < ActiveSupport::TestCase
       schema = tool.fetch("inputSchema")
       assert_equal "object", schema["type"], "#{tool["name"]} inputSchema.type must be object"
       assert schema.key?("properties"), "#{tool["name"]} must declare properties"
+      output = tool.fetch("outputSchema")
+      assert_equal "object", output["type"], "#{tool["name"]} outputSchema.type must be object"
+      assert output.dig("properties", "text"), "#{tool["name"]} outputSchema must describe text"
       annotations = tool.fetch("annotations")
       %w[readOnlyHint destructiveHint openWorldHint].each do |key|
         assert_includes [true, false], annotations[key], "#{tool["name"]} missing boolean #{key}"
@@ -109,6 +115,10 @@ class McpServerTest < ActiveSupport::TestCase
       assert server.instance_variable_get(:@client),
         "#{klass.server_id} must implement replace_client!"
       assert_kind_of Array, server.credential_env_keys
+      server.tool_catalog.each do |tool|
+        assert_equal "object", tool.dig(:output_schema, :type),
+          "#{klass.server_id} #{tool[:name]} must declare an object outputSchema"
+      end
     end
   end
 
