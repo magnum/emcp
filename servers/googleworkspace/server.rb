@@ -41,9 +41,13 @@ module Emcp
           {
             title: "Prepare Google Workspace credentials",
             description: "Run these commands on a trusted computer where gws can open a browser. " \
-                         "Then paste the complete exported JSON into the credentials field below.",
+                         "Then paste the complete exported JSON into the credentials field below. " \
+                         "OAuth clients still in Google Cloud Testing status issue refresh tokens " \
+                         "that expire after 7 days — publish the app (or add yourself as a test user " \
+                         "on a published client) or EmCP will show Not authenticated again.",
             steps: [
               "Set up or select the Google Cloud project and enable the Workspace APIs.",
+              "On the OAuth consent screen, set Publishing status to In production (Testing tokens die in 7 days).",
               "Sign in with the Google account EmCP should use.",
               "Verify the active credential source and the project associated with the OAuth client.",
               "Export unmasked credentials containing the refresh token.",
@@ -228,11 +232,17 @@ module Emcp
               "client_secret" => client_secret,
             },
           )
-          return false unless response.is_a?(Net::HTTPSuccess)
+          unless response.is_a?(Net::HTTPSuccess)
+            Rails.logger.warn("[googleworkspace] token refresh failed: HTTP #{response.code} #{google_refresh_error(response.body)}")
+            return false
+          end
 
           body = JSON.parse(response.body)
           access = Emcp.sanitize_env_value(body["access_token"])
-          return false if access.empty?
+          if access.empty?
+            Rails.logger.warn("[googleworkspace] token refresh returned no access_token")
+            return false
+          end
 
           credentials["access_token"] = access
           credentials["token"] = access
@@ -248,7 +258,8 @@ module Emcp
           )
           replace_client!
           true
-        rescue StandardError
+        rescue StandardError => e
+          Rails.logger.warn("[googleworkspace] token refresh error: #{e.class}: #{e.message}")
           false
         end
 
@@ -261,6 +272,13 @@ module Emcp
         end
 
         private
+
+        def google_refresh_error(body)
+          data = JSON.parse(body.to_s)
+          [ data["error"], data["error_description"] ].compact.join(": ").presence || body.to_s[0, 200]
+        rescue JSON::ParserError
+          body.to_s[0, 200]
+        end
 
         def credentials_path
           File.join(data_dir, "credentials.json")

@@ -10,6 +10,7 @@
 # Global build args must be declared before the first FROM (used by later FROM lines).
 ARG RUBY_VERSION=4.0.5
 ARG GWS_VERSION=0.22.5
+ARG HEY_VERSION=v1.4.0
 
 # --- MCP CLI binaries (hey, basecamp, gws) ---
 FROM golang:1.26-bookworm AS basecamp-build
@@ -21,10 +22,11 @@ RUN CGO_ENABLED=0 go build -trimpath -o /out/basecamp ./cmd/basecamp \
     || CGO_ENABLED=0 go build -trimpath -o /out/basecamp .
 
 FROM golang:1.26-bookworm AS hey-build
+ARG HEY_VERSION
 RUN apt-get update && apt-get install -y --no-install-recommends git \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /src
-RUN git clone --depth 1 https://github.com/basecamp/hey-cli .
+RUN git clone --depth 1 --branch "${HEY_VERSION}" https://github.com/basecamp/hey-cli .
 RUN CGO_ENABLED=0 go build -trimpath -o /out/hey ./cmd/hey \
     || CGO_ENABLED=0 go build -trimpath -o /out/hey .
 
@@ -83,6 +85,7 @@ ENV RAILS_ENV="production" \
     LD_PRELOAD="/usr/local/lib/libjemalloc.so" \
     HOME="/rails/storage/home" \
     HEY_NO_KEYRING="1" \
+    HEY_NONINTERACTIVE="1" \
     BASECAMP_NO_KEYRING="1" \
     GOOGLE_WORKSPACE_CLI_CONFIG_DIR="/rails/storage/home/.config/gws" \
     GOOGLE_WORKSPACE_CLI_KEYRING_BACKEND="file"

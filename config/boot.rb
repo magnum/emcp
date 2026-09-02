@@ -3,13 +3,18 @@ ENV["BUNDLE_GEMFILE"] ||= File.expand_path("../Gemfile", __dir__)
 require "bundler/setup" # Set up gems listed in the Gemfile.
 require "bootsnap/setup" # Speed up boot time by caching expensive operations.
 
-# Production (Kamal): load shared app env from the persistent storage volume.
-# Does not override variables already set by Kamal (RAILS_MASTER_KEY, APP_HOST, …).
-# Host path: /data/emcp/storage/.env  →  container: /rails/storage/.env
+# Load .env before Rails. Requiring dotenv here (before Rails::Railtie exists)
+# skips dotenv's Rails integration, so we must load files ourselves.
+# Does not override variables already set (Kamal secrets, APP_HOST, …).
+# Production also reads /rails/storage/.env from the Kamal volume.
 begin
   require "dotenv"
-  storage_env = File.expand_path("../storage/.env", __dir__)
-  Dotenv.load(storage_env) if File.file?(storage_env)
+  root = File.expand_path("..", __dir__)
+  files = [
+    File.join(root, ".env"),
+    File.join(root, "storage/.env"),
+  ]
+  Dotenv.load(*files.select { |path| File.file?(path) })
 rescue LoadError
   # dotenv not bundled (e.g. incomplete install) — skip
 end

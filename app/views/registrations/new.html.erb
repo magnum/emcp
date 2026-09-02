@@ -1,5 +1,5 @@
 <div class="w-full max-w-sm mx-auto">
-  <h1 class="text-2xl font-semibold text-gray-900 mb-6 text-center">
+  <h1 class="text-2xl font-semibold text-gray-900 mb-6 text-center dark:text-zinc-100">
     <%= t("registrations.sign_up") %>
   </h1>
 
@@ -7,40 +7,37 @@
     <%= render "shared/error_messages", object: @user %>
 
     <div>
-      <%= f.label :firstname, t("registrations.firstname"), class: "block text-base font-medium text-gray-700 mb-1" %>
-      <%= f.text_field :firstname, autofocus: true, autocomplete: "given-name", required: true, class: "block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500" %>
+      <%= f.label :firstname, t("registrations.firstname"), class: "block text-base font-medium text-gray-700 mb-1 dark:text-zinc-300" %>
+      <%= f.text_field :firstname, autofocus: true, autocomplete: "given-name", required: true, class: "block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500 dark:border-zinc-700 dark:bg-zinc-950" %>
     </div>
     <div>
-      <%= f.label :lastname, t("registrations.lastname"), class: "block text-base font-medium text-gray-700 mb-1" %>
-      <%= f.text_field :lastname, autocomplete: "family-name", required: true, class: "block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500" %>
+      <%= f.label :lastname, t("registrations.lastname"), class: "block text-base font-medium text-gray-700 mb-1 dark:text-zinc-300" %>
+      <%= f.text_field :lastname, autocomplete: "family-name", required: true, class: "block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500 dark:border-zinc-700 dark:bg-zinc-950" %>
     </div>
     <div>
-      <%= f.label :email, t("registrations.email"), class: "block text-base font-medium text-gray-700 mb-1" %>
-      <%= f.email_field :email, autocomplete: "email", required: true, class: "block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500" %>
+      <%= f.label :email, t("registrations.email"), class: "block text-base font-medium text-gray-700 mb-1 dark:text-zinc-300" %>
+      <%= f.email_field :email, autocomplete: "email", required: true, class: "block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500 dark:border-zinc-700 dark:bg-zinc-950" %>
     </div>
     <div>
-      <%= f.label :password, t("registrations.password"), class: "block text-base font-medium text-gray-700 mb-1" %>
-      <%= f.password_field :password, autocomplete: "new-password", required: true, class: "block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500" %>
+      <%= f.label :password, t("registrations.password"), class: "block text-base font-medium text-gray-700 mb-1 dark:text-zinc-300" %>
+      <%= f.password_field :password, autocomplete: "new-password", required: true, class: "block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500 dark:border-zinc-700 dark:bg-zinc-950" %>
     </div>
     <div>
-      <%= f.label :password_confirmation, t("registrations.password_confirmation"), class: "block text-base font-medium text-gray-700 mb-1" %>
-      <%= f.password_field :password_confirmation, autocomplete: "new-password", required: true, class: "block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500" %>
+      <%= f.label :password_confirmation, t("registrations.password_confirmation"), class: "block text-base font-medium text-gray-700 mb-1 dark:text-zinc-300" %>
+      <%= f.password_field :password_confirmation, autocomplete: "new-password", required: true, class: "block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500 dark:border-zinc-700 dark:bg-zinc-950" %>
     </div>
     <%= f.submit t("registrations.sign_up"), class: "btn-primary w-full" %>
   <% end %>
 
-  <div class="mt-6">
+  <div class="mt-4">
     <%= render "shared/invitation_link" %>
   </div>
 
   <% if google_oauth_configured? %>
-    <div class="mt-6">
+    <div class="mt-4">
       <div class="relative">
-        <div class="absolute inset-0 flex items-center">
-          <div class="w-full border-t border-gray-300"></div>
-        </div>
         <div class="relative flex justify-center text-base">
-          <span class="px-2 bg-white text-gray-500"><%= t("registrations.or_continue") %></span>
+          <span class="px-2 text-gray-500 dark:text-zinc-400"><%= t("registrations.or_continue") %></span>
         </div>
       </div>
       <div class="mt-4">
@@ -57,8 +54,8 @@
     </div>
   <% end %>
 
-  <p class="mt-6 text-center text-base text-gray-600">
+  <p class="mt-6 text-center text-base text-gray-600 dark:text-zinc-400">
     <%= t("registrations.has_account") %>
-    <%= link_to t("sessions.sign_in"), sign_in_path, class: "font-medium text-gray-900 hover:text-gray-700" %>
+    <%= link_to t("sessions.sign_in"), sign_in_path, class: "font-medium text-gray-900 hover:text-gray-700 dark:text-zinc-100" %>
   </p>
 </div>

@@ -1,28 +1,25 @@
 <div class="w-full max-w-sm mx-auto">
-  <h1 class="text-2xl font-semibold text-gray-900 mb-6 text-center">
+  <h1 class="text-2xl font-semibold text-gray-900 mb-6 text-center dark:text-zinc-100">
     <%= t("sessions.sign_in") %>
   </h1>
 
   <%= form_with url: sign_in_path, method: :post, local: true, class: "space-y-4" do |f| %>
     <div>
-      <%= f.label :email, t("registrations.email"), class: "block text-base font-medium text-gray-700 mb-1" %>
-      <%= f.email_field :email, autofocus: true, autocomplete: "email", required: true, class: "block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500" %>
+      <%= f.label :email, t("registrations.email"), class: "block text-base font-medium text-gray-700 mb-1 dark:text-zinc-300" %>
+      <%= f.email_field :email, autofocus: true, autocomplete: "email", required: true, class: "block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500 dark:border-zinc-700 dark:bg-zinc-950" %>
     </div>
     <div>
-      <%= f.label :password, t("registrations.password"), class: "block text-base font-medium text-gray-700 mb-1" %>
-      <%= f.password_field :password, autocomplete: "current-password", required: true, class: "block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500" %>
+      <%= f.label :password, t("registrations.password"), class: "block text-base font-medium text-gray-700 mb-1 dark:text-zinc-300" %>
+      <%= f.password_field :password, autocomplete: "current-password", required: true, class: "block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500 dark:border-zinc-700 dark:bg-zinc-950" %>
     </div>
     <%= f.submit t("sessions.sign_in"), class: "btn-primary w-full" %>
   <% end %>
 
   <% if google_oauth_configured? %>
-    <div class="mt-6">
+    <div class="mt-4">
       <div class="relative">
-        <div class="absolute inset-0 flex items-center">
-          <div class="w-full border-t border-gray-300"></div>
-        </div>
         <div class="relative flex justify-center text-base">
-          <span class="px-2 bg-white text-gray-500"><%= t("sessions.or_continue") %></span>
+          <span class="px-2 text-gray-500 dark:text-zinc-400"><%= t("sessions.or_continue") %></span>
         </div>
       </div>
       <div class="mt-4">
@@ -39,12 +36,12 @@
     </div>
   <% end %>
 
-  <div class="mt-6">
+  <div class="mt-4">
     <%= render "shared/invitation_link" %>
   </div>
 
-  <p class="mt-6 text-center text-base text-gray-600">
+  <p class="mt-4 text-center text-base text-gray-600 dark:text-zinc-400">
     <%= t("sessions.no_account") %>
-    <%= link_to t("registrations.sign_up"), sign_up_path, class: "font-medium text-gray-900 hover:text-gray-700" %>
+    <%= link_to t("registrations.sign_up"), sign_up_path, class: "font-medium text-gray-900 hover:text-gray-700 dark:text-zinc-100" %>
   </p>
 </div>

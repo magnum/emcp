@@ -38,6 +38,31 @@ class ServerAuthTokenRefreshJobTest < ActiveJob::TestCase
     end
   end
 
+  test "EnsureServiceTokenRefreshJob refreshes enabled servers only" do
+    enabled = McpServer.fetch!("twitter")
+    enabled.update!(service_token_refresh_in_minutes: 90)
+    disabled = McpServer.fetch!("hey")
+    disabled.update!(service_token_refresh_in_minutes: nil)
+
+    seen = []
+    [ enabled, disabled ].each do |server|
+      server.define_singleton_method(:refresh_service_token!) do
+        seen << code
+        true
+      end
+    end
+
+    original = McpServer.method(:find_each)
+    McpServer.define_singleton_method(:find_each) do |**_opts, &block|
+      [ enabled, disabled ].each(&block)
+    end
+
+    EnsureServiceTokenRefreshJob.perform_now
+    assert_equal %w[twitter], seen
+  ensure
+    McpServer.define_singleton_method(:find_each, original) if original
+  end
+
   test "refresh_service_token! is public on servers that refresh credentials" do
     %w[twitter bluesky fattureincloud googleworkspace basecamp].each do |code|
       server = McpServer.fetch!(code)
