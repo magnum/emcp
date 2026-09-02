@@ -25,9 +25,11 @@ gws auth export --unmasked
 
 Paste the exported JSON into `/servers/googleworkspace/auth`. Leave the short-lived access token field empty: `GOOGLE_WORKSPACE_CLI_TOKEN` overrides the credentials file and expires quickly.
 
+If the Google Cloud OAuth consent screen is still in **Testing**, Google expires the refresh token after **7 days** and EmCP will show Not authenticated again. Publish the app (Publishing status: In production) for a durable token. Daily refresh keeps a *published* token from going idle (6 months); it does not extend Testing tokens.
+
 Set `GOOGLE_WORKSPACE_PROJECT_ID` for quota / billing attribution (often missing from the export).
 
-In Docker, CLI config lives under `./data/cli/gws`. EmCP also stores credentials under `data/googleworkspace/`.
+In Docker, CLI config lives under the Kamal volume (`/rails/storage/home/.config/gws`). EmCP also stores credentials under `storage/mcp/googleworkspace/`.
 
 ## Environment
 
