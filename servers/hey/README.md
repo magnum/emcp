@@ -2,7 +2,7 @@
 
 ← [Back to project](https://github.com/magnum/emcp)
 
-EmCP integration for [HEY](https://hey.com) email and related tools, backed by the official [`basecamp/hey-cli`](https://github.com/basecamp/hey-cli). Also exposes the `hey://skill` resource (official CLI agent skill).
+EmCP integration for [HEY](https://hey.com) email and related tools, backed by the official [`basecamp/hey-cli`](https://github.com/basecamp/hey-cli) **v1.4.0**. Also exposes the `hey://skill` resource (official CLI agent skill plus EmCP tool mapping).
 
 ## MCP endpoint
 
@@ -25,14 +25,19 @@ Credentials are stored via the HEY CLI config volume (`./data/cli/hey` in Docker
 | Variable | Purpose |
 | --- | --- |
 | `HEY_ALLOW_WRITE` | Enable write tools (`true` / `false`) |
-| `HEY_TIMEOUT` | CLI timeout seconds (default `30`) |
+| `HEY_TIMEOUT` | CLI timeout seconds (default `60`) |
 | `HEY_NO_KEYRING` | Set in the image (`1`) so the CLI uses file storage in Docker |
+| `HEY_NONINTERACTIVE` | Set by the client (`1`) so the CLI never prompts |
 
 ## Tools
 
-About **30** tools (mailboxes, threads, compose/reply, calendars, todos, habits, journal, auth/config helpers). Mutations are `write: true` and gated by `HEY_ALLOW_WRITE`.
+The catalog follows hey-cli's noun-first commands: boxes, labels, collections, workflows, clips, snippets, search, contacts, The Screener, threads, drafts, calendars/events, todos, habits, time tracking, and journal. Mutations are `write: true` and gated by `HEY_ALLOW_WRITE`.
 
-For `hey_compose` / `hey_reply`, prefer the `paragraphs` array (one idea per item). EmCP converts plain text to Trix/Action Text HTML: blank lines between paragraphs, and lines starting with `-` / `–` / `*` / `•` or `1.` become real `<ul>` / `<ol>` lists.
+For `hey_compose` / `hey_reply` / `hey_forward`, prefer the `paragraphs` array (Markdown, one idea per item). The CLI converts Markdown to HEY rich text. Use `message_html` or `as_html` only for raw HTML. `draft: true` saves instead of sending.
+
+Use box item `id` for seen/move/label/trash. Use `topic_id` for thread read/reply/forward/share.
+
+`hey_recordings` remains as a deprecated alias of `hey_events`.
 
 ## Files
 
