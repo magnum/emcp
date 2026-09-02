@@ -30,6 +30,9 @@
 en:
   hello: "Hello"
 
+  loading:
+    message: "Loading..."
+
   home:
     welcome: "Welcome to your application."
     sign_in_prompt: "Sign in or create an account to continue."
@@ -124,3 +127,9 @@ en:
     errors_prohibited:
       one: "1 error prohibited this account from being saved:"
       other: "%{count} errors prohibited this account from being saved:"
+
+  legal:
+    nav_label: Legal
+    privacy_policy: Privacy policy
+    terms_and_conditions: Terms and conditions
+    cookie_policy: Cookie policy

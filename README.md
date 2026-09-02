@@ -33,6 +33,7 @@ That file is mounted at `/rails/storage/.env` and loaded at boot for web + worke
 
 | Variable | Purpose |
 | --- | --- |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google Sign-In (OmniAuth). Redirect: `${APP_HOST}/auth/google_oauth2/callback` |
 | `EMCP_PUBLIC_URL` | Public base URL (no trailing slash), used in MCP/OAuth metadata |
 | `EMCP_USER1_PASSWORD` | Password for seeded operator `user1@emcp.local` (dev default: `emcp-dev-password`) |
 | `API_KEY_HMAC_SECRET_KEY` | HMAC secret for ApiKey digests |
@@ -41,8 +42,10 @@ That file is mounted at `/rails/storage/.env` and loaded at boot for web + worke
 
 - Email: `user1@emcp.local`
 - Password: `EMCP_USER1_PASSWORD` (or the development default)
-- Integrations: `/` or `/servers`
+- Integrations: `/servers` (signed-in home)
+- Public landing: `/`
 - Auth per server: `/servers/<code>/auth`
+- Google Sign-In callback: `https://emcp.m6i.it/auth/google_oauth2/callback`
 
 ### MCP clients
 
