@@ -12,18 +12,25 @@ class User < ApplicationRecord
   validate :password_or_oauth
   validate :password_confirmation_match, if: -> { password.present? }
 
+  normalizes :email, with: ->(email) { email.to_s.strip.downcase }
+
   after_create :create_default_plan
 
+  def self.find_for_omniauth(auth)
+    find_by(provider: auth.provider, uid: auth.uid).presence ||
+      find_by(email: auth.info.email)
+  end
+
   def self.from_omniauth(auth)
-    where(provider: auth.provider, uid: auth.uid).first_or_initialize.tap do |user|
-      user.email = auth.info.email
-      user.firstname = auth.info.first_name.presence || auth.info.name&.split&.first || "User"
-      user.lastname = auth.info.last_name.presence || auth.info.name&.split&.last || "Name"
-      user.avatar_url = auth.info.image
-      user.provider = auth.provider
-      user.uid = auth.uid
-      user.save!
-    end
+    user = find_for_omniauth(auth) || new
+    user.email = auth.info.email
+    user.firstname = user.firstname.presence || auth.info.first_name.presence || auth.info.name&.split&.first || "User"
+    user.lastname = user.lastname.presence || auth.info.last_name.presence || auth.info.name&.split&.last || "Name"
+    user.avatar_url = auth.info.image.presence || user.avatar_url
+    user.provider = auth.provider
+    user.uid = auth.uid
+    user.save!
+    user
   end
 
   def google_connected?
