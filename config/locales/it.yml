@@ -1,6 +1,9 @@
 it:
   hello: "Ciao"
 
+  loading:
+    message: "Caricamento..."
+
   date:
     formats:
       default: "%d/%m/%Y"
@@ -103,3 +106,9 @@ it:
     errors_prohibited:
       one: "1 errore ha impedito il salvataggio dell'account:"
       other: "%{count} errori hanno impedito il salvataggio dell'account:"
+
+  legal:
+    nav_label: Documenti legali
+    privacy_policy: Privacy
+    terms_and_conditions: Termini e condizioni
+    cookie_policy: Cookie

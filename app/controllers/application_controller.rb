@@ -14,10 +14,6 @@ class ApplicationController < ActionController::Base
 
   before_action :set_active_storage_url_options
 
-  def default_url_options
-    { locale: I18n.locale }
-  end
-
   private
 
   def set_active_storage_url_options
