@@ -30,7 +30,7 @@ class SessionsController < ApplicationController
 
   def create_from_oauth
     auth = request.env["omniauth.auth"]
-    existing_user = User.find_by(provider: auth.provider, uid: auth.uid)
+    existing_user = User.find_for_omniauth(auth)
 
     if existing_user.nil?
       invitation = current_invitation
