@@ -10,25 +10,53 @@
 # Global build args must be declared before the first FROM (used by later FROM lines).
 ARG RUBY_VERSION=4.0.5
 ARG GWS_VERSION=0.22.5
-ARG HEY_VERSION=v1.4.0
+ARG HEY_VERSION=1.4.0
+ARG BASECAMP_VERSION=0.9.1
 
 # --- MCP CLI binaries (hey, basecamp, gws) ---
-FROM golang:1.26-bookworm AS basecamp-build
-RUN apt-get update && apt-get install -y --no-install-recommends git \
+# Download official release tarballs. Do not git clone: GitHub prompts for a
+# username inside BuildKit (no TTY) and the build fails with exit 128.
+FROM debian:bookworm-slim AS basecamp-download
+ARG TARGETARCH
+ARG BASECAMP_VERSION
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates curl \
     && rm -rf /var/lib/apt/lists/*
-WORKDIR /src
-RUN git clone --depth 1 https://github.com/basecamp/basecamp-cli .
-RUN CGO_ENABLED=0 go build -trimpath -o /out/basecamp ./cmd/basecamp \
-    || CGO_ENABLED=0 go build -trimpath -o /out/basecamp .
+WORKDIR /tmp
+RUN case "${TARGETARCH}" in \
+      amd64) arch="amd64" ;; \
+      arm64) arch="arm64" ;; \
+      *) echo "Unsupported TARGETARCH: ${TARGETARCH}" >&2; exit 1 ;; \
+    esac \
+    && archive="basecamp_${BASECAMP_VERSION}_linux_${arch}.tar.gz" \
+    && url="https://github.com/basecamp/basecamp-cli/releases/download/v${BASECAMP_VERSION}" \
+    && curl -fsSLO "${url}/${archive}" \
+    && curl -fsSLO "${url}/checksums.txt" \
+    && grep " ${archive}$" checksums.txt | sha256sum -c - \
+    && tar -xzf "${archive}" \
+    && mkdir -p /out \
+    && install -m 0755 basecamp /out/basecamp
 
-FROM golang:1.26-bookworm AS hey-build
+FROM debian:bookworm-slim AS hey-download
+ARG TARGETARCH
 ARG HEY_VERSION
-RUN apt-get update && apt-get install -y --no-install-recommends git \
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates curl \
     && rm -rf /var/lib/apt/lists/*
-WORKDIR /src
-RUN git clone --depth 1 --branch "${HEY_VERSION}" https://github.com/basecamp/hey-cli .
-RUN CGO_ENABLED=0 go build -trimpath -o /out/hey ./cmd/hey \
-    || CGO_ENABLED=0 go build -trimpath -o /out/hey .
+WORKDIR /tmp
+RUN case "${TARGETARCH}" in \
+      amd64) arch="amd64" ;; \
+      arm64) arch="arm64" ;; \
+      *) echo "Unsupported TARGETARCH: ${TARGETARCH}" >&2; exit 1 ;; \
+    esac \
+    && archive="hey_${HEY_VERSION}_linux_${arch}.tar.gz" \
+    && url="https://github.com/basecamp/hey-cli/releases/download/v${HEY_VERSION}" \
+    && curl -fsSLO "${url}/${archive}" \
+    && curl -fsSLO "${url}/checksums.txt" \
+    && grep " ${archive}$" checksums.txt | sha256sum -c - \
+    && tar -xzf "${archive}" \
+    && mkdir -p /out \
+    && install -m 0755 hey /out/hey
 
 FROM debian:bookworm-slim AS gws-download
 ARG TARGETARCH
@@ -124,8 +152,8 @@ RUN SECRET_KEY_BASE_DUMMY=1 ./bin/rails assets:precompile
 FROM base
 
 # MCP CLI binaries
-COPY --from=basecamp-build /out/basecamp /usr/local/bin/basecamp
-COPY --from=hey-build /out/hey /usr/local/bin/hey
+COPY --from=basecamp-download /out/basecamp /usr/local/bin/basecamp
+COPY --from=hey-download /out/hey /usr/local/bin/hey
 COPY --from=gws-download /out/gws /usr/local/bin/gws
 
 # Run and own only the runtime files as a non-root user for security
