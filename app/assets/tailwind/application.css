@@ -38,6 +38,14 @@
     @apply inline-flex cursor-pointer items-center justify-center px-4 py-2 rounded-md text-base font-medium text-gray-800 bg-white border border-gray-300 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500;
   }
 
+  .btn-link {
+    @apply inline-flex cursor-pointer items-center justify-center px-4 py-2 rounded-md text-base font-medium text-gray-800 hover:text-gray-900 hover:underline;
+  }
+
+  .link-delete {
+    @apply cursor-pointer inline-flex items-center justify-center bg-transparent border-0 p-0 text-base font-medium text-red-600 hover:text-red-800 hover:underline;
+  }
+
   .btn-primary {
     @apply cursor-pointer px-4 py-2 text-base font-medium text-white bg-primary-600 border border-transparent rounded-md shadow-sm hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors duration-200;
   }
@@ -93,6 +101,46 @@ body {
   }
 }
 
+.font1 {
+  font-family: InterTight, ui-sans-serif, system-ui, sans-serif;
+  font-weight: 800;
+}
+
 .list-label {
-  @apply text-sm font-medium text-gray-500 uppercase tracking-wider md:hidden;
+  @apply font-medium text-gray-500 uppercase tracking-wider md:hidden;
+}
+
+.list-description {
+  @apply min-w-0 truncate text-base text-gray-500;
+}
+
+.legal-content {
+  @apply mx-auto w-full max-w-3xl text-base leading-7 text-gray-700 dark:text-zinc-300;
+}
+
+.legal-content h1 {
+  font-family: InterTight, ui-sans-serif, system-ui, sans-serif;
+  font-weight: 800;
+  @apply mb-4 text-4xl text-gray-900 dark:text-zinc-100;
+}
+
+.legal-content h2 {
+  @apply mt-8 text-2xl font-bold text-gray-900 dark:text-zinc-100;
+}
+
+.legal-content h3 {
+  @apply mt-6 text-xl font-semibold text-gray-900 dark:text-zinc-100;
+}
+
+.legal-content a {
+  @apply underline hover:text-gray-900 dark:hover:text-zinc-100;
+}
+
+.legal-content ul,
+.legal-content ol {
+  @apply my-4 list-disc space-y-1 pl-6;
+}
+
+.legal-content code {
+  @apply rounded bg-gray-100 px-1 py-0.5 text-sm dark:bg-zinc-800;
 }

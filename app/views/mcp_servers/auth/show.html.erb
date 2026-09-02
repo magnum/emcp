@@ -10,9 +10,17 @@
     <h1 class="mt-2 text-3xl font-bold tracking-tight"><%= @server.name %></h1>
   </div>
   <% status = @server.auth_status %>
-  <p class="rounded-lg border px-4 py-2 font-semibold <%= status[:authenticated] ? "border-emerald-700 bg-emerald-50" : "border-amber-700 bg-amber-50" %>">
-    <%= status[:authenticated] ? "Authenticated" : "Not authenticated" %>
-  </p>
+  <div class="space-y-2">
+    <p class="rounded-lg border px-4 py-2 font-semibold <%= status[:authenticated] ? "border-emerald-700 bg-emerald-50 dark:border-emerald-400 dark:bg-emerald-950" : "border-amber-700 bg-amber-50 dark:border-amber-400 dark:bg-amber-950" %>">
+      <%= status[:authenticated] ? "Authenticated" : "Not authenticated" %>
+    </p>
+    <% unless status[:authenticated] %>
+      <% detail = status[:token_error].presence || status[:error].presence || status[:credentials_file_error].presence %>
+      <% if detail.present? %>
+        <p class="max-w-md text-sm text-amber-800 dark:text-amber-200"><%= detail %></p>
+      <% end %>
+    <% end %>
+  </div>
 </header>
 
 <% help = @server.auth_help_content %>

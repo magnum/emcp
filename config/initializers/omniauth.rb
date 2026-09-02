@@ -10,3 +10,4 @@ if google_client_id.present? && google_client_secret.present?
 end
 
 OmniAuth.config.allowed_request_methods = [ :get, :post ]
+OmniAuth.config.full_host = ENV["APP_HOST"] if ENV["APP_HOST"].present?

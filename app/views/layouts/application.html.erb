@@ -38,52 +38,54 @@
     <%= javascript_importmap_tags %>
   </head>
 
-  <body class="min-h-screen bg-gray-50 font-sans text-gray-900 antialiased dark:bg-zinc-950 dark:text-zinc-100">
-    <header class="border-b border-gray-200 bg-white dark:border-zinc-800 dark:bg-zinc-950" data-controller="theme">
-      <nav class="container mx-auto flex items-center justify-between px-4 py-3">
-        <div class="flex items-center gap-4">
-          <%= link_to Settings.app.name, root_path, class: "text-2xl font-semibold text-gray-900 dark:text-zinc-100" %>
-        </div>
-        <div class="flex items-center gap-4">
-          <%= render "shared/locale_select" %>
-          <% if signed_in? %>
-            <% if current_user.admin? %>
-              <%= link_to "Admin", admin_root_path, class: "hidden md:inline text-base font-medium text-gray-700 hover:text-gray-900 dark:text-zinc-300 dark:hover:text-zinc-100" %>
-              <%= link_to t("users.index.title"), users_path, class: "hidden md:inline text-base font-medium text-gray-700 hover:text-gray-900 dark:text-zinc-300 dark:hover:text-zinc-100" %>
-            <% end %>
-            <%= link_to user_path(current_user), class: "flex items-center gap-2" do %>
-              <%= render "users/avatar", user: current_user %>
-              <span class="hidden sm:inline text-base text-gray-600 dark:text-zinc-400"><%= current_user.email %></span>
-            <% end %>
-            <%= button_to t("sessions.sign_out"), sign_out_path, method: :delete, class: "text-base font-medium text-gray-700 hover:text-gray-900 bg-transparent border-0 p-0 cursor-pointer inline dark:text-zinc-300 dark:hover:text-zinc-100" %>
-          <% else %>
-            <%= link_to t("sessions.sign_in"), sign_in_path, class: "btn-default" %>
-            <%= link_to t("views.invitations.use_invitation_code"), invitation_consume_path, class: "btn-primary" %>
+  <body class="min-h-screen font-sans flex flex-col dark:bg-zinc-950 dark:text-zinc-100" data-controller="loading theme">
+    <%= render "shared/loading_overlay" %>
+    <div class="flex">
+      <div class="p-4">
+        <%= render "shared/app_name", tag: :span, link: root_path, class: "md:text-4xl hover:text-gray-700 dark:hover:text-zinc-300" if request.path != root_path %>
+      </div>
+      <div class="p-4 flex items-center gap-4 flex-1 justify-end">
+        <%= render "shared/locale_select" %>
+        <% if signed_in? %>
+          <%= link_to "Integrations", mcp_servers_path, class: "hidden md:inline font-medium text-gray-700 hover:text-gray-900 hover:underline dark:text-zinc-300 dark:hover:text-zinc-100" %>
+          <% if current_user.admin? %>
+            <%= link_to "Admin", admin_root_path, class: "hidden md:inline font-medium text-gray-700 hover:text-gray-900 hover:underline dark:text-zinc-300 dark:hover:text-zinc-100" %>
+            <%= link_to t("users.index.title"), users_path, class: "hidden md:inline font-medium text-gray-700 hover:text-gray-900 hover:underline dark:text-zinc-300 dark:hover:text-zinc-100" %>
           <% end %>
-          <button type="button"
-                  data-action="theme#toggle"
-                  class="inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-zinc-700 dark:text-zinc-100 dark:hover:bg-zinc-900"
-                  title="Switch color theme"
-                  aria-label="Switch color theme">
-            <span class="dark:hidden">
-              <%= heroicon "moon", options: { class: "h-5 w-5" } %>
-            </span>
-            <span class="hidden dark:inline">
-              <%= heroicon "sun", options: { class: "h-5 w-5" } %>
-            </span>
-          </button>
-        </div>
-      </nav>
-    </header>
+          <%= link_to user_path(current_user), class: "flex items-center gap-2" do %>
+            <%= render "users/avatar", user: current_user %>
+            <span class="hidden md:inline text-gray-600 dark:text-zinc-400"><%= current_user.email %></span>
+          <% end %>
+          <%= button_to t("sessions.sign_out"), sign_out_path, method: :delete, class: "font-medium text-gray-700 hover:text-gray-900 bg-transparent border-0 p-0 cursor-pointer inline hover:underline dark:text-zinc-300 dark:hover:text-zinc-100" %>
+        <% else %>
+          <%= link_to t("sessions.sign_in"), sign_in_path, class: "font-medium text-gray-700 hover:text-gray-900 dark:text-zinc-300 dark:hover:text-zinc-100" %>
+          <%= link_to t("views.invitations.use_invitation_code"), invitation_consume_path, class: "font-medium text-gray-700 hover:text-gray-900 hover:underline dark:text-zinc-300 dark:hover:text-zinc-100" %>
+        <% end %>
+        <button type="button"
+                data-action="theme#toggle"
+                class="inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-zinc-700 dark:text-zinc-100 dark:hover:bg-zinc-900"
+                title="Switch color theme"
+                aria-label="Switch color theme">
+          <span class="dark:hidden">
+            <%= heroicon "moon", options: { class: "h-5 w-5" } %>
+          </span>
+          <span class="hidden dark:inline">
+            <%= heroicon "sun", options: { class: "h-5 w-5" } %>
+          </span>
+        </button>
+      </div>
+    </div>
 
     <% if flash.any? %>
-      <div class="container mx-auto px-4 py-2">
+      <div class="px-4 pt-4">
         <%= render "shared/flashes" %>
       </div>
     <% end %>
 
-    <main class="container mx-auto mt-8 px-5">
+    <main class="container mx-auto px-5 pt-12 flex flex-1 flex-col">
       <%= yield %>
     </main>
+
+    <%= render "shared/legal_footer" %>
   </body>
 </html>

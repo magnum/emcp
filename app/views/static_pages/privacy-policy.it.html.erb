@@ -1,0 +1,350 @@
+<% content_for :title, "Informativa sulla privacy — EmCP" %>
+
+<article class="prose prose-gray mx-auto">
+  <h1>Informativa sulla privacy</h1>
+  <p class=" text-gray-500">Ultimo aggiornamento: 24 agosto 2026</p>
+
+  <p>
+    EmCP è un’applicazione web. Questa pagina dice quali dati personali servono
+    al servizio, perché, dove stanno e come puoi chiedere di correggerli o cancellarli.
+  </p>
+  <p>
+    Se colleghi Google, le informazioni richieste dalla verifica OAuth di Google sono nella
+    <a href="#google-user-data">sezione 3 (dati utente Google)</a>:
+    <a href="#google-data-access">quali dati vengono letti</a>,
+    <a href="#google-data-use">come vengono usati</a>,
+    <a href="#google-data-sharing">con chi vengono condivisi</a>,
+    <a href="#google-data-protection">come sono protetti</a> e
+    <a href="#google-data-retention">conservazione e cancellazione</a>.
+  </p>
+
+  <h2>1. Titolare del trattamento</h2>
+  <p>
+    Il titolare del trattamento dei dati personali effettuato tramite EmCP è:
+  </p>
+  <p>
+    <strong>Antonio Molinari</strong><br>
+    Via Caselle 6<br>
+    26032 Ostiano (CR), Italia
+  </p>
+  <p>
+    Email: <a href="mailto:support@m6i.it">support@m6i.it</a><br>
+    Sito: <a href="https://m6i.it">https://m6i.it</a><br>
+    Servizio: <a href="https://emcp.m6i.it">https://emcp.m6i.it</a>
+  </p>
+  <p>
+    In questo documento “EmCP”, “io” e “il servizio” indicano quella persona fisica, non una società.
+  </p>
+
+  <h2>2. Che cosa fa EmCP</h2>
+  <p>
+    EmCP ti permette di creare un account, accedere con email o Google, usare un’API HTTP
+    e collegare un assistente tramite Model Context Protocol (MCP). Può essere disponibile anche
+    uno strumento a riga di comando per lo stesso backend.
+  </p>
+  <p>
+    È disponibile un piano gratuito. È previsto un piano a pagamento con funzioni aggiuntive. Quando partirà
+    la fatturazione, questa informativa e i termini indicheranno il fornitore dei pagamenti. I numeri completi
+    delle carte non verranno conservati sui server di EmCP.
+  </p>
+
+  <h2 id="google-user-data">3. Dati utente Google</h2>
+  <p>
+    Questa sezione descrive i dati utente Google letti tramite Google Sign-In solo per l’autenticazione.
+    L’uso da parte di EmCP delle informazioni ricevute dalle API Google rispetta la
+    <a href="https://developers.google.com/terms/api-services-user-data-policy">Google API Services User Data Policy</a>,
+    compresi i requisiti Limited Use.
+  </p>
+  <p>
+    EmCP usa Google <strong>solo per farti accedere</strong>. Non chiede accesso a Google Calendar
+    né ad altri prodotti Google oltre alle informazioni di profilo di base necessarie per il login.
+  </p>
+
+  <h3 id="google-data-access">3.1 Quali dati utente Google vengono letti</h3>
+  <p>
+    Quando scegli Google Sign-In, EmCP richiede solo questi ambiti OAuth:
+  </p>
+  <ul>
+    <li>
+      <code>https://www.googleapis.com/auth/userinfo.email</code>
+      (richiesto anche come <code>email</code>) — l’indirizzo email dell’account Google con cui accedi.
+    </li>
+    <li>
+      <code>https://www.googleapis.com/auth/userinfo.profile</code>
+      (richiesto anche come <code>profile</code>) — profilo di base come nome visualizzato e URL dell’immagine.
+    </li>
+  </ul>
+  <p>
+    Da quelle API EmCP può ricevere e, in alcuni casi, conservare:
+  </p>
+  <ul>
+    <li>
+      <strong>Identità:</strong> email dell’account Google, nome visualizzato e URL dell’immagine profilo,
+      usati per creare o collegare l’account EmCP.
+    </li>
+    <li>
+      <strong>Identificativo del provider:</strong> l’id account Google usato per collegare l’accesso al record utente EmCP.
+    </li>
+  </ul>
+  <p>
+    EmCP non richiede Gmail, Drive, Calendar, Contatti o altri prodotti Google. Non accede ai dati utente Google
+    finché non completi la schermata di consenso di Google.
+  </p>
+
+  <h3 id="google-data-use">3.2 Come vengono usati i dati utente Google</h3>
+  <p>
+    I dati utente Google servono solo a erogare EmCP per te:
+  </p>
+  <ul>
+    <li>farti accedere (o collegare un account EmCP esistente) con Google;</li>
+    <li>mostrare nome e avatar nell’interfaccia quando sei collegato;</li>
+    <li>diagnosticare guasti sull’accesso (ad esempio un token scaduto), compresi report di errore che
+      possono contenere identificativi come user id o email.</li>
+  </ul>
+  <p>
+    EmCP <strong>non</strong> usa i dati utente Google per:
+  </p>
+  <ul>
+    <li>fare pubblicità o costruire profili pubblicitari;</li>
+    <li>venderli o affittarli;</li>
+    <li>valutare il merito creditizio o cederli ad altri a quel fine;</li>
+    <li>addestrare, sviluppare o migliorare modelli di intelligenza artificiale o machine learning generalizzati o non personalizzati.</li>
+  </ul>
+  <p>
+    L’accesso umano dell’operatore è limitato all’erogazione del servizio, al supporto che chiedi e alle
+    indagini di sicurezza o abuso.
+  </p>
+
+  <h3 id="google-data-sharing">3.3 Con chi i dati utente Google sono condivisi, trasferiti o comunicati</h3>
+  <p>
+    Non vendo i dati utente Google. Non li condivido con inserzionisti o data broker. Vengono comunicati solo
+    come segue:
+  </p>
+  <ul>
+    <li>
+      <strong>Tu</strong> — nell’app web EmCP quando sei collegato.
+    </li>
+    <li>
+      <strong>L’operatore (Antonio Molinari)</strong> — come titolare, con accesso limitato a gestione del
+      servizio, supporto e sicurezza.
+    </li>
+    <li>
+      <strong>Il server dell’operatore</strong> — hosting. Il database dell’applicazione (compresi i
+      dati account collegati a Google Sign-In) e i log operativi stanno su quel server.
+    </li>
+    <li>
+      <strong>Google</strong> — durante il flusso OAuth di accesso. Google resta titolare autonomo del tuo account Google.
+    </li>
+    <li>
+      <strong>Client MCP o API che autorizzi</strong> — quei client ricevono le risposte che chiedi tramite
+      l’API HTTP o l’interfaccia MCP. Dopo che i dati escono da EmCP valgono i termini di quel client.
+    </li>
+    <li>
+      <strong>Obbligo di legge</strong> — se un’autorità competente lo richiede legittimamente, o se è
+      strettamente necessario per proteggere il servizio o gli utenti da abusi o reati.
+    </li>
+  </ul>
+  <p>
+    Google Fonts può ricevere il tuo IP quando l’interfaccia carica i caratteri.
+    È consegna ordinaria della pagina, non un trasferimento dei dati di Google Sign-In.
+  </p>
+
+  <h3 id="google-data-protection">3.4 Protezione dei dati utente Google</h3>
+  <p>
+    EmCP tratta i dati di Google Sign-In come dati riservati dell’account e applica queste misure:
+  </p>
+  <ul>
+    <li><strong>Cifratura in transito:</strong> HTTPS/TLS tra il tuo browser e EmCP, e tra EmCP e gli endpoint OAuth di Google.</li>
+    <li><strong>Controllo degli accessi:</strong> l’accesso al server di produzione e al database è limitato all’operatore. I dati del tuo account sono legati al tuo account EmCP; gli altri utenti non li leggono tramite il prodotto.</li>
+    <li><strong>Credenziali:</strong> password e chiavi API sono conservate in forma hash. I segreti di accesso non vengono pubblicati.</li>
+    <li><strong>Minimizzazione:</strong> si richiedono solo gli ambiti elencati sopra.</li>
+    <li><strong>Ambiente:</strong> l’app gira su un server dedicato, con SQLite e TLS sul reverse proxy.</li>
+    <li><strong>Revoca:</strong> puoi uscire da EmCP e revocare l’accesso nelle
+      <a href="https://myaccount.google.com/permissions">autorizzazioni dell’account Google</a>.</li>
+  </ul>
+  <p>
+    Nessun metodo di conservazione o trasmissione è del tutto sicuro. Se viene confermata una violazione
+    che riguarda dati utente Google, ti avviserò e avviserò le autorità quando la legge lo richiede.
+  </p>
+
+  <h3 id="google-data-retention">3.5 Conservazione e cancellazione dei dati utente Google</h3>
+  <p>
+    <strong>Finché l’account esiste:</strong> email, nome, URL avatar e il collegamento al provider Google restano
+    così puoi accedere di nuovo con Google.
+  </p>
+  <p>
+    <strong>Come cancellare i dati utente Google da EmCP senza chiudere l’account Google:</strong>
+  </p>
+  <ol>
+    <li>In opzione, revoca EmCP in
+      <a href="https://myaccount.google.com/permissions">Account Google → Accesso di terze parti</a>.</li>
+    <li>Per cancellare l’account EmCP e le copie residue (dati profilo, chiavi API),
+      contatta un amministratore o scrivi a
+      <a href="mailto:support@m6i.it">support@m6i.it</a> dall’indirizzo dell’account. Dopo la verifica
+      dell’identità (se scrivi), la cancellazione dai sistemi attivi parte senza ingiustificato ritardo.</li>
+  </ol>
+  <p>
+    I backup del disco del server possono trattenere copie per una finestra tecnica breve; non tornano in uso
+    ordinario e scadono con il ciclo di backup.
+  </p>
+
+  <h2>4. Altre categorie di dati</h2>
+  <h3>Account</h3>
+  <p>
+    Indirizzo email, nome, hash della password (se ti registri con email), URL dell’immagine profilo se
+    Google Sign-In la fornisce, lingua preferita e metadati di ruolo (ad esempio se l’account è amministratore).
+  </p>
+  <h3>Google Sign-In</h3>
+  <p>
+    Vedi la <a href="#google-user-data">sezione 3</a>. In sintesi: email, nome e immagine profilo da Google
+    quando scegli Google Sign-In.
+  </p>
+  <h3>Chiavi API, CLI e MCP</h3>
+  <p>
+    Hash delle chiavi API se le crei. Registrazioni di client OAuth, codici di autorizzazione e token di accesso
+    o refresh se colleghi un client MCP.
+  </p>
+  <h3>Dati tecnici e di sicurezza</h3>
+  <p>
+    Indirizzo IP, informazioni su browser e dispositivo, URL richiesti, timestamp e log diagnostici necessari
+    a far funzionare e proteggere il servizio. I codici di invito possono restare in un cookie tecnico durante
+    la registrazione.
+  </p>
+  <p>
+    EmCP non è pensato, come uso ordinario, per dati sanitari, giudiziari, biometrici o relativi a minori.
+    Non caricare quel tipo di materiale.
+  </p>
+
+  <h2>5. Finalità e basi giuridiche</h2>
+  <ul>
+    <li><strong>Erogazione dell’account e del prodotto</strong> (accesso, CLI, API, MCP): esecuzione del contratto, art. 6(1)(b) GDPR.</li>
+    <li><strong>Google Sign-In</strong>: lo avvii tu; il trattamento discende dal contratto e dal consenso che dai nella schermata Google.</li>
+    <li><strong>Sicurezza, prevenzione abusi, diagnosi degli errori</strong>: legittimo interesse a tenere il servizio utilizzabile e sicuro, art. 6(1)(f) GDPR.</li>
+    <li><strong>Risposta alle richieste di supporto</strong>: contratto e, se serve, legittimo interesse.</li>
+    <li><strong>Obblighi di legge</strong> (ad esempio scritture contabili quando esisteranno i piani a pagamento): art. 6(1)(c) GDPR.</li>
+    <li><strong>Tracciamento facoltativo</strong>: oggi non è attivo. Se in futuro verranno aggiunti cookie non essenziali, scatteranno solo con consenso, art. 6(1)(a) GDPR. Vedi l’<a href="/cookie-policy">informativa cookie</a>.</li>
+  </ul>
+  <p>
+    I dati di Google Sign-In servono solo ad autenticarti e mostrare il profilo nell’app. Non servono per
+    pubblicità, vendita a terzi o addestramento di modelli di uso generale. I dettagli sui
+    dati utente Google sono nella <a href="#google-data-use">sezione 3.2</a>.
+  </p>
+
+  <h2>6. Luogo del trattamento</h2>
+  <p>
+    L’applicazione gira su un <strong>server dedicato</strong> dell’operatore. Lo stack è un’app
+    Ruby on Rails in container, con database SQLite locale su disco, TLS sul reverse proxy e job in background
+    sullo stesso host. Non c’è un data warehouse di analytics separato.
+  </p>
+  <p>
+    Alcuni trattamenti avvengono presso altri fornitori perché il prodotto non può funzionare senza, come
+    elencato sotto. La copia principale dei dati account resta, per quanto possibile, nell’UE.
+  </p>
+
+  <h2>7. Destinatari e responsabili</h2>
+  <p>
+    Non vendo dati personali. L’accesso è limitato a me, a te (per il tuo account) e ai fornitori necessari
+    a erogare EmCP. Quei fornitori agiscono come responsabili o come titolari autonomi, a seconda del servizio.
+    I destinatari dei dati utente Google sono elencati nella <a href="#google-data-sharing">sezione 3.3</a>.
+  </p>
+
+  <h3>Server dell’operatore</h3>
+  <p>
+    <strong>Ruolo:</strong> hosting e infrastruttura.<br>
+    <strong>Dati:</strong> database dell’applicazione, file e log operativi.<br>
+    <strong>Luogo:</strong> server dedicato sotto il controllo del titolare.
+  </p>
+
+  <h3>Google</h3>
+  <p>
+    <strong>Ruolo:</strong> solo Sign-In. Google è titolare autonomo del tuo account Google.
+    EmCP usa Google come fonte di identità quando lo autorizzi.<br>
+    <strong>Dati:</strong> profilo e email all’accesso. Vedi la <a href="#google-data-access">sezione 3.1</a>.<br>
+    <strong>Luogo:</strong> il trattamento può avvenire nello SEE e in altri Paesi, secondo i termini di Google e gli strumenti di trasferimento che Google pubblica (decisioni di adeguatezza o clausole contrattuali standard, ove applicabili).
+  </p>
+
+  <h3>Google Fonts</h3>
+  <p>
+    L’interfaccia web può caricare caratteri dai server font di Google. Quelle richieste possono esporre IP e user agent
+    a Google. Servono solo a disegnare l’interfaccia, non a profilarti per conto di EmCP.
+  </p>
+
+  <h3>Assistenti che colleghi (MCP)</h3>
+  <p>
+    Se autorizzi un client di terzi (ad esempio un assistente sul computer) a chiamare EmCP via MCP, quel client
+    riceve le risposte API che chiedi. Dopo che i dati escono da EmCP valgono i termini
+    di quel fornitore. Disconnetti il client se non vuoi più che abbia accesso.
+  </p>
+
+  <h3>Futuro fornitore di pagamenti</h3>
+  <p>
+    Quando ci sarà un piano a pagamento, il checkout passerà da un fornitore specializzato. EmCP riceverà
+    lo stato dell’abbonamento, non il numero completo della carta. Questa sezione indicherà il nome del fornitore
+    prima che il pagamento vada in produzione.
+  </p>
+
+  <h2>8. Trasferimenti extra SEE</h2>
+  <p>
+    L’hosting è in Germania. Google Sign-In, i font e il monitoraggio errori
+    possono comportare trattamenti fuori dallo SEE. In quei casi il trasferimento poggia su una decisione di
+    adeguatezza, sulle clausole contrattuali standard o su altro meccanismo del Capo V GDPR, come pubblicato
+    dal fornitore interessato.
+  </p>
+
+  <h2>9. Conservazione</h2>
+  <ul>
+    <li>Account e collegamento Google Sign-In: per tutta la vita dell’account. Conservazione e cancellazione specifiche di Google sono nella <a href="#google-data-retention">sezione 3.5</a>.</li>
+    <li>Chiavi API e token MCP: fino a revoca o chiusura dell’account.</li>
+    <li>Log tecnici ed eventi di errore: solo per il tempo utile a sicurezza e debug, poi sovrascrittura o cancellazione.</li>
+    <li>Cookie di invito: fino all’uso o alla cancellazione dei dati del sito.</li>
+    <li>I backup del disco del server possono trattenere copie per una finestra tecnica breve dopo la cancellazione dal database attivo.</li>
+  </ul>
+  <p>
+    Puoi scollegare Google dal profilo, o cancellare tutto l’account dalla pagina del profilo.
+    Per cancellare l’account in un altro modo scrivi a
+    <a href="mailto:support@m6i.it">support@m6i.it</a> dall’indirizzo dell’account. Dopo la verifica dell’identità,
+    la cancellazione dai sistemi attivi parte senza ingiustificato ritardo. Le copie di backup residue non tornano
+    in uso ordinario e scadono con il ciclo di backup. Eventuali obblighi di conservazione di legge
+    (ad esempio fatture, quando esisterà la fatturazione) restano limitati a quella finalità.
+  </p>
+
+  <h2>10. I tuoi diritti</h2>
+  <p>
+    Se ti si applica il GDPR puoi chiedere accesso, rettifica, cancellazione, limitazione, opposizione e portabilità,
+    e puoi revocare il consenso ove il trattamento si basi sul consenso, senza pregiudicare l’uso lecito precedente.
+    Puoi anche presentare reclamo al Garante per la protezione dei dati personali o all’autorità del Paese UE/SEE
+    in cui risiedi.
+  </p>
+  <p>
+    Scrivi a <a href="mailto:support@m6i.it">support@m6i.it</a>. Rispondo entro un mese, con le proroghe che il GDPR consente per i casi complessi.
+  </p>
+
+  <h2>11. Minori</h2>
+  <p>
+    EmCP non è destinato a chi ha meno di 16 anni. Non raccolgo consapevolmente i loro dati. Se pensi che un minore
+    abbia creato un account, contattami e lo cancellerò.
+  </p>
+
+  <h2>12. Sicurezza</h2>
+  <p>
+    Il traffico verso l’app è cifrato in transito (HTTPS). Le password sono conservate come hash. Le chiavi API
+    sono conservate in forma hash. L’accesso alla produzione è limitato all’operatore. I report di errore aiutano
+    a intercettare i guasti. Le misure specifiche per i dati utente Google sono nella
+    <a href="#google-data-protection">sezione 3.4</a>. Nessun metodo di conservazione o trasmissione è del tutto sicuro.
+  </p>
+
+  <h2>13. Documenti collegati</h2>
+  <p>
+    L’uso del prodotto è disciplinato anche dai
+    <a href="/it/terms-and-conditions">termini e condizioni</a>.
+    Cookie e memorie simili sono descritti nell’
+    <a href="/cookie-policy">informativa cookie</a>.
+  </p>
+
+  <h2>14. Modifiche</h2>
+  <p>
+    Questa pagina cambia quando lo richiedono il prodotto, l’hosting o la legge. La data in alto è la versione
+    corrente. L’uso continuato dopo un aggiornamento significa che hai visto il nuovo testo; se la modifica è
+    sostanziale, cercherò di segnalarla in app o via email quando ho un indirizzo per te.
+  </p>
+</article>
