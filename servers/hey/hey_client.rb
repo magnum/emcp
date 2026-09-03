@@ -13,6 +13,8 @@ module Emcp
           )
         end
 
+        # Only pass listing flags the command actually accepts (hey-cli v1.4.0 .surface).
+        # --limit is not universal: workflow view, search, screener, and contact list reject it.
         def command(*parts, limit: nil, fetch_all: false, page: nil, account: nil, options: {}, flags: [])
           args = []
           args.push("--account", account.to_s) if present?(account)
@@ -113,8 +115,8 @@ module Emcp
           command("workflow", "list", limit: limit, fetch_all: fetch_all, account: account)
         end
 
-        def workflow(id, limit: nil, fetch_all: false, account: nil)
-          command("workflow", "view", id, limit: limit, fetch_all: fetch_all, account: account)
+        def workflow(id, account: nil)
+          command("workflow", "view", id, account: account)
         end
 
         def workflow_create(name, account: nil)
@@ -183,7 +185,7 @@ module Emcp
 
         def search(query = nil, required: nil, any: nil, none: nil, exact: nil, from: nil, to: nil,
                    subject: nil, date: nil, inbox: nil, label: nil, attachment: nil,
-                   limit: nil, fetch_all: false, page: nil, account: nil)
+                   fetch_all: false, page: nil, account: nil)
           command(
             "search", *[query].compact,
             options: {
@@ -199,7 +201,6 @@ module Emcp
               "--label" => label,
               "--attachment" => attachment,
             },
-            limit: limit,
             fetch_all: fetch_all,
             page: page,
             account: account,
@@ -210,8 +211,8 @@ module Emcp
           command("search", "filters", account: account)
         end
 
-        def contacts(limit: nil, fetch_all: false, page: nil, account: nil)
-          command("contact", "list", limit: limit, fetch_all: fetch_all, page: page, account: account)
+        def contacts(fetch_all: false, page: nil, account: nil)
+          command("contact", "list", fetch_all: fetch_all, page: page, account: account)
         end
 
         def contact(id, html: false, account: nil)
@@ -259,10 +260,9 @@ module Emcp
           command("contact", "note", "delete", id, account: account)
         end
 
-        def screener(limit: nil, fetch_all: false, page: nil, count: false, account: nil)
+        def screener(fetch_all: false, page: nil, count: false, account: nil)
           command(
             "screener", "list",
-            limit: limit,
             fetch_all: fetch_all,
             page: page,
             flags: [("--count" if count)],
@@ -270,8 +270,8 @@ module Emcp
           )
         end
 
-        def screener_history(limit: nil, fetch_all: false, page: nil, account: nil)
-          command("screener", "history", limit: limit, fetch_all: fetch_all, page: page, account: account)
+        def screener_history(fetch_all: false, page: nil, account: nil)
+          command("screener", "history", fetch_all: fetch_all, page: page, account: account)
         end
 
         def screener_approve(ids, box: nil, seen: false, account: nil)
