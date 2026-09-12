@@ -14,7 +14,7 @@ module McpServers
 
       state = SecureRandom.hex(24)
       result = mcp_server.oauth_call(
-        callback_url: "#{Emcp.public_url}/servers/#{mcp_server.code}/oauth_callback",
+        callback_url: mcp_server.provider_oauth_callback_url,
         state: state,
       )
       mcp_server.mcp_provider_oauth_states.create!(
@@ -24,7 +24,7 @@ module McpServers
       )
       redirect_to result.fetch(:authorization_url), allow_other_host: true
     rescue StandardError => e
-      redirect_to auth_mcp_server_path(mcp_server.code), alert: e.message
+      redirect_to auth_mcp_server_path(mcp_server), alert: e.message
     end
 
     def callback
@@ -44,12 +44,12 @@ module McpServers
       state_data = row.payload
       row.destroy!
       result = mcp_server.oauth_exchange(
-        callback_url: "#{Emcp.public_url}/servers/#{mcp_server.code}/oauth_callback",
+        callback_url: mcp_server.provider_oauth_callback_url,
         params: params.to_unsafe_h,
         state_data: state_data,
       )
       mcp_server.apply_oauth_result!(result)
-      redirect_to auth_mcp_server_path(mcp_server.code), notice: "Provider OAuth completed"
+      redirect_to auth_mcp_server_path(mcp_server), notice: "Provider OAuth completed"
     rescue StandardError => e
       @error = e.message
       @server = mcp_server
@@ -64,9 +64,9 @@ module McpServers
         access_token: params[:access_token],
         token_json: params[:token_json],
       )
-      redirect_to auth_mcp_server_path(mcp_server.code), notice: "Token saved"
+      redirect_to auth_mcp_server_path(mcp_server), notice: "Token saved"
     rescue StandardError => e
-      redirect_to auth_mcp_server_path(mcp_server.code), alert: e.message
+      redirect_to auth_mcp_server_path(mcp_server), alert: e.message
     end
 
     private
@@ -74,7 +74,7 @@ module McpServers
     def oauth_token_retrieval_enabled?
       return true if mcp_server.oauth_token_retrieval?
 
-      redirect_to auth_mcp_server_path(mcp_server.code),
+      redirect_to auth_mcp_server_path(mcp_server),
                   alert: "OAuth token retrieval is not available for this integration"
       false
     end

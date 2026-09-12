@@ -7,8 +7,7 @@ class McpOauthProviderTest < ActiveSupport::TestCase
 
   setup do
     ENV["API_KEY_HMAC_SECRET_KEY"] ||= "test-api-key-hmac-secret"
-    McpServer.discover!
-    @server = McpServer.fetch!("hey")
+    @server = mcp_server_for("hey")
     @server.update!(token_refresh_in_minutes: nil)
     @provider = McpOauthProvider.new(@server)
   end

@@ -8,13 +8,13 @@ class EnsureServiceTokenRefreshJob < ApplicationJob
   queue_as :default
 
   def perform
-    McpServer.discover!
+    McpServerType.discover!
     McpServer.find_each do |server|
       next unless server.service_token_refresh_enabled?
 
       server.load_credentials!
       ok = server.refresh_service_token!
-      Rails.logger.info("[#{server.code}] service token refresh #{ok ? "updated" : "skipped_or_failed"}")
+      Rails.logger.info("[#{server.activity_log_code}] service token refresh #{ok ? "updated" : "skipped_or_failed"}")
     end
   end
 end

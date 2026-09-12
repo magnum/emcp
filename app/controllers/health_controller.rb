@@ -2,13 +2,11 @@
 
 class HealthController < ApplicationController
   def show
-    McpServer.discover! if ActiveRecord::Base.connection.data_source_exists?("mcp_servers")
-    servers = McpServer.order(:code).map do |server|
-      status = server.auth_status
+    McpServerType.discover! if ActiveRecord::Base.connection.data_source_exists?("mcp_server_types")
+    servers = McpServerType.order(:code).map do |server_type|
       {
-        id: server.code,
-        authenticated: status[:authenticated],
-        error: status[:error],
+        id: server_type.code,
+        name: server_type.name,
       }
     end
     render json: {

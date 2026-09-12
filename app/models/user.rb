@@ -3,6 +3,7 @@ class User < ApplicationRecord
   include Plannable
 
   rolify
+  has_many :mcp_servers, dependent: :destroy
   has_secure_password validations: false
 
   validates :email, presence: true, uniqueness: true
