@@ -44,16 +44,18 @@ That file is mounted at `/rails/storage/.env` and loaded at boot for web + worke
 - Password: `EMCP_USER1_PASSWORD` (or the development default)
 - Integrations: `/servers` (signed-in home)
 - Public landing: `/`
-- Auth per server: `/servers/<code>/auth`
+- Auth per instance: `/servers/<id>/auth`
 - Google Sign-In callback: `https://emcp.m6i.it/auth/google_oauth2/callback`
 
 ### MCP clients
 
-Endpoint per integration:
+Each instance has its own endpoint (copy it from `/servers`):
 
 ```text
-${EMCP_PUBLIC_URL}/servers/<code>/mcp
+${EMCP_PUBLIC_URL}/servers/<type_code>/<id>/mcp
 ```
+
+Claude, ChatGPT, Cursor, and similar tools are MCP **clients**. Several of them can attach to the **same** instance (same provider account and tools) as separate OAuth clients, or share one user API key. Use **separate instances** when you need isolated credentials (work vs personal, two Fatture companies, …).
 
 **ApiKey (static Bearer)** — in console:
 
@@ -62,20 +64,22 @@ User.find_by(email: "user1@emcp.local").api_key!
 # => "tkn_usr_..."
 ```
 
-Send `Authorization: Bearer tkn_usr_...`.
+Send `Authorization: Bearer tkn_usr_...`. The key authenticates as the instance owner.
 
-**OAuth 2.1** — discovery:
+**OAuth 2.1** — discovery (per instance):
 
-- `/.well-known/oauth-authorization-server/servers/<code>`
-- `/.well-known/oauth-protected-resource/servers/<code>/mcp`
+- `/.well-known/oauth-authorization-server/servers/<type_code>/<id>`
+- `/.well-known/oauth-protected-resource/servers/<type_code>/<id>/mcp`
 
 ## Architecture
 
-- `McpServer` (AR + STI) owns host behavior formerly in `lib/emcp/integration.rb`
-- `servers/<code>/server.rb` registers with `Emcp.register_integration(...)` and overrides tools/auth
-- Credentials: encrypted columns + `storage/mcp/<code>/` files for CLI compat
-- MCP OAuth clients/tokens: AR tables (`mcp_oauth_*`)
-- MCP activity logs: `log/<server_code>.log` (daily rotation). Retention: `Settings.logs.retain_days` (default 30). Override directory with `Settings.logs.directory`.
+- **Type** (`McpServerType`): catalog entry for an integration (`hey`, `fattureincloud`, …). Shared defaults live in `config/settings.yml` under `servers.<code>` (timeouts, max_chars, allow_write).
+- **Instance** (`McpServer`): one row per user, with its own name, tags, credentials, and MCP URL. You can create many instances, including several of the same type.
+- One instance = one provider account (one Basecamp, one Fatture company, …). Many AI clients can connect to that instance.
+- `servers/<code>/server.rb` registers with `Emcp.register_integration(...)` and overrides tools/auth (STI on `McpServer`)
+- Instance credentials: encrypted columns + `storage/mcp/instances/<id>/server.yml`
+- MCP OAuth clients/tokens: AR tables (`mcp_oauth_*`), many clients per instance
+- MCP activity logs: `log/<server_code>-<id>.log` (daily rotation). Retention: `Settings.logs.retain_days` (default 30). Override directory with `Settings.logs.directory`.
 
 ## Integrations
 

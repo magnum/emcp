@@ -267,6 +267,8 @@ module Emcp
           %w[
             GOOGLE_WORKSPACE_CLI_TOKEN
             GOOGLE_WORKSPACE_CLI_CREDENTIALS_FILE
+            GOOGLE_WORKSPACE_CLI_CLIENT_ID
+            GOOGLE_WORKSPACE_CLI_CLIENT_SECRET
             GOOGLE_WORKSPACE_PROJECT_ID
           ]
         end

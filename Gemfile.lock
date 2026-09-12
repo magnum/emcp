@@ -590,6 +590,7 @@ PLATFORMS
 
 DEPENDENCIES
   aasm
+  acts-as-taggable-on
   administrate!
   administrate-field-aasm
   administrate-field-active_storage

@@ -10,6 +10,12 @@ class McpServer < ApplicationRecord
   include McpServer::AuthStatus
   include McpServer::ServiceTokenRefresh
 
+  acts_as_taggable_on :tags
+  acts_as_taggable_tenant :user_id
+
+  belongs_to :user
+  belongs_to :mcp_server_type
+
   has_many :mcp_oauth_clients, dependent: :destroy
   has_many :mcp_oauth_access_tokens, dependent: :destroy
   has_many :mcp_oauth_refresh_tokens, dependent: :destroy
@@ -19,7 +25,6 @@ class McpServer < ApplicationRecord
 
   encrypts :credentials, :oauth_token_payload
 
-  validates :code, presence: true, uniqueness: true
   validates :name, presence: true
   validates :type, presence: true
   validates :token_refresh_in_minutes,
@@ -29,11 +34,30 @@ class McpServer < ApplicationRecord
             numericality: { only_integer: true, greater_than: 0 },
             allow_nil: true
 
+  before_validation :apply_type_defaults, on: :create
   before_validation :normalize_token_refresh_in_minutes
   before_validation :normalize_service_token_refresh_in_minutes
 
   after_initialize :prepare_runtime
   after_find :prepare_runtime
+
+  delegate :code, :version, :oauth_token_retrieval, :oauth_token_retrieval?,
+           :class_name, to: :mcp_server_type, allow_nil: true
+
+  scope :for_user, ->(user) { where(user: user) }
+  scope :search, ->(query) {
+    parsed = parse_search_query(query)
+    rel = all
+    if parsed[:text].present?
+      pattern = "%#{sanitize_sql_like(parsed[:text])}%"
+      rel = rel.left_joins(:mcp_server_type).where(
+        "mcp_servers.name LIKE :q OR mcp_servers.description LIKE :q OR mcp_server_types.name LIKE :q",
+        q: pattern,
+      )
+    end
+    rel = rel.tagged_with(parsed[:tags]) if parsed[:tags].any?
+    rel
+  }
 
   def credentials_hash
     parse_json_attr(credentials)
@@ -49,6 +73,10 @@ class McpServer < ApplicationRecord
 
   def oauth_token_hash=(value)
     self.oauth_token_payload = value.nil? ? nil : JSON.generate(value)
+  end
+
+  def self.model_name
+    ActiveModel::Name.new(self, nil, "McpServer")
   end
 
   class << self
@@ -87,23 +115,25 @@ class McpServer < ApplicationRecord
       integration_classes << klass unless integration_classes.include?(klass)
     end
 
-    # servers/ is outside Zeitwerk. After a reload, McpServer is a new class while
-    # previously required Emcp::Servers::* still subclass the old one — break STI.
     def discover!
-      rewrite_legacy_sti_types!
-      ensure_integrations_loaded!
-      sync_from_registry!
+      McpServerType.discover!
     end
 
-    # After Madcp → Emcp rename, persisted STI `type` values must be rewritten
-    # before any find (otherwise boot fails with SubclassNotFound).
     def rewrite_legacy_sti_types!
-      return unless connection.data_source_exists?(table_name)
+      if connection.data_source_exists?("mcp_servers") && connection.column_exists?(:mcp_servers, :type)
+        connection.execute(<<~SQL.squish)
+          UPDATE mcp_servers
+          SET type = REPLACE(type, 'Madcp::', 'Emcp::')
+          WHERE type LIKE 'Madcp::%'
+        SQL
+      end
+
+      return unless connection.data_source_exists?("mcp_server_types")
 
       connection.execute(<<~SQL.squish)
-        UPDATE mcp_servers
-        SET type = REPLACE(type, 'Madcp::', 'Emcp::')
-        WHERE type LIKE 'Madcp::%'
+        UPDATE mcp_server_types
+        SET class_name = REPLACE(class_name, 'Madcp::', 'Emcp::')
+        WHERE class_name LIKE 'Madcp::%'
       SQL
     end
 
@@ -138,49 +168,71 @@ class McpServer < ApplicationRecord
     end
     private :unload_servers_namespace!, :clear_servers_loaded_features!
 
-    def sync_from_registry!
-      now = Time.current
-      integration_classes.each do |klass|
-        code = klass.server_id
-        next if code.blank?
+    def fetch!(type_code, id = nil)
+      if id.nil?
+        raise ArgumentError, "McpServer.fetch! requires type_code and id"
+      end
 
-        allow_write = ActiveModel::Type::Boolean.new.cast(
-          ENV.fetch("#{code.upcase}_ALLOW_WRITE", "false"),
-        )
-        attrs = {
-          name: klass.display_name,
-          description: klass.description,
-          version: klass.version,
-          oauth_token_retrieval: klass.oauth_token_retrieval,
-          allow_write: allow_write,
-          updated_at: now,
-        }
-        existing = McpServer.find_by(code: code)
-        if existing
-          existing.update_columns(attrs)
-        else
-          McpServer.insert({
-            code: code,
-            type: klass.name,
-            service_token_refresh_in_minutes: klass.default_service_token_refresh_in_minutes,
-            created_at: now,
-            **attrs,
-          })
+      includes(:mcp_server_type).find_by!(id: id).tap do |server|
+        unless server.code.to_s == type_code.to_s
+          raise ActiveRecord::RecordNotFound, "Couldn't find McpServer with type #{type_code.inspect} and id #{id.inspect}"
         end
       end
     end
 
-    def fetch!(code)
-      find_by!(code: code.to_s)
+    def parse_search_query(query)
+      tags = []
+      text = query.to_s.gsub(/\btag:(\S*)/i) do
+        tags.concat(Regexp.last_match(1).split(",").map(&:strip).reject(&:blank?))
+        " "
+      end
+      { text: text.gsub(/\s+/, " ").strip, tags: tags.uniq }
+    end
+
+    def tag_names_for(user)
+      return [] if user.blank?
+
+      ActsAsTaggableOn::Tag.for_tenant(user.id).for_context(:tags).pluck(:name).uniq.sort
+    end
+
+    def for_user_and_code!(user, code)
+      user.mcp_servers.joins(:mcp_server_type).find_by!(mcp_server_types: { code: code.to_s })
+    end
+
+    def provision_defaults_for!(user)
+      return if user.blank?
+
+      discover!
+      McpServerType.find_each do |server_type|
+        next if exists?(user: user, mcp_server_type: server_type)
+
+        create!(
+          user: user,
+          mcp_server_type: server_type,
+          name: server_type.name,
+          description: "",
+        )
+      end
+    end
+
+    def purge_legacy_storage!(root: Rails.root.join("storage", "mcp"))
+      return [] unless File.directory?(root)
+
+      Dir.children(root).filter_map do |entry|
+        next if entry == "instances"
+
+        FileUtils.rm_rf(File.join(root, entry))
+        entry
+      end
     end
   end
 
   # Legacy Integration used #id for server_id; AR #id remains the PK.
   def server_id = code
   def display_name = name
-  def oauth_token_retrieval? = oauth_token_retrieval
   def allow_write_methods? = allow_write?
   def token_refresh_enabled? = token_refresh_in_minutes.to_i.positive?
+  def activity_log_code = persisted? ? "#{code}-#{id}" : code.to_s
 
   # Optional display / auth-form hooks. Override in servers/*/server.rb.
   def instructions = "#{display_name} MCP integration."
@@ -232,14 +284,32 @@ class McpServer < ApplicationRecord
   end
 
   def issuer_url
-    "#{Emcp.public_url}/servers/#{code}"
+    "#{Emcp.public_url}/servers/#{code}/#{id}"
   end
 
   def mcp_url
     "#{issuer_url}/mcp"
   end
 
+  def provider_oauth_callback_url
+    "#{issuer_url}/oauth_callback"
+  end
+
+  def available_tag_names
+    self.class.tag_names_for(user)
+  end
+
   private
+
+  def apply_type_defaults
+    return unless mcp_server_type
+
+    self.type = mcp_server_type.class_name if type.blank? || instance_of?(McpServer)
+    self.name = mcp_server_type.name if name.blank?
+    self.allow_write = mcp_server_type.allow_write unless allow_write_changed?
+    self.service_token_refresh_in_minutes ||= mcp_server_type.service_token_refresh_in_minutes
+    self.token_refresh_in_minutes ||= mcp_server_type.token_refresh_in_minutes
+  end
 
   def parse_json_attr(raw)
     return {} if raw.blank?
@@ -267,7 +337,10 @@ class McpServer < ApplicationRecord
     @resources = []
     return if instance_of?(McpServer)
 
-    load_credentials! if code.present?
+    if code.present?
+      Emcp.apply_server_type_settings!(code)
+      load_credentials!
+    end
     ensure_runtime_client
   end
 

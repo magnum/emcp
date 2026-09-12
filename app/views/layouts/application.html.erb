@@ -47,7 +47,7 @@
       <div class="p-4 flex items-center gap-4 flex-1 justify-end">
         <%= render "shared/locale_select" %>
         <% if signed_in? %>
-          <%= link_to "Integrations", mcp_servers_path, class: "hidden md:inline font-medium text-gray-700 hover:text-gray-900 hover:underline dark:text-zinc-300 dark:hover:text-zinc-100" %>
+          <%#= link_to "Servers", mcp_servers_path, class: "hidden md:inline font-medium text-gray-700 hover:text-gray-900 hover:underline dark:text-zinc-300 dark:hover:text-zinc-100" %>
           <% if current_user.admin? %>
             <%= link_to "Admin", admin_root_path, class: "hidden md:inline font-medium text-gray-700 hover:text-gray-900 hover:underline dark:text-zinc-300 dark:hover:text-zinc-100" %>
             <%= link_to t("users.index.title"), users_path, class: "hidden md:inline font-medium text-gray-700 hover:text-gray-900 hover:underline dark:text-zinc-300 dark:hover:text-zinc-100" %>

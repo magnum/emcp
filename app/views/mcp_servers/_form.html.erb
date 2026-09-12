@@ -1,0 +1,51 @@
+<%= form_with model: server, local: true, class: "space-y-4" do |f| %>
+  <% if server.errors.any? %>
+    <div class="rounded-lg border border-amber-700 bg-amber-50 p-4 text-amber-950 dark:bg-amber-950 dark:text-amber-100">
+      <ul class="list-disc pl-5">
+        <% server.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div>
+    <%= f.label :mcp_server_type_id, "Server type", class: "mb-2 block font-semibold" %>
+    <%= f.collection_select :mcp_server_type_id, server_types, :id, :name,
+          { prompt: "Choose a type" },
+          { class: "w-full rounded-lg border border-stone-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-950",
+            disabled: server.persisted? } %>
+  </div>
+
+  <div>
+    <%= f.label :name, class: "mb-2 block font-semibold" %>
+    <%= f.text_field :name,
+          class: "w-full rounded-lg border border-stone-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-950" %>
+  </div>
+
+  <div>
+    <%= f.label :description, class: "mb-2 block font-semibold" %>
+    <%= f.text_area :description, rows: 4,
+          class: "w-full rounded-lg border border-stone-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-950" %>
+  </div>
+
+  <div>
+    <%= f.label :tag_list, "Tags", class: "mb-2 block font-semibold" %>
+    <%= f.text_field :tag_list, value: server.tag_list.to_s,
+          list: "mcp-server-tag-options",
+          placeholder: "work, personal",
+          class: "w-full rounded-lg border border-stone-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-950",
+          autocomplete: "off" %>
+    <datalist id="mcp-server-tag-options">
+      <% current_user.mcp_servers.flat_map(&:tag_list).uniq.sort.each do |tag| %>
+        <option value="<%= tag %>"></option>
+      <% end %>
+    </datalist>
+    <p class="mt-1  text-stone-600">Comma-separated. Suggestions are tags you already use.</p>
+  </div>
+
+  <div class="flex gap-3">
+    <%= f.submit class: "cursor-pointer rounded-lg bg-stone-950 px-4 py-2 font-bold text-stone-50 dark:bg-zinc-100 dark:text-zinc-950" %>
+    <%= link_to "Cancel", server.persisted? ? mcp_server_path(server) : mcp_servers_path, class: "inline-flex items-center font-semibold underline" %>
+  </div>
+<% end %>

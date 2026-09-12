@@ -47,6 +47,8 @@ class StaticPagesControllerTest < ActionDispatch::IntegrationTest
     assert_select "footer a[href=?]", "/privacy-policy"
     assert_select "footer a[href=?]", "/terms-and-conditions"
     assert_select "footer a[href=?]", "/cookie-policy"
+    assert_select "footer", text: /#{Regexp.escape(Emcp.release_commit)}/ if Emcp.release_commit.present?
+    assert_select "footer", text: /#{Regexp.escape(Emcp.release_tag)}/ if Emcp.release_tag.present?
   end
 
   test "existing app routes are not captured by static pages" do

@@ -4,8 +4,7 @@ require "test_helper"
 
 class OnePasswordServerTest < ActiveSupport::TestCase
   setup do
-    McpServer.discover!
-    @server = McpServer.fetch!("onepassword")
+    @server = mcp_server_for("onepassword")
     @server.update!(allow_write: true)
   end
 
@@ -53,8 +52,8 @@ class OnePasswordServerTest < ActiveSupport::TestCase
     @server.call_tool("onepassword_read", { "reference" => "https://example.com" })
     McpActivityLog.reset!
 
-    line = File.read(McpActivityLog.path_for("onepassword"))
-    assert_includes line, "server=onepassword"
+    line = File.read(McpActivityLog.path_for(@server.activity_log_code))
+    assert_includes line, "server=#{@server.activity_log_code}"
     assert_includes line, "tool=onepassword_read"
     assert_includes line, "status=ko"
     assert_includes line, "ip=198.51.100.10"

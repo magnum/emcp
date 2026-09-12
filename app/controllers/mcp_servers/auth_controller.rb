@@ -10,7 +10,7 @@ module McpServers
     def show
       @state = params[:state]
       if @state.present? && !oauth_provider.valid_state?(@state)
-        redirect_to mcp_server_path(@server.code), alert: "Invalid OAuth state"
+        redirect_to mcp_server_path(@server), alert: "Invalid OAuth state"
       end
     end
 
@@ -24,7 +24,7 @@ module McpServers
         end
         format.json do
           render json: @status.merge(
-            server_id: @server.code,
+            server_id: @server.activity_log_code,
             refreshed: params[:refresh].present?,
           )
         end
@@ -33,31 +33,31 @@ module McpServers
 
     def credentials
       @server.apply_credentials(params.to_unsafe_h)
-      redirect_to auth_mcp_server_path(@server.code), notice: "Credentials saved"
+      redirect_to auth_mcp_server_path(@server), notice: "Credentials saved"
     rescue StandardError => e
-      redirect_to auth_mcp_server_path(@server.code), alert: e.message
+      redirect_to auth_mcp_server_path(@server), alert: e.message
     end
 
     def continue
       state = params[:state].to_s
       redirect_to oauth_provider.authorize_login(state: state), allow_other_host: true
     rescue McpOauthProvider::OAuthError => e
-      redirect_to auth_mcp_server_path(@server.code), alert: e.message
+      redirect_to auth_mcp_server_path(@server), alert: e.message
     end
 
     def logout
       count = oauth_provider.revoke_all!
       @server.clear_credentials! if params[:clear_integration].present?
-      redirect_to auth_mcp_server_path(@server.code), notice: "Revoked #{count} MCP tokens"
+      redirect_to auth_mcp_server_path(@server), notice: "Revoked #{count} MCP tokens"
     end
 
     def clear_service
       @server.clear_credentials!
-      redirect_to auth_mcp_server_path(@server.code),
+      redirect_to auth_mcp_server_path(@server),
                   notice: "Service credentials cleared — authenticate again below " \
                           "(Save credentials or Retrieve OAuth token)."
     rescue StandardError => e
-      redirect_to auth_mcp_server_path(@server.code), alert: e.message
+      redirect_to auth_mcp_server_path(@server), alert: e.message
     end
 
     private

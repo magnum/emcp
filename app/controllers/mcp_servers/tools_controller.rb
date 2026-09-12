@@ -10,7 +10,7 @@ module McpServers
 
     def index
       render json: {
-        server_id: mcp_server.code,
+        server_id: mcp_server.activity_log_code,
         tools: mcp_server.tool_catalog,
       }
     end
@@ -26,7 +26,7 @@ module McpServers
     private
 
     def tool_params
-      params.except(:controller, :action, :server_id, :tool, :format).permit!
+      params.except(:controller, :action, :server_id, :type_code, :id, :tool, :format).permit!
     end
   end
 end

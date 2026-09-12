@@ -1,14 +1,15 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "yaml"
 
 class McpServerTest < ActiveSupport::TestCase
   setup do
-    McpServer.discover!
+    provision_mcp_servers!
   end
 
   test "discovers registered integrations" do
-    codes = McpServer.order(:code).pluck(:code)
+    codes = McpServerType.order(:code).pluck(:code)
     assert_includes codes, "hey"
     assert_includes codes, "teslamate"
     assert_includes codes, "toggltrack"
@@ -16,12 +17,12 @@ class McpServerTest < ActiveSupport::TestCase
   end
 
   test "sti fetch returns concrete class" do
-    server = McpServer.fetch!("teslamate")
+    server = mcp_server_for("teslamate")
     assert_instance_of Emcp::Servers::TeslaMate::Server, server
   end
 
   test "token_refresh_in_minutes blank disables scheduled refresh" do
-    server = McpServer.fetch!("hey")
+    server = mcp_server_for("hey")
     server.update!(token_refresh_in_minutes: "")
     assert_nil server.reload.token_refresh_in_minutes
     refute server.token_refresh_enabled?
@@ -32,7 +33,7 @@ class McpServerTest < ActiveSupport::TestCase
   end
 
   test "service_token_refresh_in_minutes blank disables provider refresh schedule" do
-    server = McpServer.fetch!("hey")
+    server = mcp_server_for("hey")
     server.update!(service_token_refresh_in_minutes: "")
     assert_nil server.reload.service_token_refresh_in_minutes
     refute server.service_token_refresh_enabled?
@@ -52,7 +53,7 @@ class McpServerTest < ActiveSupport::TestCase
   end
 
   test "teslamate tool catalog includes reports and run_sql" do
-    server = McpServer.fetch!("teslamate")
+    server = mcp_server_for("teslamate")
     names = server.tool_catalog.map { |tool| tool[:name] }
     assert_includes names, "get_battery_capacity_trend"
     assert_includes names, "teslamate_run_sql"
@@ -63,7 +64,7 @@ class McpServerTest < ActiveSupport::TestCase
   end
 
   test "server/discover advertises MCP 2026-07-28 for ChatGPT web" do
-    server = McpServer.fetch!("teslamate")
+    server = mcp_server_for("teslamate")
     payload = JSON.parse(
       server.handle_mcp_json({
         jsonrpc: "2.0",
@@ -89,7 +90,7 @@ class McpServerTest < ActiveSupport::TestCase
   end
 
   test "tools/list includes object schemas and ChatGPT-required annotations" do
-    server = McpServer.fetch!("teslamate")
+    server = mcp_server_for("teslamate")
     payload = JSON.parse(
       server.handle_mcp_json({ jsonrpc: "2.0", id: 1, method: "tools/list", params: {} }.to_json),
     )
@@ -112,7 +113,7 @@ class McpServerTest < ActiveSupport::TestCase
 
   test "registered servers implement the runtime contract" do
     McpServer.integration_classes.each do |klass|
-      server = McpServer.fetch!(klass.server_id)
+      server = mcp_server_for(klass.server_id)
       assert server.instance_variable_get(:@client),
         "#{klass.server_id} must implement replace_client!"
       assert_kind_of Array, server.credential_env_keys
@@ -137,9 +138,161 @@ class McpServerTest < ActiveSupport::TestCase
   end
 
   test "base McpServer can initialize without a runtime client" do
-    server = McpServer.new(code: "orphan", name: "Orphan", type: "McpServer")
+    server = McpServer.new(name: "Orphan", type: "McpServer")
 
     assert_instance_of McpServer, server
     assert_nil server.instance_variable_get(:@client)
+  end
+
+  test "mcp_url includes type code and instance id" do
+    server = mcp_server_for("hey")
+    assert_equal "#{Emcp.public_url}/servers/hey/#{server.id}/mcp", server.mcp_url
+    assert_equal McpServer.fetch!("hey", server.id), server
+  end
+
+  test "search query parses tag: filters" do
+    assert_equal({ text: "work", tags: [] }, McpServer.parse_search_query("work"))
+    assert_equal({ text: "server1", tags: %w[tag1] }, McpServer.parse_search_query("server1 tag:tag1"))
+    assert_equal({ text: "", tags: %w[tag1 tag2 tag3] }, McpServer.parse_search_query("tag:tag1,tag2,tag3"))
+    assert_equal({ text: "server1 notes", tags: %w[work home] }, McpServer.parse_search_query("server1 tag:work,home notes"))
+  end
+
+  test "search ANDs free text with listed tags" do
+    owner = users(:one)
+    other = users(:two)
+    named = mcp_server_for("hey", user: owner)
+    named.update!(name: "server1", description: "office notes", tag_list: "tag1, extra")
+    same_text = mcp_server_for("teslamate", user: owner)
+    same_text.update!(name: "server1", description: "office notes", tag_list: "other")
+    both_tags = mcp_server_for("basecamp", user: owner)
+    both_tags.update!(name: "camp", description: "projects", tag_list: "tag1, tag2")
+    theirs = mcp_server_for("hey", user: other)
+    theirs.update!(name: "server1", description: "office notes", tag_list: "tag1")
+
+    by_text = McpServer.for_user(owner).search("work")
+    refute_includes by_text, named
+
+    named.update!(description: "work fleet")
+    by_text = McpServer.for_user(owner).search("work")
+    assert_includes by_text, named.reload
+    refute_includes by_text, same_text
+
+    by_tag_and_text = McpServer.for_user(owner).search("server1 tag:tag1")
+    assert_equal [ named.id ], by_tag_and_text.ids.sort
+
+    by_tags = McpServer.for_user(owner).search("tag:tag1,tag2")
+    assert_equal [ both_tags.id ], by_tags.ids.sort
+    refute_includes by_tags, named
+  end
+
+  test "tags are scoped to the owning user" do
+    owner = users(:one)
+    other = users(:two)
+    mine = mcp_server_for("hey", user: owner)
+    theirs = mcp_server_for("hey", user: other)
+
+    mine.update!(tag_list: "work, personal")
+    theirs.update!(tag_list: "home")
+
+    assert_equal %w[personal work], mine.reload.tag_list.sort
+    assert_includes mine.available_tag_names, "work"
+    refute_includes theirs.available_tag_names, "work"
+  end
+
+  test "type settings come from config/settings.yml" do
+    assert_equal 30, Emcp.server_setting("hey", "timeout")
+    assert_equal true, Emcp.server_setting("hey", "allow_write")
+    assert_equal false, Emcp.server_setting("teslamate", "allow_write")
+    assert_equal 45, Emcp.server_setting("onepassword", "timeout")
+    assert_equal 100000, Emcp.server_setting("onepassword", "max_chars")
+  end
+
+  test "prepare_runtime applies type settings to ENV" do
+    old_timeout = ENV["HEY_TIMEOUT"]
+    old_max = ENV["EMCP_MAX_CHARS"]
+    ENV.delete("HEY_TIMEOUT")
+    ENV.delete("EMCP_MAX_CHARS")
+
+    server = mcp_server_for("hey")
+    server.instance_variable_set(:@runtime_prepared, false)
+    server.send(:prepare_runtime)
+
+    assert_equal "30", ENV["HEY_TIMEOUT"]
+    assert_equal "12000", ENV["EMCP_MAX_CHARS"]
+    assert_equal "true", ENV["HEY_ALLOW_WRITE"]
+  ensure
+    ENV["HEY_TIMEOUT"] = old_timeout
+    ENV["EMCP_MAX_CHARS"] = old_max
+  end
+
+  test "persist_credentials writes instance server.yml" do
+    server = mcp_server_for("basecamp")
+    path = server.instance_settings_path
+    FileUtils.rm_f(path)
+    FileUtils.rm_f(File.join(server.data_dir, "credentials.env"))
+
+    server.persist_credentials!(
+      "BASECAMP_TOKEN" => "tok-123",
+      "BASECAMP_ACCOUNT_ID" => "99",
+    )
+
+    stored = YAML.safe_load(File.read(path))
+    assert_equal "tok-123", stored["BASECAMP_TOKEN"]
+    assert_equal "99", stored["BASECAMP_ACCOUNT_ID"]
+    refute File.file?(File.join(server.data_dir, "credentials.env"))
+  ensure
+    server&.persist_credentials!("BASECAMP_TOKEN" => nil, "BASECAMP_ACCOUNT_ID" => nil)
+  end
+
+  test "load_credentials mirrors encrypted credentials into server.yml" do
+    server = mcp_server_for("homeassistant")
+    FileUtils.rm_f(server.instance_settings_path)
+    server.update_columns(credentials: { "HASS_SERVER" => "http://hass.local", "HASS_TOKEN" => "long-lived" }.to_json)
+
+    server.load_credentials!
+
+    stored = YAML.safe_load(File.read(server.instance_settings_path))
+    assert_equal "http://hass.local", stored["HASS_SERVER"]
+    assert_equal "long-lived", stored["HASS_TOKEN"]
+  ensure
+    server&.persist_credentials!("HASS_SERVER" => nil, "HASS_TOKEN" => nil)
+  end
+
+  test "load_credentials migrates credentials.env to server.yml" do
+    server = mcp_server_for("toggltrack")
+    FileUtils.rm_f(server.instance_settings_path)
+    File.write(
+      File.join(server.data_dir, "credentials.env"),
+      "TOGGLTRACK_TOKEN=legacy-token\nTOGGLTRACK_WORKSPACE_ID=7\n",
+      perm: 0o600,
+    )
+
+    server.load_credentials!
+
+    assert File.file?(server.instance_settings_path)
+    refute File.file?(File.join(server.data_dir, "credentials.env"))
+    stored = YAML.safe_load(File.read(server.instance_settings_path))
+    assert_equal "legacy-token", stored["TOGGLTRACK_TOKEN"]
+    assert_equal "7", stored["TOGGLTRACK_WORKSPACE_ID"]
+    assert_equal "legacy-token", ENV["TOGGLTRACK_TOKEN"]
+  ensure
+    server&.persist_credentials!("TOGGLTRACK_TOKEN" => nil, "TOGGLTRACK_WORKSPACE_ID" => nil)
+    ENV.delete("TOGGLTRACK_TOKEN")
+  end
+
+  test "purge_legacy_storage removes leftover type dirs and keeps instances" do
+    root = Rails.root.join("tmp", "mcp_purge_#{Process.pid}_#{SecureRandom.hex(4)}")
+    FileUtils.mkdir_p(root.join("hey", "home"))
+    FileUtils.mkdir_p(root.join("instances", "1"))
+    File.write(root.join("hey", "home", "keep-me"), "x")
+    File.write(root.join("instances", "1", "server.yml"), "TOKEN: a\n")
+
+    removed = McpServer.purge_legacy_storage!(root: root)
+
+    assert_includes removed, "hey"
+    refute File.exist?(root.join("hey"))
+    assert File.file?(root.join("instances", "1", "server.yml"))
+  ensure
+    FileUtils.rm_rf(root) if root
   end
 end

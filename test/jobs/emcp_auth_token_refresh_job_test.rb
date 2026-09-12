@@ -4,8 +4,7 @@ require "test_helper"
 
 class EmcpAuthTokenRefreshJobTest < ActiveJob::TestCase
   setup do
-    McpServer.discover!
-    @server = McpServer.fetch!("hey")
+    @server = mcp_server_for("hey")
     @server.update!(token_refresh_in_minutes: 45)
     @client = @server.mcp_oauth_clients.create!(
       client_id: SecureRandom.uuid,
