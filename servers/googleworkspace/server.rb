@@ -15,7 +15,9 @@ module Emcp
         description "Google Docs, Sheets, Drive, and every Workspace API exposed dynamically by the gws CLI."
         version "0.1.0"
 
-        def self.default_service_token_refresh_in_minutes = 1_440
+        CREDENTIALS_BLOB_KEY = "GOOGLE_WORKSPACE_CREDENTIALS_JSON"
+
+        def self.default_service_token_refresh_in_minutes = 90
 
         SAFE_READ_METHODS = %w[get list search lookup query export download batchGet].freeze
         DEFAULT_COMMENT_FIELDS =
@@ -79,7 +81,7 @@ module Emcp
               type: "textarea",
               required: false,
               help: "Preferred: gws auth export --unmasked (includes refresh_token).",
-              value: -> { File.file?(credentials_path) ? File.read(credentials_path) : "" },
+              value: -> { workspace_credentials_json_for_form },
             },
             {
               name: "googleworkspace_project_id",
@@ -132,6 +134,7 @@ module Emcp
 
         def apply_credentials(params)
           old_env = credential_env_keys.to_h { |key| [key, ENV[key]] }
+          old_blob = workspace_credentials_blob
           old_credentials = File.binread(credentials_path) if File.file?(credentials_path)
           token = params["googleworkspace_token"].to_s.strip
           credentials_json = params["googleworkspace_credentials_json"].to_s.strip
@@ -150,19 +153,19 @@ module Emcp
             raise "Google Workspace credentials must be a JSON object" unless parsed.is_a?(Hash)
             validate_credentials_json!(parsed)
 
-            FileUtils.mkdir_p(File.dirname(credentials_path))
-            File.write(credentials_path, JSON.pretty_generate(parsed) + "\n", perm: 0o600)
-            sync_gws_plain_credentials!(parsed)
+            persist_workspace_blob!(parsed)
+            updates["GOOGLE_WORKSPACE_CLI_CLIENT_ID"] = parsed["client_id"]
+            updates["GOOGLE_WORKSPACE_CLI_CLIENT_SECRET"] = parsed["client_secret"]
             updates["GOOGLE_WORKSPACE_CLI_CREDENTIALS_FILE"] = credentials_path
             # Refresh-token file must win: a stale CLI_TOKEN shadows it and breaks all API calls.
             updates["GOOGLE_WORKSPACE_CLI_TOKEN"] = nil
           else
-            File.delete(credentials_path) if File.file?(credentials_path)
-            plain = File.join(gws_config_dir, "credentials.json")
-            File.delete(plain) if File.file?(plain)
+            clear_workspace_files!
+            persist_workspace_blob!(nil)
             updates["GOOGLE_WORKSPACE_CLI_CREDENTIALS_FILE"] = nil
           end
           persist_credentials!(updates)
+          materialize_workspace_credentials!
           @client = Client.new
           status = auth_status(force: true)
           unless status[:authenticated]
@@ -172,6 +175,7 @@ module Emcp
           schedule_service_token_refresh_job!
           true
         rescue StandardError => e
+          persist_workspace_blob!(old_blob)
           if old_credentials
             File.binwrite(credentials_path, old_credentials)
             File.chmod(0o600, credentials_path)
@@ -179,6 +183,7 @@ module Emcp
             File.delete(credentials_path) if File.file?(credentials_path)
           end
           persist_credentials!(old_env)
+          materialize_workspace_credentials!
           @client = Client.new
           raise e.message
         ensure
@@ -187,15 +192,21 @@ module Emcp
         end
 
         def clear_credentials!
-          File.delete(credentials_path) if File.file?(credentials_path)
-          plain = File.join(gws_config_dir, "credentials.json")
-          File.delete(plain) if File.file?(plain)
+          clear_workspace_files!
+          persist_workspace_blob!(nil)
           persist_credentials!(
             "GOOGLE_WORKSPACE_CLI_TOKEN" => nil,
             "GOOGLE_WORKSPACE_CLI_CREDENTIALS_FILE" => nil,
+            "GOOGLE_WORKSPACE_CLI_CLIENT_ID" => nil,
+            "GOOGLE_WORKSPACE_CLI_CLIENT_SECRET" => nil,
             "GOOGLE_WORKSPACE_PROJECT_ID" => nil,
           )
           @client = Client.new
+        end
+
+        def load_credentials!
+          super
+          materialize_workspace_credentials!
         end
 
         def configure_tools
@@ -211,10 +222,9 @@ module Emcp
         end
 
         def refresh_service_token!
-          path = credentials_path
-          return false unless File.file?(path)
-
-          credentials = JSON.parse(File.read(path))
+          credentials = workspace_credentials_blob
+          credentials ||= JSON.parse(File.read(credentials_path)) if File.file?(credentials_path)
+          return false unless credentials.is_a?(Hash)
           return false unless credentials["type"].to_s == "authorized_user"
 
           refresh = Emcp.sanitize_env_value(credentials["refresh_token"])
@@ -250,12 +260,14 @@ module Emcp
           new_refresh = Emcp.sanitize_env_value(body["refresh_token"])
           credentials["refresh_token"] = new_refresh unless new_refresh.empty?
 
-          File.write(path, JSON.pretty_generate(credentials) + "\n", perm: 0o600)
-          sync_gws_plain_credentials!(credentials)
+          persist_workspace_blob!(credentials)
           persist_credentials!(
-            "GOOGLE_WORKSPACE_CLI_CREDENTIALS_FILE" => path,
+            "GOOGLE_WORKSPACE_CLI_CREDENTIALS_FILE" => credentials_path,
+            "GOOGLE_WORKSPACE_CLI_CLIENT_ID" => client_id,
+            "GOOGLE_WORKSPACE_CLI_CLIENT_SECRET" => client_secret,
             "GOOGLE_WORKSPACE_CLI_TOKEN" => nil,
           )
+          materialize_workspace_credentials!
           replace_client!
           true
         rescue StandardError => e
@@ -282,20 +294,135 @@ module Emcp
           body.to_s[0, 200]
         end
 
+        def write_instance_settings(hash)
+          super(hash.except(CREDENTIALS_BLOB_KEY))
+        end
+
+        def workspace_credentials_blob
+          raw = credential_hash[CREDENTIALS_BLOB_KEY]
+          return nil if raw.blank?
+
+          parsed = JSON.parse(raw)
+          parsed if parsed.is_a?(Hash)
+        rescue JSON::ParserError
+          nil
+        end
+
+        def workspace_credentials_json_for_form
+          blob = workspace_credentials_blob
+          return JSON.pretty_generate(blob) if blob
+
+          File.file?(credentials_path) ? File.read(credentials_path) : ""
+        end
+
+        def persist_workspace_blob!(credentials)
+          current = credential_hash
+          if credentials.is_a?(Hash)
+            current[CREDENTIALS_BLOB_KEY] = JSON.generate(credentials)
+          else
+            current.delete(CREDENTIALS_BLOB_KEY)
+          end
+          self.credentials_hash = current
+          save! if persisted?
+        end
+
+        def materialize_workspace_credentials!
+          credentials = workspace_credentials_blob
+          if credentials.nil? && File.file?(legacy_instance_credentials_path)
+            parsed = JSON.parse(File.read(legacy_instance_credentials_path))
+            if parsed.is_a?(Hash)
+              validate_credentials_json!(parsed)
+              persist_workspace_blob!(parsed)
+              credentials = parsed
+            end
+          end
+          return harden_workspace_storage! unless credentials.is_a?(Hash)
+
+          write_secret_file(credentials_path, JSON.pretty_generate(credentials) + "\n")
+          write_gws_client_secret!(credentials)
+          isolate_gws_env!(credentials)
+          if File.file?(legacy_instance_credentials_path) &&
+              File.expand_path(legacy_instance_credentials_path) != File.expand_path(credentials_path)
+            File.delete(legacy_instance_credentials_path)
+          end
+          harden_workspace_storage!
+        rescue JSON::ParserError, RuntimeError => e
+          Rails.logger.warn("[googleworkspace] could not materialize credentials: #{e.message}")
+          harden_workspace_storage!
+        end
+
+        def isolate_gws_env!(credentials)
+          ENV["GOOGLE_WORKSPACE_CLI_CONFIG_DIR"] = gws_config_dir
+          ENV["GOOGLE_WORKSPACE_CLI_CREDENTIALS_FILE"] = credentials_path
+          ENV["GOOGLE_WORKSPACE_CLI_KEYRING_BACKEND"] = "file"
+          ENV.delete("GOOGLE_WORKSPACE_CLI_TOKEN")
+          ENV["GOOGLE_WORKSPACE_CLI_CLIENT_ID"] = credentials["client_id"].to_s if credentials["client_id"]
+          ENV["GOOGLE_WORKSPACE_CLI_CLIENT_SECRET"] = credentials["client_secret"].to_s if credentials["client_secret"]
+        end
+
+        def write_gws_client_secret!(credentials)
+          return if credentials["client_id"].to_s.empty?
+
+          payload = {
+            "installed" => {
+              "client_id" => credentials["client_id"],
+              "client_secret" => credentials["client_secret"],
+              "project_id" => credentials["project_id"].presence || ENV["GOOGLE_WORKSPACE_PROJECT_ID"].presence,
+              "auth_uri" => "https://accounts.google.com/o/oauth2/auth",
+              "token_uri" => "https://oauth2.googleapis.com/token",
+            }.compact,
+          }
+          write_secret_file(File.join(gws_config_dir, "client_secret.json"), JSON.pretty_generate(payload) + "\n")
+        end
+
+        def write_secret_file(path, contents)
+          FileUtils.mkdir_p(File.dirname(path))
+          File.write(path, contents, perm: 0o600)
+          File.chmod(0o600, path)
+        end
+
+        def clear_workspace_files!
+          [
+            credentials_path,
+            legacy_instance_credentials_path,
+            File.join(gws_config_dir, "client_secret.json"),
+            File.join(gws_config_dir, "credentials.enc"),
+          ].each do |path|
+            File.delete(path) if File.file?(path)
+          end
+        end
+
+        def harden_workspace_storage!
+          File.chmod(0o700, data_dir) if File.directory?(data_dir)
+          File.chmod(0o700, gws_config_dir) if File.directory?(gws_config_dir)
+          [
+            credentials_path,
+            legacy_instance_credentials_path,
+            File.join(gws_config_dir, "client_secret.json"),
+            File.join(gws_config_dir, "credentials.enc"),
+            instance_settings_path,
+          ].each do |path|
+            File.chmod(0o600, path) if File.file?(path)
+          end
+        rescue Errno::EPERM, Errno::EACCES
+          nil
+        end
+
         def credentials_path
+          File.join(gws_config_dir, "credentials.json")
+        end
+
+        def legacy_instance_credentials_path
           File.join(data_dir, "credentials.json")
         end
 
         def gws_config_dir
-          ENV.fetch("GOOGLE_WORKSPACE_CLI_CONFIG_DIR") do
-            File.join(Dir.home, ".config", "gws")
-          end
-        end
-
-        def sync_gws_plain_credentials!(credentials)
-          FileUtils.mkdir_p(gws_config_dir)
-          target = File.join(gws_config_dir, "credentials.json")
-          File.write(target, JSON.pretty_generate(credentials) + "\n", perm: 0o600)
+          path = File.join(data_dir, "gws")
+          FileUtils.mkdir_p(path)
+          File.chmod(0o700, path)
+          path
+        rescue Errno::EPERM, Errno::EACCES
+          path
         end
 
         def google_authenticated?(data, credentials)

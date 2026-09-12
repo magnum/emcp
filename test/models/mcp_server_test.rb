@@ -44,7 +44,7 @@ class McpServerTest < ActiveSupport::TestCase
   end
 
   test "provider defaults for service_token_refresh_in_minutes" do
-    assert_equal 1_440, Emcp::Servers::GoogleWorkspace::Server.default_service_token_refresh_in_minutes
+    assert_equal 90, Emcp::Servers::GoogleWorkspace::Server.default_service_token_refresh_in_minutes
     assert_equal 1_320, Emcp::Servers::FattureInCloud::Server.default_service_token_refresh_in_minutes
     assert_equal 90, Emcp::Servers::Twitter::Server.default_service_token_refresh_in_minutes
     assert_equal 90, Emcp::Servers::Bluesky::Server.default_service_token_refresh_in_minutes

@@ -7,10 +7,10 @@ EmCP integration for Google Docs, Sheets, Drive, and the rest of Workspace APIs 
 ## MCP endpoint
 
 ```text
-${EMCP_PUBLIC_URL}/servers/googleworkspace/mcp
+${EMCP_PUBLIC_URL}/servers/googleworkspace/<id>/mcp
 ```
 
-Operator UI: `/servers/googleworkspace/auth`
+Operator UI: `/servers/<id>/auth`
 
 ## Credentials
 
@@ -29,7 +29,9 @@ If the Google Cloud OAuth consent screen is still in **Testing**, Google expires
 
 Set `GOOGLE_WORKSPACE_PROJECT_ID` for quota / billing attribution (often missing from the export).
 
-In Docker, CLI config lives under the Kamal volume (`/rails/storage/home/.config/gws`). EmCP also stores credentials under `storage/mcp/googleworkspace/`.
+Source of truth is the encrypted `mcp_servers.credentials` column. EmCP materializes `credentials.json` and `client_secret.json` under `storage/mcp/instances/<id>/gws/` at mode `0600` (directory `0700`) so `gws` can run. Those files are not the long-term store. A leftover `instances/<id>/credentials.json` from the type→instance migration is imported into the encrypted column and removed.
+
+`ServerAuthTokenRefreshJob` (every 90 minutes) plus hourly `EnsureServiceTokenRefreshJob` refresh the access token and persist the new payload back into the encrypted column. Testing-status Google apps still die after 7 days; publish the OAuth client.
 
 ## Environment
 
@@ -38,7 +40,7 @@ In Docker, CLI config lives under the Kamal volume (`/rails/storage/home/.config
 | `GOOGLE_WORKSPACE_CLI_CREDENTIALS_FILE` | Path to credentials JSON (set by the auth form) |
 | `GOOGLE_WORKSPACE_CLI_TOKEN` | Discouraged short-lived access token |
 | `GOOGLE_WORKSPACE_PROJECT_ID` | Cloud project ID |
-| `GOOGLE_WORKSPACE_CLI_CONFIG_DIR` | gws config dir (default `/home/emcp/.config/gws` in Docker) |
+| `GOOGLE_WORKSPACE_CLI_CONFIG_DIR` | Forced per instance to `storage/mcp/instances/<id>/gws` |
 | `GOOGLE_WORKSPACE_CLI_KEYRING_BACKEND` | `file` in Docker |
 | `GOOGLEWORKSPACE_ALLOW_WRITE` | Enable write tools |
 | `GOOGLEWORKSPACE_TIMEOUT` | CLI timeout seconds (default `60`) |
