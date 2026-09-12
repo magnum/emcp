@@ -9,6 +9,9 @@ module McpServer::Credentials
     ident = persisted? ? id : "new-#{object_id}"
     path = Rails.root.join("storage", "mcp", "instances", ident.to_s)
     FileUtils.mkdir_p(path)
+    File.chmod(0o700, path)
+    path.to_s
+  rescue Errno::EPERM, Errno::EACCES
     path.to_s
   end
 
@@ -192,6 +195,7 @@ module McpServer::Credentials
       File.delete(instance_settings_path) if File.file?(instance_settings_path)
     else
       File.write(instance_settings_path, YAML.dump(hash.transform_keys(&:to_s)), perm: 0o600)
+      File.chmod(0o600, instance_settings_path)
     end
     File.delete(legacy_credential_path) if File.file?(legacy_credential_path)
   end
