@@ -16,15 +16,26 @@
   </header>
 
   <%= form_with url: mcp_servers_path, method: :get, local: true,
-        class: "mb-8 flex flex-col gap-3 sm:flex-row sm:items-end" do %>
+        class: "mb-8 flex flex-col gap-3 sm:flex-row sm:items-start" do %>
     <div class="min-w-0 flex-1">
-      <label for="q" class="mb-1 block  font-semibold text-stone-500 dark:text-zinc-400">Search</label>
+      <label for="q" class="hidden mb-1 block  font-semibold text-stone-500 dark:text-zinc-400">Search</label>
       <input type="search" name="q" id="q" value="<%= params[:q] %>"
              placeholder="Name, description, type, or tag:work,home"
              class="w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-stone-900 outline-none focus:border-stone-500 dark:border-zinc-600 dark:bg-zinc-950 dark:text-zinc-100">
+      <% if @user_tags.any? %>
+        <ul class="mt-2 flex flex-wrap gap-2">
+          <% @user_tags.each do |tag| %>
+            <% selected = @active_search_tags.include?(tag) %>
+            <li>
+              <%= link_to tag, mcp_servers_path(q: "tag:#{tag}", mcp_server_type_id: params[:mcp_server_type_id].presence),
+                    class: "inline-block rounded-sm px-2.5 py-0.5 text-white #{selected ? "bg-stone-800 dark:bg-zinc-300 dark:text-zinc-950" : "bg-stone-500 hover:bg-stone-600"}" %>
+            </li>
+          <% end %>
+        </ul>
+      <% end %>
     </div>
     <div class="sm:w-64">
-      <label for="mcp_server_type_id" class="mb-1 block  font-semibold text-stone-500 dark:text-zinc-400">Server type</label>
+      <label for="mcp_server_type_id" class="hidden mb-1 block  font-semibold text-stone-500 dark:text-zinc-400">Server type</label>
       <select name="mcp_server_type_id" id="mcp_server_type_id"
               class="w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-stone-900 outline-none focus:border-stone-500 dark:border-zinc-600 dark:bg-zinc-950 dark:text-zinc-100">
         <option value="">All Server Types</option>

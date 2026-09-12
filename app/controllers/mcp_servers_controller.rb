@@ -9,6 +9,8 @@ class McpServersController < ApplicationController
     @servers = current_user.mcp_servers.includes(:mcp_server_type).order(:name)
     @servers = @servers.where(mcp_server_type_id: params[:mcp_server_type_id]) if params[:mcp_server_type_id].present?
     @servers = @servers.search(params[:q])
+    @user_tags = McpServer.tag_names_for(current_user)
+    @active_search_tags = McpServer.parse_search_query(params[:q])[:tags]
   end
 
   def show

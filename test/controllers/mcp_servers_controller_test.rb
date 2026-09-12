@@ -55,6 +55,25 @@ class McpServersControllerTest < ActionDispatch::IntegrationTest
     refute_match(/Car telemetry/, response.body)
   end
 
+  test "index lists current user tags that search via query string" do
+    post sign_in_path, params: { email: @user.email, password: "password123" }
+    mcp_server_for("hey").update!(tag_list: "work, home")
+    mcp_server_for("teslamate").update!(tag_list: "fleet, work")
+    other = mcp_server_for("hey", user: users(:two))
+    other.update!(tag_list: "secret")
+
+    get mcp_servers_path
+    assert_response :success
+    assert_select "a[href=?]", mcp_servers_path(q: "tag:work"), text: "work", count: 1
+    assert_select "a[href=?]", mcp_servers_path(q: "tag:home"), text: "home", count: 1
+    assert_select "a[href=?]", mcp_servers_path(q: "tag:fleet"), text: "fleet", count: 1
+    assert_select "a", text: "secret", count: 0
+
+    get mcp_servers_path, params: { q: "tag:work", mcp_server_type_id: McpServerType.fetch!("hey").id }
+    assert_response :success
+    assert_select "a[href=?]", mcp_servers_path(q: "tag:home", mcp_server_type_id: McpServerType.fetch!("hey").id)
+  end
+
   test "create builds an instance for the current user" do
     post sign_in_path, params: { email: @user.email, password: "password123" }
     type = McpServerType.fetch!("hey")

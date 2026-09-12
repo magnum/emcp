@@ -189,6 +189,12 @@ class McpServer < ApplicationRecord
       { text: text.gsub(/\s+/, " ").strip, tags: tags.uniq }
     end
 
+    def tag_names_for(user)
+      return [] if user.blank?
+
+      ActsAsTaggableOn::Tag.for_tenant(user.id).for_context(:tags).pluck(:name).uniq.sort
+    end
+
     def for_user_and_code!(user, code)
       user.mcp_servers.joins(:mcp_server_type).find_by!(mcp_server_types: { code: code.to_s })
     end
@@ -290,9 +296,7 @@ class McpServer < ApplicationRecord
   end
 
   def available_tag_names
-    return [] if user_id.blank?
-
-    ActsAsTaggableOn::Tag.for_tenant(user_id).for_context(:tags).order(:name).pluck(:name)
+    self.class.tag_names_for(user)
   end
 
   private
