@@ -44,6 +44,27 @@ class OnePasswordServerTest < ActiveSupport::TestCase
     assert_match(/ERROR/, text)
   end
 
+  test "call_tool writes an activity log line" do
+    Current.remote_ip = "198.51.100.10"
+    Current.user = users(:one)
+    McpActivityLog.reset!
+    FileUtils.rm_rf(McpActivityLog.directory)
+
+    @server.call_tool("onepassword_read", { "reference" => "https://example.com" })
+    McpActivityLog.reset!
+
+    line = File.read(McpActivityLog.path_for("onepassword"))
+    assert_includes line, "server=onepassword"
+    assert_includes line, "tool=onepassword_read"
+    assert_includes line, "status=ko"
+    assert_includes line, "ip=198.51.100.10"
+    assert_includes line, users(:one).email
+  ensure
+    Current.reset
+    McpActivityLog.reset!
+    FileUtils.rm_rf(McpActivityLog.directory)
+  end
+
   test "auth form stores OP_SERVICE_ACCOUNT_TOKEN" do
     assert_equal %w[OP_SERVICE_ACCOUNT_TOKEN], @server.credential_env_keys
     field = @server.auth_fields.find { |entry| entry[:name] == "op_service_account_token" }

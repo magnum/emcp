@@ -134,4 +134,32 @@ class McpServers::McpControllerTest < ActionDispatch::IntegrationTest
     assert_equal 0, result["ttlMs"]
     assert_equal "private", result["cacheScope"]
   end
+
+  test "tools/call appends an activity log line" do
+    McpActivityLog.reset!
+    FileUtils.rm_rf(McpActivityLog.directory)
+
+    post mcp_mcp_server_path("teslamate"),
+         params: {
+           jsonrpc: "2.0",
+           id: 9,
+           method: "tools/call",
+           params: { name: "teslamate_get_database_schema", arguments: {} },
+         }.to_json,
+         headers: {
+           "CONTENT_TYPE" => "application/json",
+           "AUTHORIZATION" => "Bearer #{@access_token}",
+         }
+    assert_includes [200, 202], response.status
+    McpActivityLog.reset!
+
+    line = File.read(McpActivityLog.path_for("teslamate"))
+    assert_includes line, "server=teslamate"
+    assert_includes line, "tool=teslamate_get_database_schema"
+    assert_match(/status=(ok|ko)/, line)
+    assert_includes line, "ip="
+  ensure
+    McpActivityLog.reset!
+    FileUtils.rm_rf(McpActivityLog.directory)
+  end
 end
