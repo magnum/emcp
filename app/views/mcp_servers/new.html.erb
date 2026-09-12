@@ -1,0 +1,9 @@
+<% content_for :title, "New MCP server" %>
+
+<div class="w-full max-w-2xl mx-auto">
+  <p class="mb-4">
+    <%= link_to "← Servers", mcp_servers_path, class: "font-semibold underline" %>
+  </p>
+  <h1 class="mb-8 text-3xl font-bold tracking-tight">New server</h1>
+  <%= render "form", server: @server, server_types: @server_types %>
+</div>

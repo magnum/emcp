@@ -4,7 +4,8 @@ module McpServer::Credentials
   extend ActiveSupport::Concern
 
   def data_dir
-    path = Rails.root.join("storage", "mcp", code)
+    ident = persisted? ? id : "new-#{object_id}"
+    path = Rails.root.join("storage", "mcp", "instances", ident.to_s)
     FileUtils.mkdir_p(path)
     path.to_s
   end

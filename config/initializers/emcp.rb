@@ -59,9 +59,9 @@ Emcp.apply_env_sanitization!
 # under servers/ are rebound to the current McpServer class.
 Rails.application.config.to_prepare do
   next if ENV["EMCP_SKIP_DISCOVER"] == "1"
-  next unless ActiveRecord::Base.connection.data_source_exists?("mcp_servers")
+  next unless ActiveRecord::Base.connection.data_source_exists?("mcp_server_types")
 
-  McpServer.discover!
+  McpServerType.discover!
 rescue ActiveRecord::NoDatabaseError, ActiveRecord::ConnectionNotEstablished, ActiveRecord::StatementInvalid
   # db:create / first boot / sqlite not ready yet
 end

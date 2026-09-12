@@ -162,7 +162,7 @@ module McpServer::Tools
 
   def log_tool_activity(tool, arguments, result:, error:)
     McpActivityLog.record(
-      server: code,
+      server: activity_log_code,
       tool: tool,
       status: tool_activity_status(result, error),
       command: Current.mcp_command.presence || McpActivityLog.command_from_arguments(tool, arguments),

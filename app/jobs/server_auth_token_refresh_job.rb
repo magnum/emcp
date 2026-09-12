@@ -11,7 +11,7 @@ class ServerAuthTokenRefreshJob < ApplicationJob
 
     mcp_server.load_credentials!
     ok = mcp_server.refresh_service_token!
-    Rails.logger.info("[#{mcp_server.code}] service token refresh #{ok ? "updated" : "skipped_or_failed"}")
+    Rails.logger.info("[#{mcp_server.activity_log_code}] service token refresh #{ok ? "updated" : "skipped_or_failed"}")
   ensure
     if mcp_server&.service_token_refresh_enabled?
       mcp_server.schedule_service_token_refresh_job!

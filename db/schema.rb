@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_19_090000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_12_183007) do
   create_table "api_keys", force: :cascade do |t|
     t.bigint "bearer_id", null: false
     t.string "bearer_type", null: false
@@ -124,22 +124,38 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_19_090000) do
     t.index ["state"], name: "index_mcp_provider_oauth_states_on_state", unique: true
   end
 
+  create_table "mcp_server_types", force: :cascade do |t|
+    t.boolean "allow_write", default: false, null: false
+    t.string "class_name", null: false
+    t.string "code", null: false
+    t.datetime "created_at", null: false
+    t.text "description", default: "", null: false
+    t.string "name", null: false
+    t.boolean "oauth_token_retrieval", default: false, null: false
+    t.integer "service_token_refresh_in_minutes"
+    t.integer "token_refresh_in_minutes"
+    t.datetime "updated_at", null: false
+    t.string "version", default: "0.1.0", null: false
+    t.index ["class_name"], name: "index_mcp_server_types_on_class_name", unique: true
+    t.index ["code"], name: "index_mcp_server_types_on_code", unique: true
+  end
+
   create_table "mcp_servers", force: :cascade do |t|
     t.boolean "allow_write", default: false, null: false
-    t.string "code", null: false
     t.datetime "created_at", null: false
     t.text "credentials"
     t.text "description", default: "", null: false
+    t.integer "mcp_server_type_id", null: false
     t.string "name", null: false
     t.text "oauth_token_payload"
-    t.boolean "oauth_token_retrieval", default: false, null: false
     t.integer "service_token_refresh_in_minutes"
     t.integer "token_refresh_in_minutes"
     t.string "type", null: false
     t.datetime "updated_at", null: false
-    t.string "version", default: "0.1.0", null: false
-    t.index ["code"], name: "index_mcp_servers_on_code", unique: true
+    t.integer "user_id", null: false
+    t.index ["mcp_server_type_id"], name: "index_mcp_servers_on_mcp_server_type_id"
     t.index ["type"], name: "index_mcp_servers_on_type"
+    t.index ["user_id"], name: "index_mcp_servers_on_user_id"
   end
 
   create_table "plan_types", force: :cascade do |t|
@@ -176,6 +192,37 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_19_090000) do
     t.index ["resource_type", "resource_id"], name: "index_roles_on_resource"
   end
 
+  create_table "taggings", force: :cascade do |t|
+    t.string "context", limit: 128
+    t.datetime "created_at"
+    t.integer "tag_id"
+    t.integer "taggable_id"
+    t.string "taggable_type"
+    t.integer "tagger_id"
+    t.string "tagger_type"
+    t.string "tenant", limit: 128
+    t.index ["context"], name: "index_taggings_on_context"
+    t.index ["tag_id", "taggable_id", "taggable_type", "context", "tagger_id", "tagger_type"], name: "taggings_idx", unique: true
+    t.index ["tag_id"], name: "index_taggings_on_tag_id"
+    t.index ["taggable_id", "taggable_type", "context"], name: "taggings_taggable_context_idx"
+    t.index ["taggable_id", "taggable_type", "tagger_id", "context"], name: "taggings_idy"
+    t.index ["taggable_id"], name: "index_taggings_on_taggable_id"
+    t.index ["taggable_type", "taggable_id"], name: "index_taggings_on_taggable"
+    t.index ["taggable_type"], name: "index_taggings_on_taggable_type"
+    t.index ["tagger_id", "tagger_type"], name: "index_taggings_on_tagger_id_and_tagger_type"
+    t.index ["tagger_id"], name: "index_taggings_on_tagger_id"
+    t.index ["tagger_type", "tagger_id"], name: "index_taggings_on_tagger"
+    t.index ["tenant"], name: "index_taggings_on_tenant"
+  end
+
+  create_table "tags", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "name"
+    t.integer "taggings_count", default: 0
+    t.datetime "updated_at", null: false
+    t.index ["name"], name: "index_tags_on_name", unique: true
+  end
+
   create_table "users", force: :cascade do |t|
     t.string "avatar_url"
     t.datetime "created_at", null: false
@@ -207,6 +254,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_19_090000) do
   add_foreign_key "mcp_oauth_refresh_tokens", "mcp_oauth_clients"
   add_foreign_key "mcp_oauth_refresh_tokens", "mcp_servers"
   add_foreign_key "mcp_provider_oauth_states", "mcp_servers"
+  add_foreign_key "mcp_servers", "mcp_server_types"
+  add_foreign_key "mcp_servers", "users"
   add_foreign_key "plans", "plan_types"
   add_foreign_key "plans", "users"
+  add_foreign_key "taggings", "tags"
 end

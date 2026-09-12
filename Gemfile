@@ -90,6 +90,7 @@ gem "administrate", github: "thoughtbot/administrate", tag: "v1.0.0.beta3"
 gem "administrate-field-active_storage"
 gem 'administrate-field-aasm'
 gem "administrate-field-nested_has_many", github: "magnum/administrate-field-nested_has_many"
+gem "acts-as-taggable-on"
 gem 'administrate-field-acts_as_taggable', github: "magnum/administrate-field-acts_as_taggable"
 # testing local gems
 #gem "administrate-field-nested_has_many", path: "../administrate-field-nested_has_many"

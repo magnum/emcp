@@ -20,7 +20,8 @@ user.add_role(:admin) unless user.admin?
 
 user.create_default_plan if PlanType.exists?(code: "basic") && user.plans.none?
 
-McpServer.discover!
+McpServerType.discover!
+McpServer.provision_defaults_for!(user)
 
 if Rails.env.local? && user.api_keys.none?
   raw = user.api_key!

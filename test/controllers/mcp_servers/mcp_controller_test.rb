@@ -4,8 +4,7 @@ require "test_helper"
 
 class McpServers::McpControllerTest < ActionDispatch::IntegrationTest
   setup do
-    McpServer.discover!
-    @server = McpServer.fetch!("teslamate")
+    @server = mcp_server_for("teslamate")
     client = @server.mcp_oauth_clients.create!(
       client_id: SecureRandom.uuid,
       redirect_uris: ["https://chatgpt.com/aip/callback"],
@@ -23,7 +22,7 @@ class McpServers::McpControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "mcp endpoint rejects missing bearer" do
-    post mcp_mcp_server_path("teslamate"),
+    post instance_mcp_path(@server.code, @server.id),
          params: { jsonrpc: "2.0", id: 1, method: "initialize", params: {} }.to_json,
          headers: { "CONTENT_TYPE" => "application/json" }
     assert_response :unauthorized
@@ -40,7 +39,7 @@ class McpServers::McpControllerTest < ActionDispatch::IntegrationTest
         clientInfo: { name: "test", version: "1.0" },
       },
     }
-    post mcp_mcp_server_path("teslamate"),
+    post instance_mcp_path(@server.code, @server.id),
          params: body.to_json,
          headers: {
            "CONTENT_TYPE" => "application/json",
@@ -50,7 +49,7 @@ class McpServers::McpControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "mcp endpoint answers CORS preflight without auth" do
-    process :options, mcp_mcp_server_path("teslamate"),
+    process :options, instance_mcp_path(@server.code, @server.id),
             headers: {
               "ORIGIN" => "https://chatgpt.com",
               "ACCESS_CONTROL_REQUEST_METHOD" => "POST",
@@ -64,7 +63,7 @@ class McpServers::McpControllerTest < ActionDispatch::IntegrationTest
 
   test "tools/list returns teslamate actions with annotations" do
     body = { jsonrpc: "2.0", id: 2, method: "tools/list", params: {} }
-    post mcp_mcp_server_path("teslamate"),
+    post instance_mcp_path(@server.code, @server.id),
          params: body.to_json,
          headers: {
            "CONTENT_TYPE" => "application/json",
@@ -96,7 +95,7 @@ class McpServers::McpControllerTest < ActionDispatch::IntegrationTest
         },
       },
     }
-    post mcp_mcp_server_path("teslamate"),
+    post instance_mcp_path(@server.code, @server.id),
          params: body.to_json,
          headers: {
            "CONTENT_TYPE" => "application/json",
@@ -121,7 +120,7 @@ class McpServers::McpControllerTest < ActionDispatch::IntegrationTest
         },
       },
     }
-    post mcp_mcp_server_path("teslamate"),
+    post instance_mcp_path(@server.code, @server.id),
          params: body.to_json,
          headers: {
            "CONTENT_TYPE" => "application/json",
@@ -139,7 +138,7 @@ class McpServers::McpControllerTest < ActionDispatch::IntegrationTest
     McpActivityLog.reset!
     FileUtils.rm_rf(McpActivityLog.directory)
 
-    post mcp_mcp_server_path("teslamate"),
+    post instance_mcp_path(@server.code, @server.id),
          params: {
            jsonrpc: "2.0",
            id: 9,
@@ -153,8 +152,8 @@ class McpServers::McpControllerTest < ActionDispatch::IntegrationTest
     assert_includes [200, 202], response.status
     McpActivityLog.reset!
 
-    line = File.read(McpActivityLog.path_for("teslamate"))
-    assert_includes line, "server=teslamate"
+    line = File.read(McpActivityLog.path_for(@server.activity_log_code))
+    assert_includes line, "server=#{@server.activity_log_code}"
     assert_includes line, "tool=teslamate_get_database_schema"
     assert_match(/status=(ok|ko)/, line)
     assert_includes line, "ip="
