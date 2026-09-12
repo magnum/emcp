@@ -265,6 +265,8 @@ class McpServer < ApplicationRecord
     @configured = false
     @tools = []
     @resources = []
+    return if instance_of?(McpServer)
+
     load_credentials! if code.present?
     ensure_runtime_client
   end
