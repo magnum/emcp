@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "shellwords"
+
 module McpServer::Tools
   extend ActiveSupport::Concern
 
@@ -26,9 +28,13 @@ module McpServer::Tools
     configure_once!
     definition = tools.find { |candidate| candidate.name == name }
     raise KeyError, "unknown tool: #{name}" unless definition
-    raise SecurityError, "write method disabled" if definition.write && !allow_write_methods?
+    if definition.write && !allow_write_methods?
+      error = SecurityError.new("write method disabled")
+      log_tool_activity(definition.name, arguments, result: nil, error: error)
+      raise error
+    end
 
-    instance_exec(**filter_tool_arguments(definition, arguments), &definition.handler)
+    invoke_logged_tool(definition, arguments)
   end
 
   def mcp_protocol_server
@@ -98,6 +104,7 @@ module McpServer::Tools
   end
 
   def cli_response(client, args)
+    Current.mcp_command = [client.bin, *Array(args)].shelljoin
     text_response(client.run(args))
   rescue Emcp::CliError => e
     text_response("ERROR: #{e.message}")
@@ -135,6 +142,52 @@ module McpServer::Tools
 
     configure_tools
     @configured = true
+  end
+
+  def invoke_logged_tool(definition, arguments)
+    filtered = filter_tool_arguments(definition, arguments)
+    Current.mcp_command = nil
+    error = nil
+    result = begin
+      instance_exec(**filtered, &definition.handler)
+    rescue StandardError => e
+      error = e
+      nil
+    end
+    log_tool_activity(definition.name, filtered, result: result, error: error)
+    raise error if error
+
+    result
+  end
+
+  def log_tool_activity(tool, arguments, result:, error:)
+    McpActivityLog.record(
+      server: code,
+      tool: tool,
+      status: tool_activity_status(result, error),
+      command: Current.mcp_command.presence || McpActivityLog.command_from_arguments(tool, arguments),
+      ip: Current.remote_ip,
+      user: Current.user&.email.presence || Current.mcp_actor,
+    )
+  end
+
+  def tool_activity_status(result, error)
+    return "ko" if error
+
+    text = tool_activity_text(result)
+    return "ko" if text.to_s.start_with?("ERROR:")
+
+    "ok"
+  end
+
+  def tool_activity_text(result)
+    return result.to_s unless result.respond_to?(:content)
+
+    first = Array(result.content).first
+    case first
+    when Hash then first[:text] || first["text"]
+    else first.to_s
+    end
   end
 
   def filter_tool_arguments(definition, arguments)
@@ -260,13 +313,13 @@ module McpServer::Tools
         annotations: protocol_tool_annotations(definition),
       ) do |**arguments|
         if definition.write && !integration.allow_write_methods?
-          integration.send(
-            :text_response,
-            "ERROR: write method disabled. Set #{integration.code.upcase}_ALLOW_WRITE=true or mcp_server.allow_write.",
+          error = SecurityError.new(
+            "write method disabled. Set #{integration.code.upcase}_ALLOW_WRITE=true or mcp_server.allow_write.",
           )
+          integration.send(:log_tool_activity, definition.name, arguments, result: nil, error: error)
+          integration.send(:text_response, "ERROR: #{error.message}")
         else
-          tool_arguments = integration.send(:filter_tool_arguments, definition, arguments)
-          integration.instance_exec(**tool_arguments, &definition.handler)
+          integration.send(:invoke_logged_tool, definition, arguments)
         end
       rescue StandardError => e
         integration.send(:text_response, "ERROR: #{e.message}")

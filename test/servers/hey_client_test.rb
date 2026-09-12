@@ -60,6 +60,19 @@ class HeyClientTest < ActiveSupport::TestCase
     assert_equal %w[forward 99 --to a@b.com --message-html <p>FYI</p> --json], @client.forward("99", to: "a@b.com", message_html: "<p>FYI</p>")
   end
 
+  test "does not pass --limit on commands hey-cli 1.4.0 rejects" do
+    assert_equal %w[workflow view 654 --json], @client.workflow("654")
+    refute_includes @client.screener_history(page: "cursor"), "--limit"
+    assert_equal %w[screener history --page cursor --json], @client.screener_history(page: "cursor")
+    assert_equal %w[screener history --all --json], @client.screener_history(fetch_all: true)
+    assert_equal %w[screener list --page cursor --json], @client.screener(page: "cursor")
+    refute_includes @client.screener(fetch_all: true), "--limit"
+    assert_equal %w[search q --all --json], @client.search("q", fetch_all: true)
+    refute_includes @client.search("q", page: "n"), "--limit"
+    assert_equal %w[contact list --page 2 --json], @client.contacts(page: "2")
+    refute_includes @client.contacts(fetch_all: true), "--limit"
+  end
+
   test "organization commands take posting ids or topic ids as the CLI requires" do
     assert_equal %w[label add 1 --to 789 --json], @client.label_add("1", to: "789")
     assert_equal %w[collection add 987 --to 321 --json], @client.collection_add("987", to: "321")

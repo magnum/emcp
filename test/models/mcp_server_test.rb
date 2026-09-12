@@ -12,6 +12,7 @@ class McpServerTest < ActiveSupport::TestCase
     assert_includes codes, "hey"
     assert_includes codes, "teslamate"
     assert_includes codes, "toggltrack"
+    assert_includes codes, "onepassword"
   end
 
   test "sti fetch returns concrete class" do
@@ -133,5 +134,12 @@ class McpServerTest < ActiveSupport::TestCase
     assert_raises(NotImplementedError) { server.credential_env_keys }
     assert_raises(NotImplementedError) { server.oauth_call(callback_url: "/", state: "s") }
     assert_raises(NotImplementedError) { server.oauth_exchange(callback_url: "/", params: {}) }
+  end
+
+  test "base McpServer can initialize without a runtime client" do
+    server = McpServer.new(code: "orphan", name: "Orphan", type: "McpServer")
+
+    assert_instance_of McpServer, server
+    assert_nil server.instance_variable_get(:@client)
   end
 end

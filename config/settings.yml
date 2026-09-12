@@ -1,2 +1,6 @@
 app:
   name: "eMCP"
+
+logs:
+  retain_days: 30
+  directory: log
