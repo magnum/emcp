@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "yaml"
 
 class McpServerTest < ActiveSupport::TestCase
   setup do
@@ -161,5 +162,102 @@ class McpServerTest < ActiveSupport::TestCase
     assert_equal %w[personal work], mine.reload.tag_list.sort
     assert_includes mine.available_tag_names, "work"
     refute_includes theirs.available_tag_names, "work"
+  end
+
+  test "type settings come from config/settings.yml" do
+    assert_equal 30, Emcp.server_setting("hey", "timeout")
+    assert_equal true, Emcp.server_setting("hey", "allow_write")
+    assert_equal false, Emcp.server_setting("teslamate", "allow_write")
+    assert_equal 45, Emcp.server_setting("onepassword", "timeout")
+    assert_equal 100000, Emcp.server_setting("onepassword", "max_chars")
+  end
+
+  test "prepare_runtime applies type settings to ENV" do
+    old_timeout = ENV["HEY_TIMEOUT"]
+    old_max = ENV["EMCP_MAX_CHARS"]
+    ENV.delete("HEY_TIMEOUT")
+    ENV.delete("EMCP_MAX_CHARS")
+
+    server = mcp_server_for("hey")
+    server.instance_variable_set(:@runtime_prepared, false)
+    server.send(:prepare_runtime)
+
+    assert_equal "30", ENV["HEY_TIMEOUT"]
+    assert_equal "12000", ENV["EMCP_MAX_CHARS"]
+    assert_equal "true", ENV["HEY_ALLOW_WRITE"]
+  ensure
+    ENV["HEY_TIMEOUT"] = old_timeout
+    ENV["EMCP_MAX_CHARS"] = old_max
+  end
+
+  test "persist_credentials writes instance server.yml" do
+    server = mcp_server_for("basecamp")
+    path = server.instance_settings_path
+    FileUtils.rm_f(path)
+    FileUtils.rm_f(File.join(server.data_dir, "credentials.env"))
+
+    server.persist_credentials!(
+      "BASECAMP_TOKEN" => "tok-123",
+      "BASECAMP_ACCOUNT_ID" => "99",
+    )
+
+    stored = YAML.safe_load(File.read(path))
+    assert_equal "tok-123", stored["BASECAMP_TOKEN"]
+    assert_equal "99", stored["BASECAMP_ACCOUNT_ID"]
+    refute File.file?(File.join(server.data_dir, "credentials.env"))
+  ensure
+    server&.persist_credentials!("BASECAMP_TOKEN" => nil, "BASECAMP_ACCOUNT_ID" => nil)
+  end
+
+  test "load_credentials mirrors encrypted credentials into server.yml" do
+    server = mcp_server_for("homeassistant")
+    FileUtils.rm_f(server.instance_settings_path)
+    server.update_columns(credentials: { "HASS_SERVER" => "http://hass.local", "HASS_TOKEN" => "long-lived" }.to_json)
+
+    server.load_credentials!
+
+    stored = YAML.safe_load(File.read(server.instance_settings_path))
+    assert_equal "http://hass.local", stored["HASS_SERVER"]
+    assert_equal "long-lived", stored["HASS_TOKEN"]
+  ensure
+    server&.persist_credentials!("HASS_SERVER" => nil, "HASS_TOKEN" => nil)
+  end
+
+  test "load_credentials migrates credentials.env to server.yml" do
+    server = mcp_server_for("toggltrack")
+    FileUtils.rm_f(server.instance_settings_path)
+    File.write(
+      File.join(server.data_dir, "credentials.env"),
+      "TOGGLTRACK_TOKEN=legacy-token\nTOGGLTRACK_WORKSPACE_ID=7\n",
+      perm: 0o600,
+    )
+
+    server.load_credentials!
+
+    assert File.file?(server.instance_settings_path)
+    refute File.file?(File.join(server.data_dir, "credentials.env"))
+    stored = YAML.safe_load(File.read(server.instance_settings_path))
+    assert_equal "legacy-token", stored["TOGGLTRACK_TOKEN"]
+    assert_equal "7", stored["TOGGLTRACK_WORKSPACE_ID"]
+    assert_equal "legacy-token", ENV["TOGGLTRACK_TOKEN"]
+  ensure
+    server&.persist_credentials!("TOGGLTRACK_TOKEN" => nil, "TOGGLTRACK_WORKSPACE_ID" => nil)
+    ENV.delete("TOGGLTRACK_TOKEN")
+  end
+
+  test "purge_legacy_storage removes leftover type dirs and keeps instances" do
+    root = Rails.root.join("tmp", "mcp_purge_#{Process.pid}_#{SecureRandom.hex(4)}")
+    FileUtils.mkdir_p(root.join("hey", "home"))
+    FileUtils.mkdir_p(root.join("instances", "1"))
+    File.write(root.join("hey", "home", "keep-me"), "x")
+    File.write(root.join("instances", "1", "server.yml"), "TOKEN: a\n")
+
+    removed = McpServer.purge_legacy_storage!(root: root)
+
+    assert_includes removed, "hey"
+    refute File.exist?(root.join("hey"))
+    assert File.file?(root.join("instances", "1", "server.yml"))
+  ensure
+    FileUtils.rm_rf(root) if root
   end
 end

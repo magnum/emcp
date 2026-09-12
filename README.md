@@ -73,7 +73,8 @@ Send `Authorization: Bearer tkn_usr_...`.
 
 - `McpServer` (AR + STI) owns host behavior formerly in `lib/emcp/integration.rb`
 - `servers/<code>/server.rb` registers with `Emcp.register_integration(...)` and overrides tools/auth
-- Credentials: encrypted columns + `storage/mcp/<code>/` files for CLI compat
+- Type defaults: `config/settings.yml` under `servers.<code>` (timeouts, max_chars, allow_write)
+- Instance credentials: encrypted columns + `storage/mcp/instances/<id>/server.yml`
 - MCP OAuth clients/tokens: AR tables (`mcp_oauth_*`)
 - MCP activity logs: `log/<server_code>.log` (daily rotation). Retention: `Settings.logs.retain_days` (default 30). Override directory with `Settings.logs.directory`.
 
