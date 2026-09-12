@@ -120,6 +120,7 @@ module Emcp
             Rails.root.join("storage", "mcp", "onepassword", "config").to_s
           end
           FileUtils.mkdir_p(path)
+          File.chmod(0o700, path)
           path
         end
 
