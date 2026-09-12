@@ -5,6 +5,7 @@ Rails.application.routes.draw do
     resources :users
     resources :roles
     resources :api_keys
+    resources :mcp_server_types
     resources :mcp_servers
     resources :plan_types
     resources :plans
@@ -22,16 +23,12 @@ Rails.application.routes.draw do
   get "up" => "rails/health#show", as: :rails_health_check
   get "healthz", to: "health#show"
 
-  # MCP host URLs stay unlocalized for connector compatibility.
-  resources :mcp_servers, path: "servers", param: :id, only: %i[index show] do
+  resources :mcp_servers, path: "servers", only: %i[index new create show edit update destroy] do
+    collection do
+      get :tags
+    end
     member do
-      post "mcp", to: "mcp_servers/mcp#create"
-      match "mcp", to: "mcp_servers/mcp#options", via: :options
-      get "mcp", to: "mcp_servers/mcp#method_not_allowed"
-      delete "mcp", to: "mcp_servers/mcp#method_not_allowed"
-
       get "tools", to: "mcp_servers/tools#index", as: :tools
-      post "tools/:tool", to: "mcp_servers/tools#create"
 
       get "auth", to: "mcp_servers/auth#show", as: :auth
       get "auth/status", to: "mcp_servers/auth#status", as: :auth_status
@@ -40,44 +37,55 @@ Rails.application.routes.draw do
       match "auth/logout", to: "mcp_servers/auth#logout", via: %i[get post], as: :auth_logout
       post "auth/clear_service", to: "mcp_servers/auth#clear_service", as: :auth_clear_service
 
-      get "auth/authorize", to: "mcp_servers/oauth#authorize"
-      post "auth/register", to: "mcp_servers/oauth#register"
-      post "auth/token", to: "mcp_servers/oauth#token"
-      post "auth/revoke", to: "mcp_servers/oauth#revoke"
-      match "auth/register", to: "mcp_servers/oauth#options", via: :options
-      match "auth/token", to: "mcp_servers/oauth#options", via: :options
-      match "auth/revoke", to: "mcp_servers/oauth#options", via: :options
-
       post "oauth", to: "mcp_servers/provider_oauth#create", as: :provider_oauth
-      get "oauth_callback", to: "mcp_servers/provider_oauth#callback", as: :oauth_callback
       post "auth/save_oauth_token", to: "mcp_servers/provider_oauth#save_token", as: :save_oauth_token
-
-      get ".well-known/oauth-authorization-server", to: "mcp_servers/oauth#authorization_server"
-      match ".well-known/oauth-authorization-server", to: "mcp_servers/oauth#options", via: :options
-      get ".well-known/openid-configuration", to: "mcp_servers/oauth#authorization_server"
-      match ".well-known/openid-configuration", to: "mcp_servers/oauth#options", via: :options
     end
   end
 
-  get "/.well-known/oauth-protected-resource/servers/:server_id/mcp",
+  # MCP host URLs stay unlocalized for connector compatibility.
+  scope "/servers/:type_code/:id", as: :instance do
+    post "mcp", to: "mcp_servers/mcp#create", as: :mcp
+    match "mcp", to: "mcp_servers/mcp#options", via: :options
+    get "mcp", to: "mcp_servers/mcp#method_not_allowed"
+    delete "mcp", to: "mcp_servers/mcp#method_not_allowed"
+
+    post "tools/:tool", to: "mcp_servers/tools#create", as: :tool
+
+    get "auth/authorize", to: "mcp_servers/oauth#authorize"
+    post "auth/register", to: "mcp_servers/oauth#register"
+    post "auth/token", to: "mcp_servers/oauth#token"
+    post "auth/revoke", to: "mcp_servers/oauth#revoke"
+    match "auth/register", to: "mcp_servers/oauth#options", via: :options
+    match "auth/token", to: "mcp_servers/oauth#options", via: :options
+    match "auth/revoke", to: "mcp_servers/oauth#options", via: :options
+
+    get "oauth_callback", to: "mcp_servers/provider_oauth#callback", as: :oauth_callback
+
+    get ".well-known/oauth-authorization-server", to: "mcp_servers/oauth#authorization_server"
+    match ".well-known/oauth-authorization-server", to: "mcp_servers/oauth#options", via: :options
+    get ".well-known/openid-configuration", to: "mcp_servers/oauth#authorization_server"
+    match ".well-known/openid-configuration", to: "mcp_servers/oauth#options", via: :options
+  end
+
+  get "/.well-known/oauth-protected-resource/servers/:type_code/:id/mcp",
       to: "mcp_servers/oauth#protected_resource"
-  match "/.well-known/oauth-protected-resource/servers/:server_id/mcp",
+  match "/.well-known/oauth-protected-resource/servers/:type_code/:id/mcp",
         to: "mcp_servers/oauth#options", via: :options
-  get "/.well-known/oauth-authorization-server/servers/:server_id",
+  get "/.well-known/oauth-authorization-server/servers/:type_code/:id",
       to: "mcp_servers/oauth#authorization_server"
-  match "/.well-known/oauth-authorization-server/servers/:server_id",
+  match "/.well-known/oauth-authorization-server/servers/:type_code/:id",
         to: "mcp_servers/oauth#options", via: :options
-  get "/.well-known/oauth-authorization-server/servers/:server_id/mcp",
+  get "/.well-known/oauth-authorization-server/servers/:type_code/:id/mcp",
       to: "mcp_servers/oauth#authorization_server"
-  match "/.well-known/oauth-authorization-server/servers/:server_id/mcp",
+  match "/.well-known/oauth-authorization-server/servers/:type_code/:id/mcp",
         to: "mcp_servers/oauth#options", via: :options
-  get "/.well-known/openid-configuration/servers/:server_id",
+  get "/.well-known/openid-configuration/servers/:type_code/:id",
       to: "mcp_servers/oauth#authorization_server"
-  match "/.well-known/openid-configuration/servers/:server_id",
+  match "/.well-known/openid-configuration/servers/:type_code/:id",
         to: "mcp_servers/oauth#options", via: :options
-  get "/.well-known/openid-configuration/servers/:server_id/mcp",
+  get "/.well-known/openid-configuration/servers/:type_code/:id/mcp",
       to: "mcp_servers/oauth#authorization_server"
-  match "/.well-known/openid-configuration/servers/:server_id/mcp",
+  match "/.well-known/openid-configuration/servers/:type_code/:id/mcp",
         to: "mcp_servers/oauth#options", via: :options
   get "/.well-known/openid-configuration",
       to: "mcp_servers/oauth#missing_openid_configuration"

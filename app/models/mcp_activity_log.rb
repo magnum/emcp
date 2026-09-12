@@ -54,8 +54,9 @@ class McpActivityLog
       path = Rails.root.join(relative)
       return path unless Rails.env.test?
 
-      worker = ENV["TEST_ENV_NUMBER"].to_s
-      worker.empty? ? path : path.join("w#{worker}")
+      worker = ENV.fetch("TEST_ENV_NUMBER", "1").to_s
+      worker = "1" if worker.empty?
+      path.join("w#{worker}")
     end
 
     def reset!

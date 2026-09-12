@@ -20,6 +20,12 @@ FileUtils.chdir APP_ROOT do
   #   FileUtils.cp "config/database.yml.sample", "config/database.yml"
   # end
 
+  puts "\n== Installing git hooks =="
+  hooks_dir = File.join(APP_ROOT, ".git", "hooks")
+  if File.directory?(hooks_dir)
+    FileUtils.ln_sf("../../.githooks/pre-commit", File.join(hooks_dir, "pre-commit"))
+  end
+
   puts "\n== Preparing database =="
   system! "bin/rails db:prepare"
   system! "bin/rails db:reset" if ARGV.include?("--reset")

@@ -43,7 +43,7 @@ class McpOauthProvider
   end
 
   def scope
-    "emcp:#{@server.code}"
+    "emcp:#{@server.code}:#{@server.id}"
   end
 
   def authorization_server_metadata
@@ -138,7 +138,7 @@ class McpOauthProvider
       scope: params["scope"].presence || scope,
       expires_at: STATE_TTL.seconds.from_now,
     )
-    "#{issuer}/auth?state=#{URI.encode_www_form_component(login_state)}"
+    "#{Emcp.public_url}/servers/#{@server.id}/auth?state=#{URI.encode_www_form_component(login_state)}"
   end
 
   def valid_state?(state)
@@ -181,7 +181,9 @@ class McpOauthProvider
       api_key = ApiKey.where(revoked_at: nil)
         .where("expires_at is NULL OR expires_at > ?", Time.zone.now)
         .find_by_token(token)
-      return { subject: "api_key:#{api_key.id}", user: api_key.bearer, expires_at: nil } if api_key
+      if api_key && api_key.bearer == @server.user
+        return { subject: "api_key:#{api_key.id}", user: api_key.bearer, expires_at: nil }
+      end
     end
 
     row = @server.mcp_oauth_access_tokens.active.find_by(token: token)

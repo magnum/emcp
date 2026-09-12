@@ -4,8 +4,7 @@ require "test_helper"
 
 class HeyServerTest < ActiveSupport::TestCase
   setup do
-    McpServer.discover!
-    @server = McpServer.fetch!("hey")
+    @server = mcp_server_for("hey")
     @server.update!(allow_write: true)
   end
 

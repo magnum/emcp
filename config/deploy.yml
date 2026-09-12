@@ -79,10 +79,10 @@ aliases:
   dbc: app exec --interactive --reuse "bin/rails dbconsole --include-password"
 
 # Use a persistent storage volume for sqlite database files, Active Storage,
-# MCP CLI home, and the optional shared env file (storage/.env).
-# Host: /data/emcp/storage/.env is loaded at boot (see config/boot.rb) —
-# put FATTUREINCLOUD_*, *_ALLOW_WRITE, timeouts, etc. there instead of listing
-# every key under env.secret in this file.
+# MCP instance data (storage/mcp/instances), and optional app secrets
+# (storage/.env). Type-level MCP defaults (timeouts, max_chars, allow_write)
+# live in config/settings.yml. Per-instance tokens live in the encrypted
+# credentials column and storage/mcp/instances/:id/server.yml.
 volumes:
   - "/data/emcp/storage:/rails/storage"
 

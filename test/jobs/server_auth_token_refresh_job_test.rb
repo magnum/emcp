@@ -4,8 +4,7 @@ require "test_helper"
 
 class ServerAuthTokenRefreshJobTest < ActiveJob::TestCase
   setup do
-    McpServer.discover!
-    @server = McpServer.fetch!("twitter")
+    @server = mcp_server_for("twitter")
     @server.update!(service_token_refresh_in_minutes: 90)
   end
 
@@ -39,9 +38,9 @@ class ServerAuthTokenRefreshJobTest < ActiveJob::TestCase
   end
 
   test "EnsureServiceTokenRefreshJob refreshes enabled servers only" do
-    enabled = McpServer.fetch!("twitter")
+    enabled = mcp_server_for("twitter")
     enabled.update!(service_token_refresh_in_minutes: 90)
-    disabled = McpServer.fetch!("hey")
+    disabled = mcp_server_for("hey")
     disabled.update!(service_token_refresh_in_minutes: nil)
 
     seen = []
@@ -65,7 +64,7 @@ class ServerAuthTokenRefreshJobTest < ActiveJob::TestCase
 
   test "refresh_service_token! is public on servers that refresh credentials" do
     %w[twitter bluesky fattureincloud googleworkspace basecamp].each do |code|
-      server = McpServer.fetch!(code)
+      server = mcp_server_for(code)
       assert server.respond_to?(:refresh_service_token!),
         "#{code} must expose refresh_service_token! publicly for ServerAuthTokenRefreshJob"
     end

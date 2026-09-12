@@ -1,0 +1,18 @@
+<%# locals: url %>
+<div class="flex min-w-0 items-center gap-2" data-controller="clipboard">
+  <p class="shrink-0 font-semibold text-stone-500 dark:text-zinc-400">MCP endpoint</p>
+  <input type="text"
+         readonly
+         value="<%= url %>"
+         data-clipboard-target="source"
+         data-action="click->clipboard#selectAll focus->clipboard#selectAll"
+         class="min-w-0 flex-1 truncate rounded-lg border border-stone-300 bg-white px-3 py-2 font-mono text-stone-900 outline-none focus:border-stone-500 dark:border-zinc-600 dark:bg-zinc-950 dark:text-zinc-100">
+  <button type="button"
+          data-clipboard-target="button"
+          data-action="clipboard#copy"
+          title="Copy"
+          aria-label="Copy"
+          class="inline-flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-lg border border-stone-400 dark:border-zinc-600">
+    <%= heroicon "clipboard", variant: :outline, options: { class: "h-5 w-5" } %>
+  </button>
+</div>

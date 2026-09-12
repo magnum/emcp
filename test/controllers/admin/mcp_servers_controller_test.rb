@@ -4,9 +4,9 @@ require "test_helper"
 
 class Admin::McpServersControllerTest < ActionDispatch::IntegrationTest
   setup do
-    McpServer.discover!
     @user = users(:one)
     @user.add_role(:admin)
+    provision_mcp_servers!(@user)
     post sign_in_path, params: { email: @user.email, password: "password123" }
   end
 

@@ -11,10 +11,27 @@ export default class extends Controller {
     navigator.clipboard.writeText(value.trim()).then(() => {
       if (!this.hasButtonTarget) return
 
-      const original = this.buttonTarget.textContent
-      this.buttonTarget.textContent = this.copiedLabelValue
+      const button = this.buttonTarget
+      const originalLabel = button.getAttribute("aria-label")
+      const originalTitle = button.getAttribute("title")
+      button.setAttribute("aria-label", this.copiedLabelValue)
+      button.setAttribute("title", this.copiedLabelValue)
+
+      const originalText = button.childElementCount === 0 ? button.textContent : null
+      if (originalText !== null) button.textContent = this.copiedLabelValue
+
       window.setTimeout(() => {
-        this.buttonTarget.textContent = original
+        if (originalText !== null) button.textContent = originalText
+        if (originalLabel) {
+          button.setAttribute("aria-label", originalLabel)
+        } else {
+          button.removeAttribute("aria-label")
+        }
+        if (originalTitle) {
+          button.setAttribute("title", originalTitle)
+        } else {
+          button.removeAttribute("title")
+        }
       }, 1500)
     })
   }

@@ -73,6 +73,24 @@ module Emcp
         def auth_fields
           [
             {
+              name: "fattureincloud_client_id",
+              label: "OAuth Client ID",
+              type: "text",
+              required: true,
+              oauth_app: true,
+              help: "From the Fatture in Cloud developer app. Stored on this instance, not in .env.",
+              env: "FATTUREINCLOUD_CLIENT_ID",
+            },
+            {
+              name: "fattureincloud_client_secret",
+              label: "OAuth Client Secret",
+              type: "password",
+              required: true,
+              oauth_app: true,
+              help: "From the Fatture in Cloud developer app. Leave blank to keep a saved secret.",
+              env: "FATTUREINCLOUD_CLIENT_SECRET",
+            },
+            {
               name: "fattureincloud_token",
               label: "Fatture in Cloud access token",
               type: "password",
@@ -108,12 +126,18 @@ module Emcp
           }
         end
 
+        def prepare_provider_oauth!(params)
+          persist_oauth_app_credentials!(params)
+          load_credentials!
+          replace_client!
+        end
+
         def apply_credentials(params)
           load_credentials!
           token = Emcp.sanitize_env_value(params["fattureincloud_token"])
           company_id = Emcp.sanitize_env_value(params["fattureincloud_company_id"])
 
-          updates = {}
+          updates = oauth_app_credential_updates(params)
           updates["FATTUREINCLOUD_TOKEN"] = token if token.present?
           # Allow clearing company id only when the field is submitted blank *and* was intentionally
           # present in the form — blank means keep existing default.
@@ -194,6 +218,8 @@ module Emcp
 
         def credential_env_keys
           %w[
+            FATTUREINCLOUD_CLIENT_ID
+            FATTUREINCLOUD_CLIENT_SECRET
             FATTUREINCLOUD_TOKEN
             FATTUREINCLOUD_COMPANY_ID
             FATTUREINCLOUD_REFRESH_TOKEN
@@ -208,6 +234,22 @@ module Emcp
         end
 
         private
+
+        def oauth_app_credential_updates(params)
+          updates = {}
+          client_id = Emcp.sanitize_env_value(params["fattureincloud_client_id"])
+          client_secret = Emcp.sanitize_env_value(params["fattureincloud_client_secret"])
+          updates["FATTUREINCLOUD_CLIENT_ID"] = client_id if client_id.present?
+          updates["FATTUREINCLOUD_CLIENT_SECRET"] = client_secret if client_secret.present?
+          updates
+        ensure
+          client_secret = nil
+        end
+
+        def persist_oauth_app_credentials!(params)
+          updates = oauth_app_credential_updates(params)
+          persist_credentials!(updates) if updates.any?
+        end
 
         def build_client
           Client.new(on_token_refresh: method(:persist_refreshed_token!))

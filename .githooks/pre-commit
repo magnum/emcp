@@ -1,0 +1,6 @@
+#!/bin/sh
+set -e
+
+repo="$(git rev-parse --show-toplevel)"
+"$repo/bin/write-version"
+git add "$repo/VERSION"
