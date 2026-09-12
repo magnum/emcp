@@ -6,7 +6,7 @@
 
 <header class="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
   <div>
-    <p class="text-sm font-semibold uppercase tracking-widest text-stone-500">Authentication</p>
+    <p class=" font-semibold uppercase tracking-widest text-stone-500">Authentication</p>
     <h1 class="mt-2 text-3xl font-bold tracking-tight"><%= @server.name %></h1>
   </div>
   <% status = @server.auth_status %>
@@ -17,7 +17,7 @@
     <% unless status[:authenticated] %>
       <% detail = status[:token_error].presence || status[:error].presence || status[:credentials_file_error].presence %>
       <% if detail.present? %>
-        <p class="max-w-md text-sm text-amber-800 dark:text-amber-200"><%= detail %></p>
+        <p class="max-w-md  text-amber-800 dark:text-amber-200"><%= detail %></p>
       <% end %>
     <% end %>
   </div>
@@ -32,13 +32,13 @@
       <p class="leading-7"><span class="font-semibold"><%= index + 1 %>.</span> <%= step %></p>
     <% end %>
     <% Array(help[:commands]).each do |command| %>
-      <p class="text-sm text-stone-700">
+      <p class=" text-stone-700">
         <span class="font-semibold"><%= command[:label] %>:</span>
         <code class="break-all"><%= command[:value] %></code>
       </p>
     <% end %>
     <% if help[:note].present? %>
-      <p class="text-sm text-stone-600"><%= help[:note] %></p>
+      <p class=" text-stone-600"><%= help[:note] %></p>
     <% end %>
   </section>
 <% end %>
@@ -68,22 +68,22 @@
               required: field[:required] && !(password && stored.present?),
               placeholder: (password && stored.present? ? "•••••••• (saved — leave blank to keep)" : nil) %>
         <% if field[:help].present? %>
-          <p class="mt-1 text-sm text-stone-600"><%= field[:help] %></p>
+          <p class="mt-1  text-stone-600"><%= field[:help] %></p>
         <% end %>
       </div>
     <% end %>
 
     <div class="rounded-lg border border-stone-300 bg-stone-50 p-4 dark:border-zinc-700 dark:bg-zinc-900">
       <p class="mb-2 font-semibold">Callback URI / Redirect URL</p>
-      <code class="block break-all text-sm"><%= callback_url %></code>
-      <p class="mt-2 text-sm text-stone-600">Register this exact URL in the provider developer portal.</p>
+      <code class="block break-all "><%= callback_url %></code>
+      <p class="mt-2  text-stone-600">Register this exact URL in the provider developer portal.</p>
     </div>
 
     <% if @server.respond_to?(:oauth_scopes) %>
       <div class="rounded-lg border border-stone-300 bg-stone-50 p-4 dark:border-zinc-700 dark:bg-zinc-900">
         <p class="mb-2 font-semibold">OAuth scopes requested</p>
-        <code class="block break-all text-sm"><%= @server.oauth_scopes %></code>
-        <p class="mt-2 text-sm text-stone-600">
+        <code class="block break-all "><%= @server.oauth_scopes %></code>
+        <p class="mt-2  text-stone-600">
           Portal App permissions must cover these scopes. An <code>invalid_scope</code> error usually means a mismatch.
         </p>
       </div>
@@ -105,7 +105,7 @@
       <% if textarea %>
         <%= text_area_tag field[:name], nil,
               rows: 8,
-              class: "w-full rounded-lg border border-stone-300 px-3 py-2 font-mono text-sm dark:border-zinc-700 dark:bg-zinc-950",
+              class: "w-full rounded-lg border border-stone-300 px-3 py-2 font-mono  dark:border-zinc-700 dark:bg-zinc-950",
               autocomplete: "off",
               placeholder: (@server.respond_to?(:cli_credentials_present?) && @server.cli_credentials_present? ? "credentials.json already on server — leave blank to keep" : nil) %>
       <% elsif password %>
@@ -114,7 +114,7 @@
               autocomplete: "new-password",
               placeholder: (stored.present? ? "•••••••• saved — leave blank to keep" : "Paste token or use Retrieve OAuth token") %>
         <% if stored.present? %>
-          <p class="mt-1 text-sm text-emerald-800 dark:text-emerald-300">
+          <p class="mt-1  text-emerald-800 dark:text-emerald-300">
             Saved in <code><%= field[:env] %></code> (<%= stored.length %> characters).
           </p>
         <% end %>
@@ -125,7 +125,7 @@
               autocomplete: "off" %>
       <% end %>
       <% if field[:help].present? %>
-        <p class="mt-1 text-sm text-stone-600"><%= field[:help] %></p>
+        <p class="mt-1  text-stone-600"><%= field[:help] %></p>
       <% end %>
     </div>
   <% end %>
@@ -148,7 +148,7 @@
         },
         class: "cursor-pointer rounded-lg border border-stone-400 px-4 py-2" %>
 </div>
-<p class="mt-3 text-sm text-stone-600">
+<p class="mt-3  text-stone-600">
   <span class="font-semibold">Re-authenticate service</span> clears provider credentials (token, CLI file, OAuth tokens)
   so you can log in again. <span class="font-semibold">Revoke MCP sessions</span> only disconnects MCP clients from EmCP.
 </p>

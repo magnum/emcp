@@ -142,5 +142,5 @@ body {
 }
 
 .legal-content code {
-  @apply rounded bg-gray-100 px-1 py-0.5 text-sm dark:bg-zinc-800;
+  @apply rounded bg-gray-100 px-1 py-0.5  dark:bg-zinc-800;
 }

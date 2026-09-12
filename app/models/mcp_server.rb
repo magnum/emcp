@@ -46,13 +46,17 @@ class McpServer < ApplicationRecord
 
   scope :for_user, ->(user) { where(user: user) }
   scope :search, ->(query) {
-    return all if query.blank?
-
-    pattern = "%#{sanitize_sql_like(query.to_s.strip)}%"
-    left_joins(:mcp_server_type).where(
-      "mcp_servers.name LIKE :q OR mcp_servers.description LIKE :q OR mcp_server_types.name LIKE :q",
-      q: pattern,
-    )
+    parsed = parse_search_query(query)
+    rel = all
+    if parsed[:text].present?
+      pattern = "%#{sanitize_sql_like(parsed[:text])}%"
+      rel = rel.left_joins(:mcp_server_type).where(
+        "mcp_servers.name LIKE :q OR mcp_servers.description LIKE :q OR mcp_server_types.name LIKE :q",
+        q: pattern,
+      )
+    end
+    rel = rel.tagged_with(parsed[:tags]) if parsed[:tags].any?
+    rel
   }
 
   def credentials_hash
@@ -174,6 +178,15 @@ class McpServer < ApplicationRecord
           raise ActiveRecord::RecordNotFound, "Couldn't find McpServer with type #{type_code.inspect} and id #{id.inspect}"
         end
       end
+    end
+
+    def parse_search_query(query)
+      tags = []
+      text = query.to_s.gsub(/\btag:(\S*)/i) do
+        tags.concat(Regexp.last_match(1).split(",").map(&:strip).reject(&:blank?))
+        " "
+      end
+      { text: text.gsub(/\s+/, " ").strip, tags: tags.uniq }
     end
 
     def for_user_and_code!(user, code)

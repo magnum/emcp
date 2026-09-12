@@ -32,6 +32,34 @@ module Emcp
     ENV.fetch("EMCP_PUBLIC_URL") { ENV.fetch("APP_HOST", "http://localhost:3000") }.to_s.sub(%r{/\z}, "")
   end
 
+  def release_info
+    return read_version_file if Rails.env.development?
+
+    @release_info ||= read_version_file
+  end
+
+  def release_commit
+    release_info[:commit]
+  end
+
+  def release_tag
+    release_info[:tag]
+  end
+
+  def read_version_file(path = Rails.root.join("VERSION"))
+    info = { commit: nil, tag: nil }
+    return info unless File.file?(path)
+
+    File.foreach(path) do |line|
+      key, value = line.strip.split("=", 2)
+      next if key.blank? || value.blank?
+      next unless info.key?(key.to_sym)
+
+      info[key.to_sym] = value
+    end
+    info
+  end
+
   def apply_env_sanitization!
     ENV.each_key do |key|
       original = ENV[key]

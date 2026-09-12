@@ -150,6 +150,41 @@ class McpServerTest < ActiveSupport::TestCase
     assert_equal McpServer.fetch!("hey", server.id), server
   end
 
+  test "search query parses tag: filters" do
+    assert_equal({ text: "work", tags: [] }, McpServer.parse_search_query("work"))
+    assert_equal({ text: "server1", tags: %w[tag1] }, McpServer.parse_search_query("server1 tag:tag1"))
+    assert_equal({ text: "", tags: %w[tag1 tag2 tag3] }, McpServer.parse_search_query("tag:tag1,tag2,tag3"))
+    assert_equal({ text: "server1 notes", tags: %w[work home] }, McpServer.parse_search_query("server1 tag:work,home notes"))
+  end
+
+  test "search ANDs free text with listed tags" do
+    owner = users(:one)
+    other = users(:two)
+    named = mcp_server_for("hey", user: owner)
+    named.update!(name: "server1", description: "office notes", tag_list: "tag1, extra")
+    same_text = mcp_server_for("teslamate", user: owner)
+    same_text.update!(name: "server1", description: "office notes", tag_list: "other")
+    both_tags = mcp_server_for("basecamp", user: owner)
+    both_tags.update!(name: "camp", description: "projects", tag_list: "tag1, tag2")
+    theirs = mcp_server_for("hey", user: other)
+    theirs.update!(name: "server1", description: "office notes", tag_list: "tag1")
+
+    by_text = McpServer.for_user(owner).search("work")
+    refute_includes by_text, named
+
+    named.update!(description: "work fleet")
+    by_text = McpServer.for_user(owner).search("work")
+    assert_includes by_text, named.reload
+    refute_includes by_text, same_text
+
+    by_tag_and_text = McpServer.for_user(owner).search("server1 tag:tag1")
+    assert_equal [ named.id ], by_tag_and_text.ids.sort
+
+    by_tags = McpServer.for_user(owner).search("tag:tag1,tag2")
+    assert_equal [ both_tags.id ], by_tags.ids.sort
+    refute_includes by_tags, named
+  end
+
   test "tags are scoped to the owning user" do
     owner = users(:one)
     other = users(:two)
