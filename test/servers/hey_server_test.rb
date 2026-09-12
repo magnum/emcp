@@ -39,6 +39,18 @@ class HeyServerTest < ActiveSupport::TestCase
     refute properties.key?(:after)
     refute properties.key?(:unseen_only)
     refute properties.key?(:deep)
+    refute properties.key?(:limit)
+  end
+
+  test "tools omit --limit where hey-cli 1.4.0 rejects it" do
+    %w[hey_workflow hey_screener hey_screener_history hey_search hey_contacts].each do |name|
+      properties = tool(name)[:input_schema][:properties]
+      refute properties.key?(:limit), "#{name} must not advertise limit"
+    end
+
+    assert tool("hey_screener_history")[:input_schema][:properties].key?(:page)
+    assert tool("hey_screener_history")[:input_schema][:properties].key?(:fetch_all)
+    refute tool("hey_workflow")[:input_schema][:properties].key?(:fetch_all)
   end
 
   test "compose and reply accept paragraphs, markdown, html, and drafts" do

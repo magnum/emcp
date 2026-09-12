@@ -75,10 +75,11 @@ Send `Authorization: Bearer tkn_usr_...`.
 - `servers/<code>/server.rb` registers with `Emcp.register_integration(...)` and overrides tools/auth
 - Credentials: encrypted columns + `storage/mcp/<code>/` files for CLI compat
 - MCP OAuth clients/tokens: AR tables (`mcp_oauth_*`)
+- MCP activity logs: `log/<server_code>.log` (daily rotation). Retention: `Settings.logs.retain_days` (default 30). Override directory with `Settings.logs.directory`.
 
 ## Integrations
 
-Same set as before: HEY, Basecamp, Fatture in Cloud, Google Workspace, Toggl Track, Bluesky, Twitter/X, TeslaMate. See each `servers/*/README.md`.
+Same set as before, plus 1Password: HEY, Basecamp, Fatture in Cloud, Google Workspace, Toggl Track, Bluesky, Twitter/X, TeslaMate, Home Assistant, 1Password. See each `servers/*/README.md`.
 
 ## Tests
 

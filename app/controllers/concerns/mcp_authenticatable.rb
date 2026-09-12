@@ -4,16 +4,35 @@ module McpAuthenticatable
   extend ActiveSupport::Concern
   include ApiKeyAuthenticatable
 
-  def authorize_mcp!
-    token = bearer_token
-    payload = oauth_provider.load_access_token(token)
-    return if payload
+    def authorize_mcp!
+      token = bearer_token
+      payload = oauth_provider.load_access_token(token)
+      unless payload
+        metadata = "#{Emcp.public_url}/.well-known/oauth-protected-resource/servers/#{mcp_server.code}/mcp"
+        headers["WWW-Authenticate"] =
+          %(Bearer error="invalid_token", resource_metadata="#{metadata}")
+        render json: { error: "invalid_token", error_description: "Authentication required" }, status: :unauthorized
+        return
+      end
 
-    metadata = "#{Emcp.public_url}/.well-known/oauth-protected-resource/servers/#{mcp_server.code}/mcp"
-    headers["WWW-Authenticate"] =
-      %(Bearer error="invalid_token", resource_metadata="#{metadata}")
-    render json: { error: "invalid_token", error_description: "Authentication required" }, status: :unauthorized
-  end
+      Current.remote_ip = request.remote_ip
+      assign_mcp_actor(payload)
+    end
+
+    def assign_mcp_actor(payload)
+      user = payload[:user]
+      Current.user = user if user.is_a?(User)
+      Current.mcp_actor =
+        if Current.user
+          Current.user.email
+        elsif payload[:client_name].present?
+          "oauth:#{payload[:client_name]}"
+        elsif payload[:client_id].present?
+          "oauth:#{payload[:client_id]}"
+        else
+          payload[:subject].presence || "-"
+        end
+    end
 
   def mcp_server
     @mcp_server ||= McpServer.fetch!(params[:server_id] || params[:id] || params[:code])

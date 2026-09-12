@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "open3"
+require "shellwords"
 
 module Emcp
   class CliError < StandardError; end
@@ -16,6 +17,7 @@ module Emcp
     end
 
     def run(args, truncate: true)
+      Current.mcp_command = [@bin, *Array(args)].shelljoin
       raise CliError, "binary '#{@bin}' not found in PATH" unless bin_available?
 
       child_env = ENV.to_h.dup

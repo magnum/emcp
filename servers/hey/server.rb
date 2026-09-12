@@ -13,12 +13,16 @@ module Emcp
         version "0.2.0"
 
         LIMIT_PROPERTIES = {
-          limit: { type: "integer", description: "Maximum number of items" },
+          limit: { type: "integer", description: "Maximum number of items (only where hey-cli accepts --limit)" },
           fetch_all: { type: "boolean", description: "Fetch all pages instead of applying limit" },
         }.freeze
-        PAGE_PROPERTIES = {
+        CURSOR_PROPERTIES = {
           page: { type: "string", description: "Opaque next_page cursor from a previous listing" },
-          **LIMIT_PROPERTIES,
+          fetch_all: { type: "boolean", description: "Follow HEY's cursor to the end (--all)" },
+        }.freeze
+        PAGE_PROPERTIES = {
+          **CURSOR_PROPERTIES,
+          limit: LIMIT_PROPERTIES[:limit],
         }.freeze
         ACCOUNT_PROPERTIES = {
           account: { type: "string", description: "Linked mail account ID, or all" },
@@ -388,12 +392,10 @@ module Emcp
 
           define_tool(
             name: "hey_workflow",
-            description: "List a workflow's stages.",
-            properties: { workflow_id: string_prop("Workflow ID"), **ACCOUNT_PROPERTIES, **LIMIT_PROPERTIES },
+            description: "List a workflow's stages. hey-cli does not accept --limit/--all on workflow view.",
+            properties: { workflow_id: string_prop("Workflow ID"), **ACCOUNT_PROPERTIES },
             required: ["workflow_id"],
-          ) do |workflow_id:, account: nil, limit: nil, fetch_all: false|
-            run(@client.workflow(workflow_id, limit: limit, fetch_all: fetch_all, account: account))
-          end
+          ) { |workflow_id:, account: nil| run(@client.workflow(workflow_id, account: account)) }
 
           define_tool(
             name: "hey_clips",
@@ -424,11 +426,11 @@ module Emcp
               label: string_prop("Label name or ID"),
               attachment: string_prop("any, images, pdfs, calendar_invites, documents, spreadsheets, presentations, media, zip_files"),
               **ACCOUNT_PROPERTIES,
-              **PAGE_PROPERTIES,
+              **CURSOR_PROPERTIES,
             },
           ) do |query: nil, required: nil, any: nil, none: nil, exact: nil, from: nil, to: nil,
                  subject: nil, date: nil, inbox: nil, label: nil, attachment: nil,
-                 account: nil, limit: nil, fetch_all: false, page: nil|
+                 account: nil, fetch_all: false, page: nil|
             if [query, required, any, none, exact, from, to, subject, date, inbox, label, attachment].all?(&:blank?)
               next text_response("ERROR: provide query or at least one search refinement")
             end
@@ -438,7 +440,7 @@ module Emcp
                 query,
                 required: required, any: any, none: none, exact: exact, from: from, to: to,
                 subject: subject, date: date, inbox: inbox, label: label, attachment: attachment,
-                limit: limit, fetch_all: fetch_all, page: page, account: account,
+                fetch_all: fetch_all, page: page, account: account,
               ),
             )
           end
@@ -455,18 +457,18 @@ module Emcp
             properties: {
               count: boolean_prop("Return only the number waiting"),
               **ACCOUNT_PROPERTIES,
-              **PAGE_PROPERTIES,
+              **CURSOR_PROPERTIES,
             },
-          ) do |count: false, account: nil, limit: nil, fetch_all: false, page: nil|
-            run(@client.screener(limit: limit, fetch_all: fetch_all, page: page, count: count, account: account))
+          ) do |count: false, account: nil, fetch_all: false, page: nil|
+            run(@client.screener(fetch_all: fetch_all, page: page, count: count, account: account))
           end
 
           define_tool(
             name: "hey_screener_history",
-            description: "List senders already screened.",
-            properties: { **ACCOUNT_PROPERTIES, **PAGE_PROPERTIES },
-          ) do |account: nil, limit: nil, fetch_all: false, page: nil|
-            run(@client.screener_history(limit: limit, fetch_all: fetch_all, page: page, account: account))
+            description: "List senders already screened. Uses --page/--all; hey-cli does not accept --limit.",
+            properties: { **ACCOUNT_PROPERTIES, **CURSOR_PROPERTIES },
+          ) do |account: nil, fetch_all: false, page: nil|
+            run(@client.screener_history(fetch_all: fetch_all, page: page, account: account))
           end
 
           define_tool(
@@ -515,9 +517,9 @@ module Emcp
           define_tool(
             name: "hey_contacts",
             description: "List HEY contacts.",
-            properties: { **ACCOUNT_PROPERTIES, **PAGE_PROPERTIES },
-          ) do |account: nil, limit: nil, fetch_all: false, page: nil|
-            run(@client.contacts(limit: limit, fetch_all: fetch_all, page: page, account: account))
+            properties: { **ACCOUNT_PROPERTIES, **CURSOR_PROPERTIES },
+          ) do |account: nil, fetch_all: false, page: nil|
+            run(@client.contacts(fetch_all: fetch_all, page: page, account: account))
           end
 
           define_tool(
