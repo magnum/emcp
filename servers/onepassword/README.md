@@ -23,6 +23,7 @@ Operator UI: `/servers/onepassword/auth`
 
 The token is stored as `OP_SERVICE_ACCOUNT_TOKEN`. EmCP unsets `OP_CONNECT_HOST` /
 `OP_CONNECT_TOKEN` for `op` so a leftover Connect config cannot override it.
+`OP_CONFIG_DIR` is created with mode `700` — `op` refuses a world-readable config directory.
 
 ## Environment
 

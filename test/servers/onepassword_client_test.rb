@@ -58,6 +58,20 @@ class OnePasswordClientTest < ActiveSupport::TestCase
     )
   end
 
+  test "config dir is forced to mode 700" do
+    Dir.mktmpdir do |dir|
+      path = File.join(dir, "config")
+      FileUtils.mkdir_p(path)
+      File.chmod(0o755, path)
+      ENV["OP_CONFIG_DIR"] = path
+
+      assert_equal path, Emcp::Servers::OnePassword::Client.new.send(:config_dir)
+      assert_equal 0o700, File.stat(path).mode & 0o777
+    end
+  ensure
+    ENV.delete("OP_CONFIG_DIR")
+  end
+
   test "errors redact the service account token" do
     ENV["OP_SERVICE_ACCOUNT_TOKEN"] = "ops_super_secret_token"
     message = @client.send(:redact, "op exited 1: invalid token ops_super_secret_token")
