@@ -41,6 +41,20 @@ class McpServersControllerTest < ActionDispatch::IntegrationTest
     assert_match(/No servers match/, response.body)
   end
 
+  test "index ANDs text search with tag: filters" do
+    post sign_in_path, params: { email: @user.email, password: "password123" }
+    hey = mcp_server_for("hey")
+    hey.update!(name: "server1", description: "desk", tag_list: "tag1")
+    teslamate = mcp_server_for("teslamate")
+    teslamate.update!(name: "server1", description: "desk", tag_list: "other")
+
+    get mcp_servers_path, params: { q: "server1 tag:tag1" }
+    assert_response :success
+    assert_match(/server1/, response.body)
+    assert_select "h2", text: /server1/, count: 1
+    refute_match(/Car telemetry/, response.body)
+  end
+
   test "create builds an instance for the current user" do
     post sign_in_path, params: { email: @user.email, password: "password123" }
     type = McpServerType.fetch!("hey")

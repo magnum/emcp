@@ -5,4 +5,17 @@
     <%= link_to t("legal.terms_and_conditions"), "#{prefix}/terms-and-conditions", class: "hover:text-gray-900 hover:underline dark:hover:text-zinc-100" %>
     <%= link_to t("legal.cookie_policy"), "#{prefix}/cookie-policy", class: "hover:text-gray-900 hover:underline dark:hover:text-zinc-100" %>
   </nav>
+  <% if Emcp.release_tag.present? || Emcp.release_commit.present? %>
+    <p class="px-6 pb-6 text-center text-xs text-gray-400 dark:text-zinc-500">
+      <% if Emcp.release_tag.present? %>
+        <span><%= Emcp.release_tag %></span>
+      <% end %>
+      <% if Emcp.release_tag.present? && Emcp.release_commit.present? %>
+        <span aria-hidden="true"> · </span>
+      <% end %>
+      <% if Emcp.release_commit.present? %>
+        <span class="font-mono"><%= Emcp.release_commit %></span>
+      <% end %>
+    </p>
+  <% end %>
 </footer>

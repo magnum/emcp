@@ -8,20 +8,23 @@
         Each server instance has its own MCP endpoint, credentials, and tags.
       </p>
     </div>
-    <%= link_to "New server", new_mcp_server_path,
-          class: "inline-flex h-10 cursor-pointer items-center rounded-lg bg-stone-950 px-4 font-bold text-stone-50 dark:bg-zinc-100 dark:text-zinc-950" %>
+    <%= link_to new_mcp_server_path,
+          class: "inline-flex h-10 cursor-pointer items-center gap-2 whitespace-nowrap rounded-lg bg-stone-950 px-4 font-bold text-stone-50 dark:bg-zinc-100 dark:text-zinc-950" do %>
+      <%= heroicon "plus", options: { class: "h-5 w-5" } %>
+      New server
+    <% end %>
   </header>
 
   <%= form_with url: mcp_servers_path, method: :get, local: true,
         class: "mb-8 flex flex-col gap-3 sm:flex-row sm:items-end" do %>
     <div class="min-w-0 flex-1">
-      <label for="q" class="mb-1 block text-sm font-semibold text-stone-500 dark:text-zinc-400">Search</label>
+      <label for="q" class="mb-1 block  font-semibold text-stone-500 dark:text-zinc-400">Search</label>
       <input type="search" name="q" id="q" value="<%= params[:q] %>"
-             placeholder="Name, description, or type"
+             placeholder="Name, description, type, or tag:work,home"
              class="w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-stone-900 outline-none focus:border-stone-500 dark:border-zinc-600 dark:bg-zinc-950 dark:text-zinc-100">
     </div>
     <div class="sm:w-64">
-      <label for="mcp_server_type_id" class="mb-1 block text-sm font-semibold text-stone-500 dark:text-zinc-400">Server type</label>
+      <label for="mcp_server_type_id" class="mb-1 block  font-semibold text-stone-500 dark:text-zinc-400">Server type</label>
       <select name="mcp_server_type_id" id="mcp_server_type_id"
               class="w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-stone-900 outline-none focus:border-stone-500 dark:border-zinc-600 dark:bg-zinc-950 dark:text-zinc-100">
         <option value="">All Server Types</option>
@@ -48,83 +51,67 @@
     <% end %>
 
     <% @servers.each do |server| %>
-      <article class="py-9">
-        <div class="flex items-start justify-between gap-3">
-          <div class="min-w-0">
-            <h2 class="text-2xl font-bold tracking-tight">
-              <%= link_to server.name, mcp_server_path(server), class: "hover:underline" %>
-            </h2>
-            <p class="mt-1 text-sm font-semibold uppercase tracking-widest text-stone-500 dark:text-zinc-400">
-              <%= server.mcp_server_type.name %>
-            </p>
-          </div>
-          <div class="flex shrink-0 flex-col items-end gap-2">
-            <div class="flex flex-nowrap items-center justify-end gap-2">
-              <%= turbo_frame_tag dom_id(server, :auth_status),
-                    src: auth_status_mcp_server_path(server),
-                    loading: :lazy do %>
-                <span class="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-stone-300 bg-stone-100 text-stone-500 md:w-auto md:px-4 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-400"
-                      title="Checking authentication">
-                  <span class="hidden md:inline">Checking…</span>
-                  <span class="md:hidden animate-pulse">…</span>
+      <article class="grid grid-cols-1 items-start gap-4 py-9 md:grid-cols-[minmax(0,1fr)_auto]">
+        <div class="min-w-0">
+          <h2 class="text-2xl font-bold tracking-tight">
+            <%= link_to server.name, mcp_server_path(server), class: "hover:underline" %>
+          </h2>
+          <div class="mt-1 flex flex-wrap items-center gap-2">
+            <p class="group relative font-semibold uppercase tracking-widest text-stone-500 dark:text-zinc-400">
+              <span class="<%= 'cursor-help' if server.mcp_server_type.description.present? %>"><%= server.mcp_server_type.name %></span>
+              <% if server.mcp_server_type.description.present? %>
+                <span role="tooltip" class="pointer-events-none absolute left-0 top-full z-20 mt-1 hidden min-w-sm rounded-sm bg-stone-800 px-4 py-2 text-left font-normal normal-case leading-5 tracking-normal text-white shadow group-hover:block dark:bg-zinc-700 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                  <%= server.mcp_server_type.description %>
                 </span>
               <% end %>
-
-              <%= link_to auth_status_mcp_server_path(server, refresh: 1),
-                    class: "inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg border border-stone-400 dark:border-zinc-600",
-                    title: "Refresh auth status",
-                    aria: { label: "Refresh auth status" },
-                    data: { turbo_frame: dom_id(server, :auth_status) } do %>
-                <%= heroicon "arrow-path", options: { class: "h-5 w-5" } %>
-              <% end %>
-
-              <%= link_to "Auth", auth_mcp_server_path(server),
-                    class: "inline-flex h-10 cursor-pointer items-center rounded-lg bg-stone-950 px-4 font-bold text-stone-50 dark:bg-zinc-100 dark:text-zinc-950" %>
-              <%= link_to "json", tools_mcp_server_path(server),
-                    class: "inline-flex h-10 cursor-pointer items-center rounded-lg border-2 border-stone-950 px-4 font-bold dark:border-zinc-100" %>
-            </div>
+            </p>
+            <% if server.tag_list.any? %>
+              <ul class="flex flex-wrap gap-2">
+                <% server.tag_list.each do |tag| %>
+                  <li class="rounded-sm bg-stone-500 px-2.5 py-0.5 text-white"><%= tag %></li>
+                <% end %>
+              </ul>
+            <% end %>
           </div>
         </div>
 
-        <div class="mt-4 space-y-4">
-          <% if server.description.present? %>
-            <p class="text-base leading-7 text-stone-700 dark:text-zinc-300"><%= server.description %></p>
+        <div class="flex flex-wrap items-center gap-2 md:col-start-2 md:row-start-1 md:justify-end">
+          <%= turbo_frame_tag dom_id(server, :auth_status),
+                src: auth_status_mcp_server_path(server),
+                loading: :lazy do %>
+            <span class="inline-flex h-10 items-center justify-center rounded-lg border border-stone-300 bg-stone-100 px-4 text-stone-500 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-400"
+                  title="Checking authentication">
+              Checking…
+            </span>
           <% end %>
-          <% if server.tag_list.any? %>
-            <ul class="flex flex-wrap gap-2">
-              <% server.tag_list.each do |tag| %>
-                <li class="rounded-full border border-stone-300 px-3 py-1 text-sm dark:border-zinc-600"><%= tag %></li>
-              <% end %>
-            </ul>
+
+          <%= link_to auth_status_mcp_server_path(server, refresh: 1),
+                class: "inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg border border-stone-400 dark:border-zinc-600",
+                title: "Refresh auth status",
+                aria: { label: "Refresh auth status" },
+                data: { turbo_frame: dom_id(server, :auth_status) } do %>
+            <%= heroicon "arrow-path", options: { class: "h-5 w-5" } %>
           <% end %>
-          <dl class="flex flex-col gap-4 sm:flex-row sm:gap-10">
-            <div>
-              <dt class="font-semibold text-stone-500 dark:text-zinc-400">Server ID</dt>
-              <dd class="mt-1 font-mono"><%= server.activity_log_code %></dd>
-            </div>
-            <div>
-              <dt class="font-semibold text-stone-500 dark:text-zinc-400">Write methods</dt>
-              <dd class="mt-1"><%= server.allow_write? ? "Enabled" : "Disabled" %></dd>
-            </div>
-          </dl>
+
+          <%= link_to "Auth", auth_mcp_server_path(server),
+                class: "inline-flex h-10 cursor-pointer items-center rounded-lg bg-stone-950 px-4 font-bold text-stone-50 dark:bg-zinc-100 dark:text-zinc-950" %>
+          <%= link_to "json", tools_mcp_server_path(server),
+                class: "inline-flex h-10 cursor-pointer items-center rounded-lg border-2 border-stone-950 px-4 font-bold dark:border-zinc-100" %>
         </div>
 
-        <div class="mt-7" data-controller="clipboard">
-          <p class="font-semibold text-stone-500 dark:text-zinc-400">MCP endpoint</p>
-          <div class="mt-2 flex items-stretch gap-2">
-            <input type="text"
-                   readonly
-                   value="<%= server.mcp_url %>"
-                   data-clipboard-target="source"
-                   data-action="click->clipboard#selectAll focus->clipboard#selectAll"
-                   class="min-w-0 flex-1 rounded-lg border border-stone-300 bg-white px-3 py-2 font-mono text-sm text-stone-900 outline-none focus:border-stone-500 dark:border-zinc-600 dark:bg-zinc-950 dark:text-zinc-100">
-            <button type="button"
-                    data-clipboard-target="button"
-                    data-action="clipboard#copy"
-                    class="shrink-0 cursor-pointer rounded-lg border border-stone-400 px-3 py-2 text-sm font-bold dark:border-zinc-600">
-              Copy
-            </button>
+        <dl class="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-x-10 sm:gap-y-2 md:col-start-1">
+          <div class="flex flex-wrap items-baseline gap-2">
+            <dt class="font-semibold text-stone-500 dark:text-zinc-400">Server ID</dt>
+            <dd class="font-mono"><%= server.activity_log_code %></dd>
           </div>
+          <div class="flex flex-wrap items-baseline gap-2">
+            <dt class="font-semibold text-stone-500 dark:text-zinc-400">Write methods</dt>
+            <dd><%= server.allow_write? ? "Enabled" : "Disabled" %></dd>
+          </div>
+        </dl>
+
+        <div class="min-w-0 md:col-span-2">
+          <%= render "mcp_servers/mcp_endpoint", url: server.mcp_url %>
         </div>
       </article>
     <% end %>

@@ -6,7 +6,16 @@
   </p>
 
   <header class="mb-8">
-    <p class="text-sm font-semibold uppercase tracking-widest text-stone-500"><%= @server.mcp_server_type.name %></p>
+    <div class="flex flex-wrap items-center gap-2">
+      <p class="font-semibold uppercase tracking-widest text-stone-500"><%= @server.mcp_server_type.name %></p>
+      <% if @server.tag_list.any? %>
+        <ul class="flex flex-wrap gap-2">
+          <% @server.tag_list.each do |tag| %>
+            <li class="rounded-sm bg-stone-500 px-2.5 py-0.5 text-white"><%= tag %></li>
+          <% end %>
+        </ul>
+      <% end %>
+    </div>
     <h1 class="mt-2 text-3xl font-bold tracking-tight"><%= @server.name %></h1>
     <% if @server.description.present? %>
       <p class="mt-3 text-base leading-7 text-stone-700 dark:text-zinc-300"><%= @server.description %></p>
@@ -19,25 +28,5 @@
     </div>
   </header>
 
-  <% if @server.tag_list.any? %>
-    <ul class="mb-8 flex flex-wrap gap-2">
-      <% @server.tag_list.each do |tag| %>
-        <li class="rounded-full border border-stone-300 px-3 py-1 text-sm dark:border-zinc-600"><%= tag %></li>
-      <% end %>
-    </ul>
-  <% end %>
-
-  <div data-controller="clipboard">
-    <p class="font-semibold text-stone-500 dark:text-zinc-400">MCP endpoint</p>
-    <div class="mt-2 flex items-stretch gap-2">
-      <input type="text" readonly value="<%= @server.mcp_url %>"
-             data-clipboard-target="source"
-             data-action="click->clipboard#selectAll focus->clipboard#selectAll"
-             class="min-w-0 flex-1 rounded-lg border border-stone-300 bg-white px-3 py-2 font-mono text-sm dark:border-zinc-600 dark:bg-zinc-950">
-      <button type="button" data-clipboard-target="button" data-action="clipboard#copy"
-              class="shrink-0 cursor-pointer rounded-lg border border-stone-400 px-3 py-2 text-sm font-bold dark:border-zinc-600">
-        Copy
-      </button>
-    </div>
-  </div>
+  <%= render "mcp_servers/mcp_endpoint", url: @server.mcp_url %>
 </div>
