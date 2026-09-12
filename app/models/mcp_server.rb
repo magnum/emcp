@@ -195,6 +195,17 @@ class McpServer < ApplicationRecord
         )
       end
     end
+
+    def purge_legacy_storage!(root: Rails.root.join("storage", "mcp"))
+      return [] unless File.directory?(root)
+
+      Dir.children(root).filter_map do |entry|
+        next if entry == "instances"
+
+        FileUtils.rm_rf(File.join(root, entry))
+        entry
+      end
+    end
   end
 
   # Legacy Integration used #id for server_id; AR #id remains the PK.
@@ -309,7 +320,10 @@ class McpServer < ApplicationRecord
     @resources = []
     return if instance_of?(McpServer)
 
-    load_credentials! if code.present?
+    if code.present?
+      Emcp.apply_server_type_settings!(code)
+      load_credentials!
+    end
     ensure_runtime_client
   end
 

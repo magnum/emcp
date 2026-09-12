@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "yaml"
+
 module McpServer::Credentials
   extend ActiveSupport::Concern
 
@@ -10,8 +12,12 @@ module McpServer::Credentials
     path.to_s
   end
 
+  def instance_settings_path
+    File.join(data_dir, "server.yml")
+  end
+
   def credential_path
-    File.join(data_dir, "credentials.env")
+    instance_settings_path
   end
 
   def oauth_token_path
@@ -19,35 +25,13 @@ module McpServer::Credentials
   end
 
   def load_credentials!
+    migrate_legacy_credentials_env!
     stored = credential_hash
-    stored.each do |key, value|
-      next unless credential_env_keys.include?(key)
-
-      cleaned = Emcp.sanitize_env_value(value)
-      if cleaned.empty?
-        ENV.delete(key)
-      else
-        ENV[key] = cleaned
-      end
-    end
-
-    if File.file?(credential_path)
-      File.readlines(credential_path, chomp: true).each do |line|
-        next if line.empty? || line.start_with?("#")
-
-        key, value = line.split("=", 2)
-        next unless key && value && credential_env_keys.include?(key)
-
-        cleaned = Emcp.sanitize_env_value(value)
-        if cleaned.empty?
-          ENV.delete(key)
-        else
-          ENV[key] = cleaned
-        end
-      end
-    end
-
+    file = read_instance_settings
+    apply_credential_hash!(stored)
+    apply_credential_hash!(file)
     sanitize_credential_env!
+    mirror_instance_settings!(stored.merge(file))
   end
 
   def persist_credentials!(values)
@@ -68,16 +52,7 @@ module McpServer::Credentials
 
     self.credentials_hash = current
     save! if persisted?
-
-    if current.empty?
-      File.delete(credential_path) if File.file?(credential_path)
-    else
-      File.write(
-        credential_path,
-        current.map { |key, value| "#{key}=#{value}" }.join("\n") + "\n",
-        perm: 0o600,
-      )
-    end
+    write_instance_settings(current)
     invalidate_auth_status!
   end
 
@@ -169,6 +144,77 @@ module McpServer::Credentials
 
   def credential_hash
     credentials_hash.transform_keys(&:to_s)
+  end
+
+  def apply_credential_hash!(values)
+    values.each do |key, value|
+      key = key.to_s
+      next unless credential_env_keys.include?(key)
+
+      cleaned = Emcp.sanitize_env_value(value)
+      if cleaned.empty?
+        ENV.delete(key)
+      else
+        ENV[key] = cleaned
+      end
+    end
+  end
+
+  def read_instance_settings
+    path = instance_settings_path
+    return {} unless File.file?(path)
+
+    raw = YAML.safe_load(File.read(path), permitted_classes: [ Date, Time ], aliases: true)
+    normalize_instance_settings(raw)
+  rescue Psych::SyntaxError
+    {}
+  end
+
+  def normalize_instance_settings(raw)
+    return {} unless raw.is_a?(Hash)
+
+    data = raw["credentials"].is_a?(Hash) ? raw["credentials"] : raw
+    data.to_h.transform_keys(&:to_s).transform_values { |value| Emcp.sanitize_env_value(value) }
+  end
+
+  def mirror_instance_settings!(hash)
+    return unless persisted?
+    return if File.file?(instance_settings_path)
+
+    kept = hash.select do |key, value|
+      credential_env_keys.include?(key.to_s) && Emcp.sanitize_env_value(value).present?
+    end
+    write_instance_settings(kept) if kept.any?
+  end
+
+  def write_instance_settings(hash)
+    if hash.empty?
+      File.delete(instance_settings_path) if File.file?(instance_settings_path)
+    else
+      File.write(instance_settings_path, YAML.dump(hash.transform_keys(&:to_s)), perm: 0o600)
+    end
+    File.delete(legacy_credential_path) if File.file?(legacy_credential_path)
+  end
+
+  def legacy_credential_path
+    File.join(data_dir, "credentials.env")
+  end
+
+  def migrate_legacy_credentials_env!
+    return unless File.file?(legacy_credential_path)
+    return if File.file?(instance_settings_path)
+
+    parsed = {}
+    File.readlines(legacy_credential_path, chomp: true).each do |line|
+      next if line.empty? || line.start_with?("#")
+
+      key, value = line.split("=", 2)
+      next unless key && value && credential_env_keys.include?(key)
+
+      parsed[key] = Emcp.sanitize_env_value(value)
+    end
+    write_instance_settings(parsed) if parsed.any?
+    File.delete(legacy_credential_path) if File.file?(legacy_credential_path)
   end
 
   def sanitize_credential_env!

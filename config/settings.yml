@@ -4,3 +4,61 @@ app:
 logs:
   retain_days: 30
   directory: log
+
+# Type-level defaults shared by every instance of that MCP server.
+# Instance secrets (tokens, client id/secret, handles) live in
+# storage/mcp/instances/:id/server.yml and the encrypted credentials column.
+servers:
+  defaults:
+    timeout: 30
+    max_chars: 12000
+    allow_write: false
+  hey:
+    allow_write: true
+    timeout: 30
+    max_chars: 12000
+    bin: hey
+  basecamp:
+    allow_write: true
+    timeout: 30
+    max_chars: 12000
+    bin: basecamp
+  fattureincloud:
+    allow_write: true
+    timeout: 30
+    max_chars: 12000
+  googleworkspace:
+    allow_write: true
+    timeout: 60
+    max_chars: 12000
+    bin: gws
+  toggltrack:
+    allow_write: true
+    timeout: 30
+    max_chars: 12000
+  bluesky:
+    allow_write: true
+    timeout: 30
+    max_chars: 12000
+  twitter:
+    allow_write: true
+    timeout: 30
+    max_chars: 12000
+  teslamate:
+    allow_write: false
+    timeout: 30
+    statement_timeout_ms: 30000
+    query_timeout_ms: 5000
+    custom_sql_row_limit: 1000
+  homeassistant:
+    allow_write: true
+    timeout: 30
+    max_chars: 12000
+    bin: hass-cli
+    insecure: false
+  onepassword:
+    allow_write: false
+    timeout: 45
+    max_chars: 100000
+    bin: op
+

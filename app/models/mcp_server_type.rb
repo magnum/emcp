@@ -21,7 +21,7 @@ class McpServerType < ApplicationRecord
         next if code.blank?
 
         allow_write = ActiveModel::Type::Boolean.new.cast(
-          ENV.fetch("#{code.upcase}_ALLOW_WRITE", "false"),
+          Emcp.server_setting(code, "allow_write", ENV.fetch("#{code.upcase}_ALLOW_WRITE", "false")),
         )
         attrs = {
           class_name: klass.name,
