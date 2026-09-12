@@ -12,6 +12,14 @@ class EmcpVersionTest < ActiveSupport::TestCase
     FileUtils.rm_f(path)
   end
 
+  test "accepts vX.Y and vX.Y.Z release tags" do
+    assert Emcp.release_tag?("v1.0.1")
+    assert Emcp.release_tag?("v0.7")
+    refute Emcp.release_tag?("1.0.1")
+    refute Emcp.release_tag?("v1")
+    refute Emcp.release_tag?("v1.0.1-beta")
+  end
+
   test "ignores missing or blank VERSION values" do
     path = Rails.root.join("tmp/version-test-blank-#{Process.pid}")
     File.write(path, "commit=\ntag=\n")
