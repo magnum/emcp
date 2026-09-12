@@ -3,6 +3,7 @@
 require "digest"
 require "openssl"
 require "json"
+require "open3"
 
 # Reopen the Rails application module (Emcp) with host helpers.
 # Do not define lib/emcp.rb — Zeitwerk will not load it once Emcp exists.
@@ -32,10 +33,15 @@ module Emcp
     ENV.fetch("EMCP_PUBLIC_URL") { ENV.fetch("APP_HOST", "http://localhost:3000") }.to_s.sub(%r{/\z}, "")
   end
 
-  def release_info
-    return read_version_file if Rails.env.development?
+  RELEASE_TAG_PATTERN = /\Av\d+\.\d+(?:\.\d+)?\z/
 
-    @release_info ||= read_version_file
+  def release_info
+    return git_release_info.merge(read_version_file) { |_key, git, file| git.presence || file } if Rails.env.development?
+
+    @release_info ||= begin
+      git = git_release_info
+      git[:tag].present? || git[:commit].present? ? git : read_version_file
+    end
   end
 
   def release_commit
@@ -44,6 +50,10 @@ module Emcp
 
   def release_tag
     release_info[:tag]
+  end
+
+  def release_tag?(name)
+    name.to_s.match?(RELEASE_TAG_PATTERN)
   end
 
   def read_version_file(path = Rails.root.join("VERSION"))
@@ -58,6 +68,24 @@ module Emcp
       info[key.to_sym] = value
     end
     info
+  end
+
+  def git_release_info
+    info = { commit: nil, tag: nil }
+    return info unless Dir.exist?(Rails.root.join(".git"))
+
+    info[:commit] = git_output("rev-parse", "--short", "HEAD").presence
+    info[:tag] = git_output("for-each-ref", "--sort=-v:refname", "--format=%(refname:short)", "refs/tags")
+      .split("\n")
+      .find { |name| release_tag?(name) }
+    info
+  end
+
+  def git_output(*args)
+    stdout, status = Open3.capture2("git", "-C", Rails.root.to_s, *args)
+    status.success? ? stdout.strip : ""
+  rescue Errno::ENOENT
+    ""
   end
 
   def apply_env_sanitization!
