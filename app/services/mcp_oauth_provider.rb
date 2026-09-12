@@ -181,13 +181,19 @@ class McpOauthProvider
       api_key = ApiKey.where(revoked_at: nil)
         .where("expires_at is NULL OR expires_at > ?", Time.zone.now)
         .find_by_token(token)
-      return { subject: "api_key:#{api_key.id}", expires_at: nil } if api_key
+      return { subject: "api_key:#{api_key.id}", user: api_key.bearer, expires_at: nil } if api_key
     end
 
     row = @server.mcp_oauth_access_tokens.active.find_by(token: token)
     return nil unless row
 
-    { subject: "operator", client_id: row.mcp_oauth_client.client_id, expires_at: row.expires_at.to_i }
+    client = row.mcp_oauth_client
+    {
+      subject: "operator",
+      client_id: client.client_id,
+      client_name: client.client_name,
+      expires_at: row.expires_at.to_i,
+    }
   end
 
   def revoke_token(token)
