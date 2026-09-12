@@ -78,7 +78,7 @@ Send `Authorization: Bearer tkn_usr_...`.
 
 ## Integrations
 
-Same set as before: HEY, Basecamp, Fatture in Cloud, Google Workspace, Toggl Track, Bluesky, Twitter/X, TeslaMate. See each `servers/*/README.md`.
+Same set as before, plus 1Password: HEY, Basecamp, Fatture in Cloud, Google Workspace, Toggl Track, Bluesky, Twitter/X, TeslaMate, Home Assistant, 1Password. See each `servers/*/README.md`.
 
 ## Tests
 
