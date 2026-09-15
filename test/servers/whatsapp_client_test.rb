@@ -79,4 +79,26 @@ class WhatsappClientTest < ActiveSupport::TestCase
   ensure
     FileUtils.rm_rf(client.instance_variable_get(:@store_dir)) if client
   end
+
+  test "wait_for_pairing_code fails immediately when WhatsApp rejects the client" do
+    client = Emcp::Servers::Whatsapp::Client.new(
+      base_url: "http://127.0.0.1:9",
+      token: "secret",
+      store_dir: Dir.mktmpdir("whatsapp-outdated-test"),
+      transport: lambda do |_method, path, query:, body:, auth:|
+        case path
+        when "/health" then { "ok" => true }
+        when "/api/status" then { "pairing" => true, "error" => "WhatsApp rejected this companion as outdated" }
+        else {}
+        end
+      end,
+    )
+
+    error = assert_raises(Emcp::Servers::Whatsapp::Client::Error) do
+      client.wait_for_pairing_code!(timeout: 2)
+    end
+    assert_match(/outdated/, error.message)
+  ensure
+    FileUtils.rm_rf(client.instance_variable_get(:@store_dir)) if client
+  end
 end

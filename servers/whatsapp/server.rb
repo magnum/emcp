@@ -33,6 +33,7 @@ module Emcp
               "History can take a few minutes to sync after the first login."
             ],
             note: "WhatsApp limits linked devices. Session files live under this instance’s data directory. " \
+                  "The bridge makes outbound HTTPS/WSS calls to WhatsApp from this host — no extra inbound ports. " \
                   "This unofficial Web API can be logged out by WhatsApp; treat it as personal/self-hosted use."
           }
         end

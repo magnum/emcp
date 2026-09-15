@@ -53,7 +53,8 @@ func NewSession(storeDir string, messages *MessageStore) (*Session, error) {
 
 	logger := waLog.Stdout("WhatsApp", "INFO", true)
 	ctx := context.Background()
-	container, err := sqlstore.New("sqlite3", filepath.Join(storeDir, "whatsapp.db")+"?_foreign_keys=on&_busy_timeout=5000", waLog.Stdout("Database", "INFO", true))
+	refreshWAVersion(ctx, logger)
+	container, err := sqlstore.New(ctx, "sqlite3", sessionDBDSN(storeDir), waLog.Stdout("Database", "INFO", true))
 	if err != nil {
 		return nil, fmt.Errorf("open whatsapp session store: %w", err)
 	}
@@ -71,7 +72,7 @@ func NewSession(storeDir string, messages *MessageStore) (*Session, error) {
 }
 
 func (s *Session) start(ctx context.Context) error {
-	device, err := s.firstDevice()
+	device, err := s.firstDevice(ctx)
 	if err != nil {
 		return err
 	}
@@ -98,8 +99,8 @@ func (s *Session) start(ctx context.Context) error {
 	return nil
 }
 
-func (s *Session) firstDevice() (*store.Device, error) {
-	device, err := s.container.GetFirstDevice()
+func (s *Session) firstDevice(ctx context.Context) (*store.Device, error) {
+	device, err := s.container.GetFirstDevice(ctx)
 	if err == nil && device != nil {
 		return device, nil
 	}
@@ -131,8 +132,14 @@ func (s *Session) startPairing(ctx context.Context, client *whatsmeow.Client) er
 				if evt.Error != nil {
 					message = evt.Error.Error()
 				}
-				s.setError(message)
+				s.failPairing(message)
+			case "err-client-outdated":
+				s.failPairing("WhatsApp rejected this companion as outdated. Redeploy EmCP so the bridge can use a current WhatsApp Web version.")
 			default:
+				if strings.HasPrefix(evt.Event, "err-") {
+					s.failPairing("WhatsApp pairing failed (" + evt.Event + ")")
+					break
+				}
 				s.logger.Infof("QR channel event: %s", evt.Event)
 			}
 		}
@@ -228,7 +235,7 @@ func (s *Session) Logout() error {
 
 	if client != nil {
 		if client.IsLoggedIn() {
-			_ = client.Logout()
+			_ = client.Logout(context.Background())
 		}
 		client.Disconnect()
 	}
@@ -238,7 +245,7 @@ func (s *Session) Logout() error {
 	_ = os.Remove(filepath.Join(s.storeDir, "whatsapp.db-shm"))
 
 	ctx := context.Background()
-	container, err := sqlstore.New("sqlite3", filepath.Join(s.storeDir, "whatsapp.db")+"?_foreign_keys=on&_busy_timeout=5000", waLog.Stdout("Database", "INFO", true))
+	container, err := sqlstore.New(ctx, "sqlite3", sessionDBDSN(s.storeDir), waLog.Stdout("Database", "INFO", true))
 	if err != nil {
 		return err
 	}
@@ -370,14 +377,14 @@ func (s *Session) chatName(jid types.JID, chatJID, sender string) string {
 	}
 
 	if jid.Server == types.GroupServer {
-		info, err := client.GetGroupInfo(jid)
+		info, err := client.GetGroupInfo(context.Background(), jid)
 		if err == nil && info.Name != "" {
 			return info.Name
 		}
 		return "Group " + jid.User
 	}
 
-	contact, err := client.Store.Contacts.GetContact(jid)
+	contact, err := client.Store.Contacts.GetContact(context.Background(), jid)
 	if err == nil && contact.FullName != "" {
 		return contact.FullName
 	}
@@ -401,6 +408,25 @@ func (s *Session) setError(message string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.lastError = message
+}
+
+func (s *Session) failPairing(message string) {
+	s.setPairing("", false, "")
+	s.setError(message)
+}
+
+func sessionDBDSN(storeDir string) string {
+	return "file:" + filepath.Join(storeDir, "whatsapp.db") + "?_foreign_keys=on&_busy_timeout=5000"
+}
+
+func refreshWAVersion(ctx context.Context, logger waLog.Logger) {
+	latest, err := whatsmeow.GetLatestVersion(ctx, nil)
+	if err != nil {
+		logger.Warnf("could not fetch current WhatsApp Web version: %v (using %s)", err, store.GetWAVersion())
+		return
+	}
+	store.SetWAVersion(*latest)
+	logger.Infof("using WhatsApp Web version %s", latest.String())
 }
 
 func parseRecipient(recipient string) (types.JID, error) {

@@ -79,7 +79,7 @@ module Emcp
             return body if pairing_code?(body) || truthy?(body["logged_in"])
 
             detail = body["error"].to_s.strip
-            raise Error, detail if detail.present? && !truthy?(body["pairing"])
+            raise Error, detail if detail.present? && (!truthy?(body["pairing"]) || pairing_failed?(detail))
 
             if Process.clock_gettime(Process::CLOCK_MONOTONIC) > deadline
               raise Error, [ detail.presence, "Timed out waiting for a WhatsApp QR code. Check #{@process.log_file}." ].compact.join(" ")
@@ -220,6 +220,10 @@ module Emcp
 
         def pairing_code?(body)
           body.is_a?(Hash) && body["qr_png_base64"].present?
+        end
+
+        def pairing_failed?(detail)
+          detail.match?(/outdated|pairing failed|rejected this companion/i)
         end
 
         def truthy?(value)
