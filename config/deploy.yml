@@ -19,6 +19,9 @@ servers:
     options:
       health-cmd: "sh -c 'date'"
     cmd: bin/rails solid_queue:start
+    env:
+      clear:
+        SOLID_QUEUE_WORKER: true
 
 # Traffico HTTPS termina su Cloudflare/cloudflared; kamal-proxy ascolta solo HTTP
 # sulla porta host 8001 (cloudflared → 192.168.0.92:8001 → app).
@@ -32,6 +35,8 @@ proxy:
   ssl: false
   host: emcp.m6i.it
   forward_headers: true
+  healthcheck:
+    path: /up
   run:
     http_port: 8001
 
@@ -57,9 +62,10 @@ env:
     APP_HOST: https://emcp.m6i.it
     EMCP_PUBLIC_URL: https://emcp.m6i.it
 
-    # Run the Solid Queue Supervisor inside the web server's Puma process to do jobs.
-    # When you start using multiple servers, you should split out job processing to a dedicated machine.
+    # Architecture A: Solid Queue runs only in emcp-worker. Must be the strings
+    # 1/true/yes/on to enable — the literal "false" used to be truthy in Puma.
     SOLID_QUEUE_IN_PUMA: false
+    RAILS_MAX_THREADS: 5
 
     # Set number of processes dedicated to Solid Queue (default: 1)
     # JOB_CONCURRENCY: 3

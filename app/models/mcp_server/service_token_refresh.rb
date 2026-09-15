@@ -18,9 +18,7 @@ module McpServer::ServiceTokenRefresh
   def schedule_service_token_refresh_job!
     return unless service_token_refresh_enabled?
 
-    ServerAuthTokenRefreshJob
-      .set(wait: service_token_refresh_in_minutes.minutes)
-      .perform_later(self)
+    ServerAuthTokenRefreshJob.enqueue_safely(self, wait: service_token_refresh_in_minutes.minutes)
   end
 
   # Override in integrations that can renew provider tokens without operator re-auth.

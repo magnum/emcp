@@ -7,7 +7,16 @@
 default: &default
   adapter: sqlite3
   pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
-  timeout: 5000
+  timeout: <%= ENV.fetch("SQLITE_TIMEOUT") { 15000 } %>
+  pragmas:
+    journal_mode: wal
+    synchronous: normal
+    wal_autocheckpoint: 1000
+    busy_timeout: 15000
+    cache_size: -64000
+    temp_store: memory
+    mmap_size: 134217728
+    foreign_keys: true
 
 development:
   primary:

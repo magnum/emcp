@@ -16,9 +16,11 @@ class McpOauthAccessToken < ApplicationRecord
     minutes = mcp_server.token_refresh_in_minutes
     return unless minutes.to_i.positive?
 
-    EmcpAuthTokenRefreshJob
-      .set(wait: minutes.minutes)
-      .perform_later(self, expected_expires_at: expires_at.to_i)
+    EmcpAuthTokenRefreshJob.enqueue_safely(
+      self,
+      expected_expires_at: expires_at.to_i,
+      wait: minutes.minutes,
+    )
   end
 
   def refresh_for_server!

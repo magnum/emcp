@@ -8,12 +8,13 @@ module Emcp
       # (not as a worker job that would spawn a second, unreachable process).
       class Keepalive
         INTERVAL = 30
+        SUPERVISE_INTERVAL = 60
 
         class << self
-          def start_in_puma
-            return if Rails.env.test?
+          def start_in_puma(force: false)
+            return if Rails.env.test? && !force
             return unless can_spawn_locally?
-            return if @thread&.alive?
+            return if alive?
 
             @thread = Thread.new { new.loop_forever }
             @thread.name = "whatsapp-keepalive"
@@ -21,8 +22,31 @@ module Emcp
             @thread
           end
 
+          def supervise(interval: SUPERVISE_INTERVAL, force: false)
+            return if Rails.env.test? && !force
+            return unless can_spawn_locally?
+            return if @supervisor&.alive?
+
+            @supervisor = Thread.new do
+              loop do
+                sleep interval
+                unless alive?
+                  Rails.logger.warn("[whatsapp keepalive] thread morto, riavvio")
+                  start_in_puma(force: force)
+                end
+              end
+            end
+            @supervisor.name = "whatsapp-keepalive-supervisor"
+            @supervisor.abort_on_exception = false
+            @supervisor
+          end
+
+          def alive?
+            @thread&.alive? || false
+          end
+
           def can_spawn_locally?
-            return false if ENV["SOLID_QUEUE_WORKER"].present?
+            return false if Emcp.env_flag?("SOLID_QUEUE_WORKER")
             return false if ARGV.any? { |arg| arg.to_s.include?("solid_queue") }
 
             true
@@ -31,17 +55,35 @@ module Emcp
           def ping_all
             new.ping_all
           end
+
+          def kill_worker_for_test
+            @thread&.kill
+            @thread&.join(0.5)
+            @thread = nil
+          end
+
+          def stop_for_test
+            kill_worker_for_test
+            @supervisor&.kill
+            @supervisor&.join(0.5)
+            @supervisor = nil
+          end
         end
 
-        def loop_forever
-          sleep 2
-          ping_all
+        def loop_forever(interval: INTERVAL, iterations: nil)
+          sleep 2 unless iterations
+          count = 0
           loop do
-            sleep INTERVAL
-            ping_all
+            begin
+              ping_all
+            rescue StandardError => e
+              Rails.logger.error("[whatsapp keepalive] tick failed: #{e.class}: #{e.message}")
+            end
+            count += 1
+            break if iterations && count >= iterations
+
+            sleep interval
           end
-        rescue StandardError => e
-          Rails.logger.error("[whatsapp keepalive] loop crashed: #{e.class}: #{e.message}")
         end
 
         def ping_all
@@ -50,8 +92,6 @@ module Emcp
               ping(server)
             end
           end
-        rescue StandardError => e
-          Rails.logger.error("[whatsapp keepalive] #{e.class}: #{e.message}")
         end
 
         def ping(server)

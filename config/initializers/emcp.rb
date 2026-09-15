@@ -15,6 +15,14 @@ module Emcp
 
   module_function
 
+  # ENV["FOO"] = "false" is truthy in Ruby. Only 1/true/yes/on count as on.
+  def env_flag?(name, default: false)
+    val = ENV[name.to_s]
+    return default if val.nil? || val.empty?
+
+    %w[1 true yes on].include?(val.to_s.downcase)
+  end
+
   def sanitize_env_value(value)
     cleaned = value.to_s
     hash_at = cleaned.index("#")

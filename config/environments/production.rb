@@ -45,6 +45,12 @@ Rails.application.configure do
   # Prevent health checks from clogging up the logs.
   config.silence_healthcheck_path = "/up"
 
+  # Drop hung requests before kamal-proxy's 30s cutoff so Puma threads
+  # are not pinned on a locked SQLite write.
+  require Rails.root.join("lib/emcp/request_timeout")
+  config.middleware.insert_before 0, Emcp::RequestTimeout,
+    timeout: Integer(ENV.fetch("REQUEST_TIMEOUT", "20"))
+
   # Don't log any deprecations.
   config.active_support.report_deprecations = false
 

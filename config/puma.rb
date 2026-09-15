@@ -25,7 +25,18 @@
 # Any libraries that use a connection pool or another resource pool should
 # be configured to provide at least as many connections as the number of
 # threads. This includes Active Record's `pool` parameter in `database.yml`.
-threads_count = ENV.fetch("RAILS_MAX_THREADS", 3)
+
+# ENV["FOO"] = "false" is truthy in Ruby — never use `if ENV["FLAG"]` for booleans.
+def env_flag?(name, default: false)
+  return Emcp.env_flag?(name, default: default) if defined?(Emcp) && Emcp.respond_to?(:env_flag?)
+
+  val = ENV[name]
+  return default if val.nil? || val.empty?
+
+  %w[1 true yes on].include?(val.to_s.downcase)
+end
+
+threads_count = Integer(ENV.fetch("RAILS_MAX_THREADS", 5))
 threads threads_count, threads_count
 
 # Specifies the `port` that Puma will listen on to receive requests; default is 3000.
@@ -34,15 +45,18 @@ port ENV.fetch("PORT", 3000)
 # Allow puma to be restarted by `bin/rails restart` command.
 plugin :tmp_restart
 
-# Run the Solid Queue supervisor inside of Puma for single-server deployments.
-plugin :solid_queue if ENV["SOLID_QUEUE_IN_PUMA"]
+# Solid Queue belongs on emcp-worker (`SOLID_QUEUE_IN_PUMA=false`). The string
+# "false" used to load this plugin and made web + worker both write SQLite.
+plugin :solid_queue if env_flag?("SOLID_QUEUE_IN_PUMA")
 
 # WhatsApp's Go sidecar is a child of this process (127.0.0.1). Keep it up after
 # deploys and crashes; Solid Queue on the worker container cannot reach it.
 on_booted do
-  Emcp::Servers::Whatsapp::Keepalive.start_in_puma if defined?(Emcp::Servers::Whatsapp::Keepalive)
+  require Rails.root.join("servers/whatsapp/keepalive")
+  Emcp::Servers::Whatsapp::Keepalive.start_in_puma
+  Emcp::Servers::Whatsapp::Keepalive.supervise
 end
 
 # Specify the PID file. Defaults to tmp/pids/server.pid in development.
 # In other environments, only set the PID file if requested.
-pidfile ENV["PIDFILE"] if ENV["PIDFILE"]
+pidfile ENV["PIDFILE"] if ENV["PIDFILE"].to_s != ""

@@ -6,6 +6,7 @@
 # without any refresh until the operator re-auths.
 class EnsureServiceTokenRefreshJob < ApplicationJob
   queue_as :default
+  limits_concurrency to: 1, key: -> { "refresh_service_tokens" }, duration: 2.hours
 
   def perform
     McpServerType.discover!
