@@ -99,6 +99,13 @@ RUN case "${TARGETARCH}" in \
     && mkdir -p /out \
     && install -m 0755 op /out/op
 
+FROM docker.io/library/golang:1.27-bookworm AS whatsapp-bridge-build
+WORKDIR /src
+COPY servers/whatsapp/bridge/go.mod servers/whatsapp/bridge/go.sum ./
+RUN go mod download
+COPY servers/whatsapp/bridge/ ./
+RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/whatsapp-bridge .
+
 # Make sure RUBY_VERSION matches the Ruby version in .ruby-version
 FROM docker.io/library/ruby:${RUBY_VERSION}-slim AS base
 
@@ -178,6 +185,7 @@ COPY --from=basecamp-download /out/basecamp /usr/local/bin/basecamp
 COPY --from=hey-download /out/hey /usr/local/bin/hey
 COPY --from=gws-download /out/gws /usr/local/bin/gws
 COPY --from=op-download /out/op /usr/local/bin/op
+COPY --from=whatsapp-bridge-build /out/whatsapp-bridge /usr/local/bin/whatsapp-bridge
 
 # Run and own only the runtime files as a non-root user for security
 RUN groupadd --system --gid 1000 rails && \

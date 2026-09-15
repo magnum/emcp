@@ -44,3 +44,7 @@ config/environments/*.local.yml
 # Ignore key files for decrypting credentials and more.
 /config/credentials/*.key
 
+# WhatsApp bridge local build artifacts
+/servers/whatsapp/bridge/whatsapp-bridge
+/servers/whatsapp/bridge/store/
+

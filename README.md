@@ -83,7 +83,7 @@ Send `Authorization: Bearer tkn_usr_...`. The key authenticates as the instance 
 
 ## Integrations
 
-Same set as before, plus 1Password: HEY, Basecamp, Fatture in Cloud, Google Workspace, Toggl Track, Bluesky, Twitter/X, TeslaMate, Home Assistant, 1Password. See each `servers/*/README.md`.
+Same set as before, plus 1Password and WhatsApp: HEY, Basecamp, Fatture in Cloud, Google Workspace, Toggl Track, Bluesky, Twitter/X, TeslaMate, Home Assistant, 1Password, WhatsApp. See each `servers/*/README.md`.
 
 ## Tests
 

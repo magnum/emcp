@@ -1,0 +1,39 @@
+<%# locals: server, status, status_url %>
+<% unless status[:authenticated] %>
+  <section class="mb-8 rounded-lg border border-stone-300 bg-stone-50 p-4 dark:border-zinc-700 dark:bg-zinc-900"
+           data-controller="whatsapp-pairing"
+           data-whatsapp-pairing-url-value="<%= status_url %>">
+    <h2 class="text-2xl font-bold">Pairing QR</h2>
+    <p class="mt-2 leading-7 text-stone-700 dark:text-zinc-300"
+       data-whatsapp-pairing-target="hint">
+      <% if status[:qr_png_base64].present? %>
+        Scan this code in WhatsApp → Linked devices. It refreshes automatically.
+      <% elsif status[:pairing] %>
+        Waiting for a QR code from the WhatsApp bridge…
+      <% else %>
+        Click <span class="font-semibold">Start pairing</span> below to launch the bridge and show a QR code.
+      <% end %>
+    </p>
+    <div class="mt-4 flex min-h-64 items-center justify-center rounded-lg bg-white p-4 dark:bg-zinc-950">
+      <% if status[:qr_png_base64].present? %>
+        <img data-whatsapp-pairing-target="qr"
+             src="data:image/png;base64,<%= status[:qr_png_base64] %>"
+             alt="WhatsApp pairing QR code"
+             width="256"
+             height="256"
+             class="h-64 w-64">
+      <% else %>
+        <img data-whatsapp-pairing-target="qr"
+             alt="WhatsApp pairing QR code"
+             width="256"
+             height="256"
+             class="hidden h-64 w-64">
+      <% end %>
+    </div>
+    <% if status[:error].present? %>
+      <p class="mt-3 text-amber-800 dark:text-amber-200" data-whatsapp-pairing-target="error"><%= status[:error] %></p>
+    <% else %>
+      <p class="mt-3 hidden text-amber-800 dark:text-amber-200" data-whatsapp-pairing-target="error"></p>
+    <% end %>
+  </section>
+<% end %>
