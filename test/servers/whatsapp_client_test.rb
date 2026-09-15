@@ -55,4 +55,28 @@ class WhatsappClientTest < ActiveSupport::TestCase
     @client.status
     assert @calls.last[:auth]
   end
+
+  test "wait_for_pairing_code returns when the QR png is present" do
+    payloads = [
+      { "pairing" => true },
+      { "pairing" => true, "qr_png_base64" => "abc" },
+    ]
+    client = Emcp::Servers::Whatsapp::Client.new(
+      base_url: "http://127.0.0.1:9",
+      token: "secret",
+      store_dir: Dir.mktmpdir("whatsapp-wait-test"),
+      transport: lambda do |method, path, query:, body:, auth:|
+        case path
+        when "/health" then { "ok" => true }
+        when "/api/status" then payloads.shift || payloads.last || { "pairing" => true, "qr_png_base64" => "abc" }
+        else {}
+        end
+      end,
+    )
+
+    result = client.wait_for_pairing_code!(timeout: 2)
+    assert_equal "abc", result["qr_png_base64"]
+  ensure
+    FileUtils.rm_rf(client.instance_variable_get(:@store_dir)) if client
+  end
 end

@@ -111,29 +111,64 @@ func (s *Session) startPairing(ctx context.Context, client *whatsmeow.Client) er
 	if err != nil {
 		return fmt.Errorf("get QR channel: %w", err)
 	}
-	if err := client.Connect(); err != nil {
-		return fmt.Errorf("connect to WhatsApp: %w", err)
-	}
-
 	s.setPairing("", true, "")
+	s.setError("")
+
+	// Receive QR events before Connect(). whatsmeow drops codes when the
+	// channel buffer is full and nobody is listening yet.
 	go func() {
 		for evt := range qrChan {
 			switch evt.Event {
 			case "code":
-				png, pngErr := qrcode.Encode(evt.Code, qrcode.Medium, 256)
-				encoded := ""
-				if pngErr == nil {
-					encoded = base64.StdEncoding.EncodeToString(png)
-				}
-				s.setPairing(evt.Code, true, encoded)
+				s.applyPairingCode(evt.Code)
 			case "success":
 				s.setPairing("", false, "")
 			case "timeout":
-				s.setError("QR code expired — reconnect from the auth page to get a new code")
+				s.setPairing("", true, "")
+				s.setError("QR code expired — click Start pairing again")
+			case "error":
+				message := "WhatsApp pairing error"
+				if evt.Error != nil {
+					message = evt.Error.Error()
+				}
+				s.setError(message)
+			default:
+				s.logger.Infof("QR channel event: %s", evt.Event)
 			}
 		}
 	}()
+
+	if err := client.Connect(); err != nil {
+		return fmt.Errorf("connect to WhatsApp: %w", err)
+	}
 	return nil
+}
+
+func (s *Session) applyPairingCode(code string) {
+	if strings.TrimSpace(code) == "" {
+		return
+	}
+	encoded, pngErr := encodeQRPNG(code)
+	if pngErr != nil {
+		s.logger.Warnf("QR PNG encode failed: %v", pngErr)
+		s.setError("Could not render QR image: " + pngErr.Error())
+		s.setPairing(code, true, "")
+		return
+	}
+	s.setPairing(code, true, encoded)
+	s.setError("")
+}
+
+func encodeQRPNG(code string) (string, error) {
+	qr, err := qrcode.New(code, qrcode.Low)
+	if err != nil {
+		return "", err
+	}
+	png, err := qr.PNG(384)
+	if err != nil {
+		return "", err
+	}
+	return base64.StdEncoding.EncodeToString(png), nil
 }
 
 func (s *Session) Status() SessionStatus {
@@ -229,11 +264,22 @@ func (s *Session) handleEvent(evt any) {
 		s.storeIncoming(v)
 	case *events.HistorySync:
 		s.storeHistory(v)
+	case *events.QR:
+		if len(v.Codes) > 0 {
+			s.applyPairingCode(v.Codes[0])
+		}
 	case *events.Connected:
 		s.setError("")
-		s.setPairing("", false, "")
+		// Websocket connect happens during QR pairing too. Only clear the QR
+		// after the device is actually linked.
+		s.mu.RLock()
+		linked := s.client != nil && s.client.Store != nil && s.client.Store.ID != nil
+		s.mu.RUnlock()
+		if linked {
+			s.setPairing("", false, "")
+		}
 	case *events.LoggedOut:
-		s.setError("WhatsApp logged this device out — scan a new QR code")
+		s.setError("WhatsApp logged this device out — click Start pairing for a new QR code")
 		s.setPairing("", true, "")
 	}
 }
@@ -348,9 +394,6 @@ func (s *Session) setPairing(code string, pairing bool, png string) {
 	s.pairing = pairing
 	if png != "" || !pairing {
 		s.qrPNG = png
-	}
-	if pairing {
-		s.lastError = ""
 	}
 }
 

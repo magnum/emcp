@@ -5,12 +5,14 @@ package main
 import (
 	"crypto/subtle"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net"
 	"net/http"
 	"os"
 	"os/signal"
 	"strconv"
+	"sync"
 	"syscall"
 	"time"
 )
@@ -27,11 +29,7 @@ func main() {
 	}
 	defer messages.Close()
 
-	session, err := NewSession(storeDir, messages)
-	if err != nil {
-		log.Fatalf("whatsapp session: %v", err)
-	}
-	defer session.Close()
+	live := &liveSession{}
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
@@ -42,12 +40,16 @@ func main() {
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
-		status := session.Status()
+		status := live.status()
 		writeJSON(w, http.StatusOK, status)
 	})))
 	mux.Handle("/api/logout", requireToken(token, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		session := live.require(w)
+		if session == nil {
 			return
 		}
 		if err := session.Logout(); err != nil {
@@ -67,6 +69,10 @@ func main() {
 		}
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			http.Error(w, "invalid request", http.StatusBadRequest)
+			return
+		}
+		session := live.require(w)
+		if session == nil {
 			return
 		}
 		if err := session.Send(req.Recipient, req.Message); err != nil {
@@ -229,6 +235,15 @@ func main() {
 		}
 	}()
 
+	session, err := NewSession(storeDir, messages)
+	if err != nil {
+		log.Printf("whatsapp session: %v", err)
+		live.set(nil, err)
+	} else {
+		live.set(session, nil)
+		defer session.Close()
+	}
+
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
 	<-stop
@@ -279,4 +294,55 @@ func envOr(key, fallback string) string {
 		return value
 	}
 	return fallback
+}
+
+type liveSession struct {
+	mu      sync.RWMutex
+	session *Session
+	err     string
+}
+
+func (l *liveSession) set(session *Session, err error) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.session = session
+	if err != nil {
+		l.err = err.Error()
+		return
+	}
+	l.err = ""
+}
+
+func (l *liveSession) status() SessionStatus {
+	l.mu.RLock()
+	defer l.mu.RUnlock()
+	if l.session != nil {
+		return l.session.Status()
+	}
+	return SessionStatus{Pairing: true, Error: l.err}
+}
+
+func (l *liveSession) get() (*Session, error) {
+	l.mu.RLock()
+	defer l.mu.RUnlock()
+	if l.session != nil {
+		return l.session, nil
+	}
+	if l.err != "" {
+		return nil, fmt.Errorf("%s", l.err)
+	}
+	return nil, fmt.Errorf("connecting to WhatsApp")
+}
+
+func (l *liveSession) require(w http.ResponseWriter) *Session {
+	session, err := l.get()
+	if err != nil {
+		writeJSON(w, http.StatusServiceUnavailable, map[string]any{
+			"error":   err.Error(),
+			"success": false,
+			"message": err.Error(),
+		})
+		return nil
+	}
+	return session
 }

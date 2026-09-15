@@ -33,13 +33,7 @@ module Emcp
         end
 
         def running?
-          pid = read_pid
-          return false unless pid
-
-          Process.kill(0, pid)
-          true
-        rescue Errno::ESRCH, Errno::EPERM
-          false
+          process_alive?(read_pid)
         end
 
         def url
@@ -82,12 +76,19 @@ module Emcp
 
         def stop!
           pid = read_pid
-          return unless pid
-
-          Process.kill("TERM", -pid)
-          FileUtils.rm_f(pid_file)
+          if pid
+            Process.kill("TERM", -pid)
+            20.times do
+              break unless process_alive?(pid)
+              sleep 0.1
+            end
+            Process.kill("KILL", -pid) if process_alive?(pid)
+          end
         rescue Errno::ESRCH, Errno::EPERM, Errno::EINVAL
+          nil
+        ensure
           FileUtils.rm_f(pid_file)
+          FileUtils.rm_f(url_file)
         end
 
         def pid_file = File.join(store_dir, "bridge.pid")
@@ -139,6 +140,15 @@ module Emcp
           return unless File.file?(pid_file)
 
           Integer(File.read(pid_file).to_s.strip, exception: false)
+        end
+
+        def process_alive?(pid)
+          return false unless pid
+
+          Process.kill(0, pid)
+          true
+        rescue Errno::ESRCH, Errno::EPERM
+          false
         end
       end
     end

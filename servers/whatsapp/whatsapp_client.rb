@@ -60,6 +60,35 @@ module Emcp
           true
         end
 
+        def restart_bridge!
+          return unless managed?
+          raise Error, @process.missing_binary_message unless @process.configured?
+
+          @process.stop!
+          sleep 0.3
+          @process.start!
+          raise Error, unreachable_reason unless reachable?
+
+          true
+        end
+
+        def wait_for_pairing_code!(timeout: 25)
+          deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + timeout.to_i
+          loop do
+            body = status
+            return body if pairing_code?(body) || truthy?(body["logged_in"])
+
+            detail = body["error"].to_s.strip
+            raise Error, detail if detail.present? && !truthy?(body["pairing"])
+
+            if Process.clock_gettime(Process::CLOCK_MONOTONIC) > deadline
+              raise Error, [ detail.presence, "Timed out waiting for a WhatsApp QR code. Check #{@process.log_file}." ].compact.join(" ")
+            end
+
+            sleep 0.4
+          end
+        end
+
         def stop_bridge!
           @process.stop! if managed?
         end
@@ -187,6 +216,14 @@ module Emcp
 
             [ key.to_s, value ]
           end.to_h
+        end
+
+        def pairing_code?(body)
+          body.is_a?(Hash) && body["qr_png_base64"].present?
+        end
+
+        def truthy?(value)
+          value == true || value.to_s == "true"
         end
 
         def bridge_url
