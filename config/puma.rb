@@ -37,6 +37,12 @@ plugin :tmp_restart
 # Run the Solid Queue supervisor inside of Puma for single-server deployments.
 plugin :solid_queue if ENV["SOLID_QUEUE_IN_PUMA"]
 
+# WhatsApp's Go sidecar is a child of this process (127.0.0.1). Keep it up after
+# deploys and crashes; Solid Queue on the worker container cannot reach it.
+on_booted do
+  Emcp::Servers::Whatsapp::Keepalive.start_in_puma if defined?(Emcp::Servers::Whatsapp::Keepalive)
+end
+
 # Specify the PID file. Defaults to tmp/pids/server.pid in development.
 # In other environments, only set the PID file if requested.
 pidfile ENV["PIDFILE"] if ENV["PIDFILE"]

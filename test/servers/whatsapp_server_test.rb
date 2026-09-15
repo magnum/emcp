@@ -10,6 +10,9 @@ class WhatsappServerTest < ActiveSupport::TestCase
     def ensure_bridge! = ensure_ok
     def restart_bridge! = ensure_ok
     def wait_for_pairing_code!(timeout: 25) = true
+    def wait_until_ready!(timeout: 25) = status_payload
+    def session_stored? = false
+    def managed? = true
     def stop_bridge!; end
     def logout = { "success" => true }
   end
@@ -100,6 +103,12 @@ class WhatsappServerTest < ActiveSupport::TestCase
     token = @server.credentials_hash["WHATSAPP_BRIDGE_TOKEN"]
     assert token.present?
     assert_equal 48, token.length
+  end
+
+  test "keep_bridge_alive skips when no WhatsApp session is stored" do
+    install_fake_client!(reachable: true, status_payload: {})
+
+    refute @server.keep_bridge_alive!
   end
 
   test "send_message stays disabled when writes are off" do

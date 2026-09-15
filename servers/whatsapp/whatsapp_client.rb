@@ -53,6 +53,11 @@ module Emcp
             raise Error, @process.missing_binary_message unless @process.configured?
 
             @process.ensure_running!
+            unless reachable?
+              @process.stop!
+              sleep 0.2
+              @process.start!
+            end
           end
 
           raise Error, unreachable_reason unless reachable?
@@ -89,8 +94,31 @@ module Emcp
           end
         end
 
-        def stop_bridge!
-          @process.stop! if managed?
+        def wait_until_ready!(timeout: 25)
+          deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + timeout.to_i
+          last_error = nil
+          loop do
+            begin
+              body = status
+              return body if session_ready?(body)
+
+              last_error = body["error"].to_s.strip.presence
+              raise Error, last_error if pairing_failed?(last_error.to_s)
+            rescue Error => e
+              last_error = e.message
+              raise if pairing_failed?(last_error)
+            end
+
+            if Process.clock_gettime(Process::CLOCK_MONOTONIC) > deadline
+              raise Error, [ last_error.presence, "WhatsApp bridge is not ready. Check #{@process.log_file}." ].compact.join(" ")
+            end
+
+            sleep 0.4
+          end
+        end
+
+        def session_stored?
+          File.exist?(File.join(@store_dir, "whatsapp.db"))
         end
 
         def status
@@ -220,6 +248,14 @@ module Emcp
 
         def pairing_code?(body)
           body.is_a?(Hash) && body["qr_png_base64"].present?
+        end
+
+        def session_ready?(body)
+          return false unless body.is_a?(Hash)
+          return true if truthy?(body["connected"]) && truthy?(body["logged_in"])
+          return true if pairing_code?(body)
+
+          truthy?(body["pairing"]) && !truthy?(body["logged_in"])
         end
 
         def pairing_failed?(detail)

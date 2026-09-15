@@ -101,4 +101,28 @@ class WhatsappClientTest < ActiveSupport::TestCase
   ensure
     FileUtils.rm_rf(client.instance_variable_get(:@store_dir)) if client
   end
+
+  test "wait_until_ready returns when the session is linked and connected" do
+    payloads = [
+      { "logged_in" => true, "connected" => false },
+      { "logged_in" => true, "connected" => true, "jid" => "1@s.whatsapp.net" },
+    ]
+    client = Emcp::Servers::Whatsapp::Client.new(
+      base_url: "http://127.0.0.1:9",
+      token: "secret",
+      store_dir: Dir.mktmpdir("whatsapp-ready-test"),
+      transport: lambda do |_method, path, query:, body:, auth:|
+        case path
+        when "/health" then { "ok" => true }
+        when "/api/status" then payloads.shift || { "logged_in" => true, "connected" => true }
+        else {}
+        end
+      end,
+    )
+
+    result = client.wait_until_ready!(timeout: 2)
+    assert_equal "1@s.whatsapp.net", result["jid"]
+  ensure
+    FileUtils.rm_rf(client.instance_variable_get(:@store_dir)) if client
+  end
 end

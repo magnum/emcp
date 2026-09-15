@@ -14,6 +14,10 @@ production:
     class: EnsureServiceTokenRefreshJob
     queue: default
     schedule: every hour
+  keep_whatsapp_bridge:
+    class: WhatsappBridgeKeepaliveJob
+    queue: default
+    schedule: every minute
   purge_mcp_activity_logs:
     class: PurgeMcpActivityLogsJob
     queue: default
@@ -27,6 +31,10 @@ development:
     class: EnsureServiceTokenRefreshJob
     queue: default
     schedule: every hour
+  keep_whatsapp_bridge:
+    class: WhatsappBridgeKeepaliveJob
+    queue: default
+    schedule: every minute
   purge_mcp_activity_logs:
     class: PurgeMcpActivityLogsJob
     queue: default
