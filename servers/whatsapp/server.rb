@@ -2,6 +2,7 @@
 
 require "securerandom"
 require_relative "whatsapp_client"
+require_relative "keepalive"
 
 module Emcp
   module Servers
@@ -34,6 +35,7 @@ module Emcp
             ],
             note: "WhatsApp limits linked devices. Session files live under this instance’s data directory. " \
                   "The bridge makes outbound HTTPS/WSS calls to WhatsApp from this host — no extra inbound ports. " \
+                  "After a deploy the sidecar restarts on its own using the saved session. " \
                   "This unofficial Web API can be logged out by WhatsApp; treat it as personal/self-hosted use."
           }
         end
@@ -67,6 +69,10 @@ module Emcp
 
         def fetch_auth_status
           load_credentials!
+          if @client.managed?
+            @client.ensure_bridge!
+            @client.wait_until_ready!
+          end
           unless @client.reachable?
             return {
               authenticated: false,
@@ -82,6 +88,16 @@ module Emcp
             pairing: false,
             error: e.message
           }
+        end
+
+        def keep_bridge_alive!
+          load_credentials!
+          return false unless @client.managed?
+          return false unless @client.session_stored?
+
+          @client.ensure_bridge!
+          @client.wait_until_ready!
+          true
         end
 
         def apply_credentials(params)
@@ -120,6 +136,12 @@ module Emcp
         def configure_tools
           define_read_tools
           define_write_tools
+        end
+
+        def api_response(result = nil)
+          @client.ensure_bridge!
+          @client.wait_until_ready!
+          super
         end
 
         def replace_client!
