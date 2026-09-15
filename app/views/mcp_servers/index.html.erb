@@ -9,7 +9,7 @@
       </p>
     </div>
     <%= link_to new_mcp_server_path,
-          class: "inline-flex h-10 cursor-pointer items-center gap-2 whitespace-nowrap rounded-lg bg-stone-950 px-4 font-bold text-stone-50 dark:bg-zinc-100 dark:text-zinc-950" do %>
+          class: "btn-emcp-solid h-10 gap-2 whitespace-nowrap" do %>
       <%= heroicon "plus", options: { class: "h-5 w-5" } %>
       New server
     <% end %>
@@ -47,7 +47,7 @@
       </select>
     </div>
     <div class="flex h-10 items-center gap-3">
-      <button type="submit" class="inline-flex h-10 cursor-pointer items-center rounded-lg border-2 border-stone-950 px-4 font-bold dark:border-zinc-100">
+      <button type="submit" class="btn-emcp-outline h-10">
         Filter
       </button>
       <% if params[:q].present? || params[:mcp_server_type_id].present? %>
@@ -97,7 +97,7 @@
           <% end %>
 
           <%= link_to auth_status_mcp_server_path(server, refresh: 1),
-                class: "inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg border border-stone-400 dark:border-zinc-600",
+                class: "btn-emcp-ghost h-10 w-10 px-0",
                 title: "Refresh auth status",
                 aria: { label: "Refresh auth status" },
                 data: { turbo_frame: dom_id(server, :auth_status) } do %>
@@ -105,9 +105,9 @@
           <% end %>
 
           <%= link_to "Auth", auth_mcp_server_path(server),
-                class: "inline-flex h-10 cursor-pointer items-center rounded-lg bg-stone-950 px-4 font-bold text-stone-50 dark:bg-zinc-100 dark:text-zinc-950" %>
+                class: "btn-emcp-solid h-10" %>
           <%= link_to "json", tools_mcp_server_path(server),
-                class: "inline-flex h-10 cursor-pointer items-center rounded-lg border-2 border-stone-950 px-4 font-bold dark:border-zinc-100" %>
+                class: "btn-emcp-outline h-10" %>
         </div>
 
         <dl class="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-x-10 sm:gap-y-2 md:col-start-1">
