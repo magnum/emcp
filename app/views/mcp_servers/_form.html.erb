@@ -45,7 +45,7 @@
   </div>
 
   <div class="flex gap-3">
-    <%= f.submit class: "cursor-pointer rounded-lg bg-stone-950 px-4 py-2 font-bold text-stone-50 dark:bg-zinc-100 dark:text-zinc-950" %>
+    <%= f.submit class: "btn-emcp-solid" %>
     <%= link_to "Cancel", server.persisted? ? mcp_server_path(server) : mcp_servers_path, class: "inline-flex items-center font-semibold underline" %>
   </div>
 <% end %>

@@ -53,6 +53,22 @@
   .btn-vcard {
     @apply w-full sm:w-auto rounded-md px-3.5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-center inline-block font-medium cursor-pointer mb-4;
   }
+
+  .btn-emcp-solid {
+    @apply inline-flex cursor-pointer items-center justify-center rounded-lg bg-stone-950 px-4 py-2 font-bold text-stone-50 transition-colors duration-150 hover:bg-black dark:bg-zinc-100 dark:text-zinc-950 dark:hover:bg-zinc-300;
+  }
+
+  .btn-emcp-outline {
+    @apply inline-flex cursor-pointer items-center justify-center rounded-lg border-2 border-stone-950 px-4 py-2 font-bold transition-colors duration-150 hover:bg-stone-200 dark:border-zinc-100 dark:hover:bg-zinc-800;
+  }
+
+  .btn-emcp-amber {
+    @apply inline-flex cursor-pointer items-center justify-center rounded-lg border border-amber-700 bg-amber-50 px-4 py-2 font-semibold text-amber-950 transition-colors duration-150 hover:bg-amber-200 dark:bg-amber-950 dark:text-amber-100 dark:hover:bg-amber-900;
+  }
+
+  .btn-emcp-ghost {
+    @apply inline-flex cursor-pointer items-center justify-center rounded-lg border border-stone-400 px-4 py-2 transition-colors duration-150 hover:bg-stone-200 dark:border-zinc-600 dark:hover:bg-zinc-800;
+  }
 }
 
 
