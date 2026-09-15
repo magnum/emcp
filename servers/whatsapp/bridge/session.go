@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	_ "github.com/mattn/go-sqlite3"
 	"github.com/skip2/go-qrcode"
 	"go.mau.fi/whatsmeow"
 	waE2E "go.mau.fi/whatsmeow/proto/waE2E"
@@ -52,7 +53,7 @@ func NewSession(storeDir string, messages *MessageStore) (*Session, error) {
 
 	logger := waLog.Stdout("WhatsApp", "INFO", true)
 	ctx := context.Background()
-	container, err := sqlstore.New("sqlite", filepath.Join(storeDir, "whatsapp.db")+"?_pragma=foreign_keys(1)&_pragma=busy_timeout(5000)", waLog.Stdout("Database", "INFO", true))
+	container, err := sqlstore.New("sqlite3", filepath.Join(storeDir, "whatsapp.db")+"?_foreign_keys=on&_busy_timeout=5000", waLog.Stdout("Database", "INFO", true))
 	if err != nil {
 		return nil, fmt.Errorf("open whatsapp session store: %w", err)
 	}
@@ -202,7 +203,7 @@ func (s *Session) Logout() error {
 	_ = os.Remove(filepath.Join(s.storeDir, "whatsapp.db-shm"))
 
 	ctx := context.Background()
-	container, err := sqlstore.New("sqlite", filepath.Join(s.storeDir, "whatsapp.db")+"?_pragma=foreign_keys(1)&_pragma=busy_timeout(5000)", waLog.Stdout("Database", "INFO", true))
+	container, err := sqlstore.New("sqlite3", filepath.Join(s.storeDir, "whatsapp.db")+"?_foreign_keys=on&_busy_timeout=5000", waLog.Stdout("Database", "INFO", true))
 	if err != nil {
 		return err
 	}

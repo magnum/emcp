@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	_ "modernc.org/sqlite"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 type Message struct {
@@ -48,7 +48,7 @@ func NewMessageStore(dir string) (*MessageStore, error) {
 		return nil, fmt.Errorf("create store directory: %w", err)
 	}
 
-	db, err := sql.Open("sqlite", filepath.Join(dir, "messages.db")+"?_pragma=foreign_keys(1)&_pragma=busy_timeout(5000)")
+	db, err := sql.Open("sqlite3", filepath.Join(dir, "messages.db")+"?_foreign_keys=on&_busy_timeout=5000")
 	if err != nil {
 		return nil, fmt.Errorf("open messages database: %w", err)
 	}
