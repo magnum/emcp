@@ -100,11 +100,15 @@ RUN case "${TARGETARCH}" in \
     && install -m 0755 op /out/op
 
 FROM docker.io/library/golang:1.27-bookworm AS whatsapp-bridge-build
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends gcc libc6-dev \
+    && rm -rf /var/lib/apt/lists/*
 WORKDIR /src
 COPY servers/whatsapp/bridge/go.mod servers/whatsapp/bridge/go.sum ./
-RUN go mod download
+RUN GOPROXY=https://proxy.golang.org,direct \
+    bash -c 'for i in 1 2 3 4 5; do go mod download && exit 0; echo "go mod download retry $i"; sleep $((i * 4)); done; exit 1'
 COPY servers/whatsapp/bridge/ ./
-RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/whatsapp-bridge .
+RUN CGO_ENABLED=1 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/whatsapp-bridge .
 
 # Make sure RUBY_VERSION matches the Ruby version in .ruby-version
 FROM docker.io/library/ruby:${RUBY_VERSION}-slim AS base
