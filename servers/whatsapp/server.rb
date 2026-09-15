@@ -93,7 +93,12 @@ module Emcp
             "WHATSAPP_BRIDGE_TOKEN" => token,
           )
           replace_client!
-          @client.ensure_bridge!
+          if url.blank?
+            @client.restart_bridge!
+            @client.wait_for_pairing_code!
+          else
+            @client.ensure_bridge!
+          end
           true
         end
 
@@ -143,6 +148,7 @@ module Emcp
             jid: body["jid"],
             push_name: body["push_name"],
             qr_png_base64: body["qr_png_base64"],
+            qr: body["qr"],
             error: body["error"]
           }
         end

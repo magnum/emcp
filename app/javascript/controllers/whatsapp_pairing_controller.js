@@ -45,7 +45,7 @@ export default class extends Controller {
     }
 
     if (this.hasHintTarget) {
-      if (data.qr_png_base64) {
+      if (data.qr_png_base64 || data.qr) {
         this.hintTarget.textContent = "Scan this code in WhatsApp → Linked devices. It refreshes automatically."
       } else if (data.pairing) {
         this.hintTarget.textContent = "Waiting for a QR code from the WhatsApp bridge…"

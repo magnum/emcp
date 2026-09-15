@@ -8,6 +8,8 @@ class WhatsappServerTest < ActiveSupport::TestCase
     def unreachable_reason = "bridge is not running"
     def status = status_payload
     def ensure_bridge! = ensure_ok
+    def restart_bridge! = ensure_ok
+    def wait_for_pairing_code!(timeout: 25) = true
     def stop_bridge!; end
     def logout = { "success" => true }
   end
@@ -71,6 +73,23 @@ class WhatsappServerTest < ActiveSupport::TestCase
     assert status[:authenticated]
     assert_equal "393331234567@s.whatsapp.net", status[:jid]
     assert_equal "Ada", status[:push_name]
+  end
+
+  test "fetch_auth_status exposes pairing QR png" do
+    install_fake_client!(
+      reachable: true,
+      status_payload: {
+        "pairing" => true,
+        "qr_png_base64" => "abc123",
+        "qr" => "2@example"
+      },
+    )
+
+    status = @server.fetch_auth_status
+    refute status[:authenticated]
+    assert status[:pairing]
+    assert_equal "abc123", status[:qr_png_base64]
+    assert_equal "2@example", status[:qr]
   end
 
   test "apply_credentials generates a token and starts the bundled bridge" do
