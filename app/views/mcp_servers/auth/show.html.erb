@@ -43,6 +43,13 @@
   </section>
 <% end %>
 
+<% if @server.respond_to?(:auth_submit_label) && @server.code.to_s == "whatsapp" %>
+  <%= render "mcp_servers/auth/whatsapp_pairing",
+        server: @server,
+        status: status,
+        status_url: auth_status_mcp_server_path(@server) %>
+<% end %>
+
 <% if @state.present? %>
   <div class="mb-8">
     <%= button_to "Continue to MCP client", auth_continue_mcp_server_path(@server),
@@ -130,7 +137,8 @@
     </div>
   <% end %>
 
-  <%= submit_tag "Save credentials", class: "cursor-pointer rounded-lg bg-stone-950 px-4 py-2 font-bold text-stone-50 dark:bg-zinc-100 dark:text-zinc-950" %>
+  <%= submit_tag (@server.respond_to?(:auth_submit_label) ? @server.auth_submit_label : nil) || "Save credentials",
+        class: "cursor-pointer rounded-lg bg-stone-950 px-4 py-2 font-bold text-stone-50 dark:bg-zinc-100 dark:text-zinc-950" %>
 <% end %>
 
 <div class="mt-10 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">

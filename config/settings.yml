@@ -61,4 +61,9 @@ servers:
     timeout: 45
     max_chars: 100000
     bin: op
+  whatsapp:
+    allow_write: true
+    timeout: 30
+    max_chars: 12000
+    bin: whatsapp-bridge
 

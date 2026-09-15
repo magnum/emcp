@@ -176,6 +176,7 @@ module Emcp
       "homeassistant" => "HASS_TIMEOUT",
       "onepassword" => "OP_TIMEOUT",
       "googleworkspace" => "GOOGLEWORKSPACE_TIMEOUT",
+      "whatsapp" => "WHATSAPP_TIMEOUT",
     }[code.to_s]
   end
 
@@ -186,6 +187,7 @@ module Emcp
       "googleworkspace" => "GOOGLEWORKSPACE_BIN",
       "homeassistant" => "HASS_CLI_BIN",
       "onepassword" => "OP_BIN",
+      "whatsapp" => "WHATSAPP_BRIDGE_BIN",
     }[code.to_s]
   end
 end
