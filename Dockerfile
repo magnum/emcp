@@ -10,7 +10,7 @@
 # Global build args must be declared before the first FROM (used by later FROM lines).
 ARG RUBY_VERSION=4.0.5
 ARG GWS_VERSION=0.22.5
-ARG HEY_VERSION=1.4.0
+ARG HEY_VERSION=1.6.0
 ARG BASECAMP_VERSION=0.9.1
 ARG OP_VERSION=2.39.0
 

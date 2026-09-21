@@ -53,6 +53,10 @@ class HeyClientTest < ActiveSupport::TestCase
       [ "compose", "--subject", "Hi", "--message-html", "<p>Hi</p>", "--draft", "--json" ],
       @client.compose(subject: "Hi", message_html: "<p>Hi</p>", draft: true),
     )
+    assert_equal(
+      [ "compose", "--subject", "Board", "-m", "Numbers.", "--to", "a@b.com", "--from", "billing@example.org", "--no-name-tag", "--json" ],
+      @client.compose(subject: "Board", message: "Numbers.", to: "a@b.com", from: "billing@example.org", no_name_tag: true),
+    )
   end
 
   test "reply and forward accept Markdown or HTML" do
@@ -60,7 +64,7 @@ class HeyClientTest < ActiveSupport::TestCase
     assert_equal %w[forward 99 --to a@b.com --message-html <p>FYI</p> --json], @client.forward("99", to: "a@b.com", message_html: "<p>FYI</p>")
   end
 
-  test "does not pass --limit on commands hey-cli 1.4.0 rejects" do
+  test "does not pass --limit on commands hey-cli 1.6.0 rejects" do
     assert_equal %w[workflow view 654 --json], @client.workflow("654")
     refute_includes @client.screener_history(page: "cursor"), "--limit"
     assert_equal %w[screener history --page cursor --json], @client.screener_history(page: "cursor")
@@ -71,6 +75,31 @@ class HeyClientTest < ActiveSupport::TestCase
     refute_includes @client.search("q", page: "n"), "--limit"
     assert_equal %w[contact list --page 2 --json], @client.contacts(page: "2")
     refute_includes @client.contacts(fetch_all: true), "--limit"
+  end
+
+  test "account senders, draft from, and occurrence edits use 1.6.0 flags" do
+    assert_equal %w[account senders --json], @client.account_senders
+    assert_equal %w[--account 99 account senders --json], @client.account_senders(account: "99")
+    assert_equal(
+      %w[draft edit 44 --from billing@example.org --json],
+      @client.draft_edit("44", from: "billing@example.org"),
+    )
+    assert_equal(
+      %w[event edit 4821 --start-time 15:00 --occurrence 4821_2026-09-15 --apply-to current --json],
+      @client.event_edit("4821", occurrence: "4821_2026-09-15", apply_to: "current", start_time: "15:00"),
+    )
+    assert_equal(
+      %w[event edit 4821 --title Design\ review\ (v2) --occurrence 4821_2026-09-15 --apply-to future --repeat every_week --repeat-times 8 --allow-plain-notes --json],
+      @client.event_edit(
+        "4821",
+        occurrence: "4821_2026-09-15",
+        apply_to: "future",
+        repeat: "every_week",
+        repeat_times: "8",
+        title: "Design review (v2)",
+        allow_plain_notes: true,
+      ),
+    )
   end
 
   test "organization commands take posting ids or topic ids as the CLI requires" do

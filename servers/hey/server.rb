@@ -10,7 +10,7 @@ module Emcp
         server_id "hey"
         display_name "HEY"
         description "Email, calendar, todos, habits, time tracking, and journal via the official HEY CLI."
-        version "0.2.0"
+        version "0.3.0"
 
         LIMIT_PROPERTIES = {
           limit: { type: "integer", description: "Maximum number of items (only where hey-cli accepts --limit)" },
@@ -302,6 +302,11 @@ module Emcp
             run(@client.accounts)
           end
           define_tool(
+            name: "hey_account_senders",
+            description: "List configured sender IDs and addresses. Use with from on compose or draft edit.",
+            properties: { **ACCOUNT_PROPERTIES },
+          ) { |account: nil| run(@client.account_senders(account: account)) }
+          define_tool(
             name: "hey_account_use",
             description: "Persist the default linked mail account (id or all).",
             properties: { account: string_prop("Account ID or all") },
@@ -473,7 +478,7 @@ module Emcp
 
           define_tool(
             name: "hey_threads",
-            description: "Read a HEY email thread via `hey thread read`. Bodies are Markdown unless html is true.",
+            description: "Read a HEY email thread via `hey thread read`. Bodies are Markdown unless html is true. Entries include recipients and inbound received_via when hydrated.",
             properties: {
               topic_id: topic_id_prop,
               html: boolean_prop("Return original HTML instead of Markdown"),
@@ -658,13 +663,15 @@ module Emcp
               cc: string_prop("Comma-separated CC recipients"),
               bcc: string_prop("Comma-separated BCC recipients"),
               thread_id: string_prop("Optional existing thread ID"),
+              from: string_prop("Sender email or ID from hey_account_senders"),
               draft: boolean_prop("Save a draft instead of sending"),
+              no_name_tag: boolean_prop("Leave the sender's HEY name tag off"),
               **ACCOUNT_PROPERTIES,
               **body_properties,
             },
             write: true,
-          ) do |subject: nil, to: nil, cc: nil, bcc: nil, thread_id: nil, draft: false, account: nil,
-                 paragraphs: nil, message: nil, message_html: nil, as_html: false|
+          ) do |subject: nil, to: nil, cc: nil, bcc: nil, thread_id: nil, from: nil, draft: false,
+                 no_name_tag: false, account: nil, paragraphs: nil, message: nil, message_html: nil, as_html: false|
             payload = hey_write_payload(message: message, paragraphs: paragraphs, message_html: message_html, as_html: as_html)
             if payload.empty? && !draft
               raise "message, paragraphs, or message_html is required unless draft is true"
@@ -677,7 +684,9 @@ module Emcp
                 cc: cc,
                 bcc: bcc,
                 thread_id: thread_id,
+                from: from,
                 draft: draft,
+                no_name_tag: no_name_tag,
                 account: account,
                 **payload,
               ),
@@ -772,7 +781,7 @@ module Emcp
 
           define_tool(
             name: "hey_move",
-            description: "Move threads to Imbox, The Feed, Set Aside, Reply Later, or Paper Trail.",
+            description: "Move threads to Imbox, The Feed, Set Aside, Reply Later, or Paper Trail. Bundle rows cannot be moved; unbundle first.",
             properties: {
               posting_ids: posting_ids_prop,
               to: string_prop("Destination box name, kind, or ID"),
@@ -830,15 +839,16 @@ module Emcp
               cc: string_prop("Replace CC recipients"),
               bcc: string_prop("Replace BCC recipients"),
               subject: string_prop("Replace subject"),
+              from: string_prop("Change sender email or ID; stays in the draft's account"),
               **ACCOUNT_PROPERTIES,
               **body_properties,
             },
             required: ["draft_id"],
             write: true,
-          ) do |draft_id:, to: nil, cc: nil, bcc: nil, subject: nil, account: nil,
+          ) do |draft_id:, to: nil, cc: nil, bcc: nil, subject: nil, from: nil, account: nil,
                  paragraphs: nil, message: nil, message_html: nil, as_html: false|
             payload = hey_write_payload(message: message, paragraphs: paragraphs, message_html: message_html, as_html: as_html)
-            run(@client.draft_edit(draft_id, to: to, cc: cc, bcc: bcc, subject: subject, account: account, **payload))
+            run(@client.draft_edit(draft_id, to: to, cc: cc, bcc: bcc, subject: subject, from: from, account: account, **payload))
           end
 
           define_tool(
@@ -1230,7 +1240,7 @@ module Emcp
 
           define_tool(
             name: "hey_event_edit",
-            description: "Edit a calendar event. An event write is a replacement; omitted served fields are preserved by the CLI.",
+            description: "Edit a calendar event. An id alone edits the whole series; one day needs occurrence plus apply_to (current or future).",
             properties: {
               event_id: string_prop("Event / series ID"),
               date: string_prop("Occurrence date YYYY-MM-DD to find the event"),
@@ -1238,13 +1248,38 @@ module Emcp
               starts_on: string_prop("New date YYYY-MM-DD"),
               start_time: string_prop("New start time HH:MM"),
               end_time: string_prop("New end time HH:MM"),
-              calendar_id: string_prop("Calendar to search"),
+              calendar_id: string_prop("Calendar to search, or with occurrence the calendar the day moves to"),
               countdown: string_prop("Keep or set a countdown; otherwise an edit removes one"),
+              occurrence: string_prop("occurrence_id from event day/week, e.g. 4821_2026-09-15"),
+              apply_to: string_prop("With occurrence: current (that day) or future (that day and after)"),
+              repeat: string_prop("Required with apply_to=future; e.g. every_week or custom"),
+              repeat_times: string_prop("Finite series remaining count from the edited day"),
+              repeat_until: string_prop("Finite series last day YYYY-MM-DD"),
+              allow_plain_notes: boolean_prop("Accept flattening notes to plain text"),
             },
             required: ["event_id"],
             write: true,
-          ) do |event_id:, date: nil, title: nil, starts_on: nil, start_time: nil, end_time: nil, calendar_id: nil, countdown: nil|
-            run(@client.event_edit(event_id, date: date, title: title, starts_on: starts_on, start_time: start_time, end_time: end_time, calendar_id: calendar_id, countdown: countdown))
+          ) do |event_id:, date: nil, title: nil, starts_on: nil, start_time: nil, end_time: nil,
+                 calendar_id: nil, countdown: nil, occurrence: nil, apply_to: nil, repeat: nil,
+                 repeat_times: nil, repeat_until: nil, allow_plain_notes: false|
+            run(
+              @client.event_edit(
+                event_id,
+                date: date,
+                title: title,
+                starts_on: starts_on,
+                start_time: start_time,
+                end_time: end_time,
+                calendar_id: calendar_id,
+                countdown: countdown,
+                occurrence: occurrence,
+                apply_to: apply_to,
+                repeat: repeat,
+                repeat_times: repeat_times,
+                repeat_until: repeat_until,
+                allow_plain_notes: allow_plain_notes,
+              ),
+            )
           end
 
           define_tool(

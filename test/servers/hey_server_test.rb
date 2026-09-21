@@ -8,7 +8,7 @@ class HeyServerTest < ActiveSupport::TestCase
     @server.update!(allow_write: true)
   end
 
-  test "catalog covers hey-cli v1.4.0 families" do
+  test "catalog covers hey-cli v1.6.0 families" do
     names = @server.tool_catalog.map { |tool| tool[:name] }
 
     %w[
@@ -18,12 +18,13 @@ class HeyServerTest < ActiveSupport::TestCase
       hey_drafts hey_draft hey_compose hey_reply hey_forward
       hey_move hey_bubble_up hey_calendars hey_events hey_event_day
       hey_habits hey_habit_create hey_timetrack_categories
+      hey_account_senders
     ].each do |name|
       assert_includes names, name
     end
 
     refute_includes names, "hey_threads_read"
-    assert_equal "0.2.0", @server.class.version
+    assert_equal "0.3.0", @server.class.version
   end
 
   test "search uses official refinements instead of a local box scan" do
@@ -41,7 +42,7 @@ class HeyServerTest < ActiveSupport::TestCase
     refute properties.key?(:limit)
   end
 
-  test "tools omit --limit where hey-cli 1.4.0 rejects it" do
+  test "tools omit --limit where hey-cli 1.6.0 rejects it" do
     %w[hey_workflow hey_screener hey_screener_history hey_search hey_contacts].each do |name|
       properties = tool(name)[:input_schema][:properties]
       refute properties.key?(:limit), "#{name} must not advertise limit"
@@ -59,8 +60,13 @@ class HeyServerTest < ActiveSupport::TestCase
     assert compose[:input_schema][:properties].key?(:paragraphs)
     assert compose[:input_schema][:properties].key?(:message_html)
     assert compose[:input_schema][:properties].key?(:draft)
+    assert compose[:input_schema][:properties].key?(:from)
+    assert compose[:input_schema][:properties].key?(:no_name_tag)
     refute_includes compose[:input_schema].fetch(:required, []), "subject"
     assert_equal [ "topic_id" ], reply[:input_schema][:required]
+    assert tool("hey_draft_edit")[:input_schema][:properties].key?(:from)
+    assert tool("hey_event_edit")[:input_schema][:properties].key?(:occurrence)
+    assert tool("hey_event_edit")[:input_schema][:properties].key?(:apply_to)
   end
 
   test "compose sends joined paragraphs as Markdown" do
@@ -103,7 +109,9 @@ class HeyServerTest < ActiveSupport::TestCase
     assert_includes text, "hey box view"
     assert_includes text, "hey thread read"
     assert_includes text, "hey search"
+    assert_includes text, "hey account senders"
     assert_includes text, "EmCP MCP tools"
+    assert_includes text, "v1.6.0"
     refute_includes text, "hey threads <topic_id>"
   end
 

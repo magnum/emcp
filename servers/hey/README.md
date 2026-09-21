@@ -2,7 +2,7 @@
 
 ← [Back to project](https://github.com/magnum/emcp)
 
-EmCP integration for [HEY](https://hey.com) email and related tools, backed by the official [`basecamp/hey-cli`](https://github.com/basecamp/hey-cli) **v1.4.0**. Also exposes the `hey://skill` resource (official CLI agent skill plus EmCP tool mapping).
+EmCP integration for [HEY](https://hey.com) email and related tools, backed by the official [`basecamp/hey-cli`](https://github.com/basecamp/hey-cli) **v1.6.0**. Also exposes the `hey://skill` resource (official CLI agent skill plus EmCP tool mapping).
 
 ## MCP endpoint
 
@@ -33,7 +33,7 @@ Credentials are stored via the HEY CLI config volume (`./data/cli/hey` in Docker
 
 The catalog follows hey-cli's noun-first commands: boxes, labels, collections, workflows, clips, snippets, search, contacts, The Screener, threads, drafts, calendars/events, todos, habits, time tracking, and journal. Mutations are `write: true` and gated by `HEY_ALLOW_WRITE`.
 
-For `hey_compose` / `hey_reply` / `hey_forward`, prefer the `paragraphs` array (Markdown, one idea per item). The CLI converts Markdown to HEY rich text. Use `message_html` or `as_html` only for raw HTML. `draft: true` saves instead of sending.
+For `hey_compose` / `hey_reply` / `hey_forward`, prefer the `paragraphs` array (Markdown, one idea per item). The CLI converts Markdown to HEY rich text. Use `message_html` or `as_html` only for raw HTML. `draft: true` saves instead of sending. `from` on compose/draft edit picks a sender from `hey_account_senders`.
 
 Use box item `id` for seen/move/label/trash. Use `topic_id` for thread read/reply/forward/share.
 

@@ -13,7 +13,7 @@ module Emcp
           )
         end
 
-        # Only pass listing flags the command actually accepts (hey-cli v1.4.0 .surface).
+        # Only pass listing flags the command actually accepts (hey-cli v1.6.0 .surface).
         # --limit is not universal: workflow view, search, screener, and contact list reject it.
         def command(*parts, limit: nil, fetch_all: false, page: nil, account: nil, options: {}, flags: [])
           args = []
@@ -317,7 +317,7 @@ module Emcp
           command("draft", "show", id, account: account)
         end
 
-        def draft_edit(id, to: nil, cc: nil, bcc: nil, subject: nil, message: nil, message_html: nil, account: nil)
+        def draft_edit(id, to: nil, cc: nil, bcc: nil, subject: nil, message: nil, message_html: nil, from: nil, account: nil)
           command(
             "draft", "edit", id,
             options: {
@@ -327,6 +327,7 @@ module Emcp
               "--subject" => subject,
               "-m" => message,
               "--message-html" => message_html,
+              "--from" => from,
             },
             account: account,
           )
@@ -336,7 +337,7 @@ module Emcp
         def draft_delete(ids, account: nil) = command("draft", "delete", *Array(ids), account: account)
 
         def compose(subject: nil, message: nil, message_html: nil, to: nil, cc: nil, bcc: nil,
-                    thread_id: nil, draft: false, account: nil)
+                    thread_id: nil, from: nil, draft: false, no_name_tag: false, account: nil)
           command(
             "compose",
             options: {
@@ -347,8 +348,12 @@ module Emcp
               "--cc" => cc,
               "--bcc" => bcc,
               "--thread-id" => thread_id,
+              "--from" => from,
             },
-            flags: [("--draft" if draft)],
+            flags: [
+              ("--draft" if draft),
+              ("--no-name-tag" if no_name_tag),
+            ],
             account: account,
           )
         end
@@ -411,6 +416,7 @@ module Emcp
         def stop_ignoring(ids) = command("stop-ignoring", *Array(ids))
 
         def accounts = command("account", "list")
+        def account_senders(account: nil) = command("account", "senders", account: account)
         def account_use(id) = command("account", "use", id)
 
         def calendars = command("calendar", "list")
@@ -449,7 +455,8 @@ module Emcp
         end
 
         def event_edit(id, date: nil, title: nil, starts_on: nil, start_time: nil, end_time: nil,
-                       calendar_id: nil, countdown: nil)
+                       calendar_id: nil, countdown: nil, occurrence: nil, apply_to: nil,
+                       repeat: nil, repeat_times: nil, repeat_until: nil, allow_plain_notes: false)
           command(
             "event", "edit", id, *[date].compact,
             options: {
@@ -459,7 +466,13 @@ module Emcp
               "--end-time" => end_time,
               "--calendar" => calendar_id,
               "--countdown" => countdown,
+              "--occurrence" => occurrence,
+              "--apply-to" => apply_to,
+              "--repeat" => repeat,
+              "--repeat-times" => repeat_times,
+              "--repeat-until" => repeat_until,
             },
+            flags: [("--allow-plain-notes" if allow_plain_notes)],
           )
         end
 
