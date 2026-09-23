@@ -4,8 +4,6 @@ Self-hosted [Model Context Protocol](https://modelcontextprotocol.io/) host on *
 
 The operator UI uses a **session login** (`User`). MCP clients authenticate with an **ApiKey** Bearer token and/or per-instance **OAuth 2.1** (PKCE). Each integration is an STI subclass of `McpServer` under `servers/<code>/`.
 
-The old Sinatra host is kept under [`legacy/`](legacy/) for reference. The running app is the Rails app on `main`.
-
 ## Quick start
 
 You need Ruby 4.0.5 and `config/master.key`. The key is not in git (it decrypts `config/credentials.yml.enc`). Ask the repo owner for it and place it at `config/master.key` before booting.

@@ -44,6 +44,10 @@ config/environments/*.local.yml
 # Ignore key files for decrypting credentials and more.
 /config/credentials/*.key
 
+# Local runtime state (OAuth dumps, old host auth files). Instance
+# credentials live under storage/mcp/instances, already ignored above.
+/data/
+
 # WhatsApp bridge local build artifacts
 /servers/whatsapp/bridge/whatsapp-bridge
 /servers/whatsapp/bridge/store/

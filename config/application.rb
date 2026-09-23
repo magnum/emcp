@@ -19,7 +19,6 @@ module Emcp
     # Integration packages under servers/<code>/ are required explicitly
     # (Zeitwerk does not own that tree).
     Rails.autoloaders.main.ignore(root.join("servers"))
-    Rails.autoloaders.main.ignore(root.join("legacy"))
 
     # Mission Control Jobs
     config.mission_control.jobs.base_controller_class = "AdminController"
