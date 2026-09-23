@@ -9,7 +9,7 @@ module Emcp
         server_id "basecamp"
         display_name "Basecamp"
         description "Projects, todos, cards, messages, chat, files, and schedules via the official Basecamp CLI."
-        version "0.1.0"
+        version "0.2.0"
 
         def self.default_service_token_refresh_in_minutes = 10_080 # weekly — CLI access tokens last ~2 weeks
 
