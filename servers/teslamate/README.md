@@ -9,10 +9,10 @@ SQL report definitions are adapted from [magnum/teslamate-mcp](https://github.co
 ## MCP endpoint
 
 ```text
-${EMCP_PUBLIC_URL}/servers/teslamate/mcp
+${EMCP_PUBLIC_URL}/servers/teslamate/<id>/mcp
 ```
 
-Operator UI: `/servers/teslamate/auth`
+Operator UI: `/servers/<id>/auth`
 
 ## Credentials
 

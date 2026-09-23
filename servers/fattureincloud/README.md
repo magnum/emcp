@@ -7,10 +7,10 @@ EmCP integration for [Fatture in Cloud](https://www.fattureincloud.it/) API v2 (
 ## MCP endpoint
 
 ```text
-${EMCP_PUBLIC_URL}/servers/fattureincloud/mcp
+${EMCP_PUBLIC_URL}/servers/fattureincloud/<id>/mcp
 ```
 
-Operator UI: `/servers/fattureincloud/auth`
+Operator UI: `/servers/<id>/auth`
 
 ## Credentials
 
@@ -20,18 +20,16 @@ Operator UI: `/servers/fattureincloud/auth`
 2. Register this **exact** redirect URI:
 
    ```text
-   ${EMCP_PUBLIC_URL}/servers/fattureincloud/oauth_callback
+   ${EMCP_PUBLIC_URL}/servers/fattureincloud/<id>/oauth_callback
    ```
 
-3. In `/servers/fattureincloud/auth`, choose **Retrieve OAuth token** (you are already signed in with EmCP Basic Auth).
-4. Complete the Fatture consent screen. The browser returns to EmCP’s callback
-   (`/servers/fattureincloud/oauth_callback`). That callback is public (no Basic Auth);
-   security is the one-time `state` stored under `data/_oauth/retrieval_states.json`
-   (survives process reloads; TTL 10 minutes). Do not reuse an old callback URL.
-5. EmCP exchanges the code, can auto-save the access token, and stores the full OAuth JSON (including `refresh_token`) at:
+   The auth form prints this URL for the instance. `<id>` is the numeric instance id.
+3. In `/servers/<id>/auth`, choose **Retrieve OAuth token** (you are already signed in to the operator UI).
+4. Complete the Fatture consent screen. The browser returns to the callback above. That route is public (no operator session); security is the one-time `state` (TTL 10 minutes). Do not reuse an old callback URL.
+5. EmCP exchanges the code, can auto-save the access token, and stores the OAuth JSON (including `refresh_token`) on the instance:
 
    ```text
-   data/fattureincloud/oauth_token.json
+   storage/mcp/instances/<id>/oauth_token.json
    ```
 
    Access tokens expire in about **24 hours**. On HTTP 401 EmCP automatically exchanges

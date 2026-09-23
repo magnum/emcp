@@ -7,16 +7,16 @@ EmCP integration for [HEY](https://hey.com) email and related tools, backed by t
 ## MCP endpoint
 
 ```text
-${EMCP_PUBLIC_URL}/servers/hey/mcp
+${EMCP_PUBLIC_URL}/servers/hey/<id>/mcp
 ```
 
-Operator UI: `/servers/hey/auth`
+Operator UI: `/servers/<id>/auth`
 
 ## Credentials
 
 1. On a machine with a browser: `hey auth login` (or your usual HEY CLI login).
 2. Copy the token: `hey auth token --quiet`
-3. Paste it into `/servers/hey/auth` (EmCP Basic Auth already covers the operator).
+3. Paste it into `/servers/<id>/auth` while signed in to the operator UI.
 
 Credentials are stored via the HEY CLI config volume (`./data/cli/hey` in Docker).
 

@@ -7,15 +7,15 @@ EmCP integration for the [Bluesky AT Protocol](https://docs.bsky.app/) (profiles
 ## MCP endpoint
 
 ```text
-${EMCP_PUBLIC_URL}/servers/bluesky/mcp
+${EMCP_PUBLIC_URL}/servers/bluesky/<id>/mcp
 ```
 
-Operator UI: `/servers/bluesky/auth`
+Operator UI: `/servers/<id>/auth`
 
 ## Credentials
 
 1. Create an **App Password** in Bluesky Settings (do not use your account password).
-2. Paste your handle (or email) and app password into `/servers/bluesky/auth`.
+2. Paste your handle (or email) and app password into `/servers/<id>/auth`.
 3. Optional: set a custom PDS host if the account is not on `bsky.social`.
 
 EmCP calls `com.atproto.server.createSession`, stores access/refresh JWTs under `data/bluesky/credentials.env`, and refreshes on `401` or `400 ExpiredToken` / `InvalidToken` (AT Proto convention), falling back to a new `createSession` if refresh fails.

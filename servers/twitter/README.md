@@ -7,10 +7,10 @@ EmCP integration for the [X API v2](https://developer.x.com/en/docs/twitter-api)
 ## MCP endpoint
 
 ```text
-${EMCP_PUBLIC_URL}/servers/twitter/mcp
+${EMCP_PUBLIC_URL}/servers/twitter/<id>/mcp
 ```
 
-Operator UI: `/servers/twitter/auth`
+Operator UI: `/servers/<id>/auth`
 
 ## Credentials
 
@@ -22,13 +22,13 @@ Operator UI: `/servers/twitter/auth`
    - Callback URI / Redirect URL — exact match:
 
 ```text
-https://emcp.m6i.it/servers/twitter/oauth_callback
+${EMCP_PUBLIC_URL}/servers/twitter/<id>/oauth_callback
 ```
 
-   (or `${EMCP_PUBLIC_URL}/servers/twitter/oauth_callback` for your host — no trailing slash)
+   The auth form prints this URL. No trailing slash. `<id>` is the numeric instance id.
 
-   - Website URL: e.g. `https://emcp.m6i.it` (required by X for user auth)
-3. Copy the **OAuth 2.0 Client ID** and **Client Secret** into `/servers/twitter/auth`, then **Save credentials**.
+   - Website URL: the same public origin as `EMCP_PUBLIC_URL` (required by X for user auth)
+3. Copy the **OAuth 2.0 Client ID** and **Client Secret** into `/servers/<id>/auth`, then **Save credentials**.
 
    Do **not** use the legacy API Key / API Secret (OAuth 1.0a) here.
 4. Click **Retrieve OAuth token**.
@@ -36,7 +36,7 @@ https://emcp.m6i.it/servers/twitter/oauth_callback
 EmCP uses authorization code + PKCE. The token response (including `refresh_token`) is stored under:
 
 ```text
-data/twitter/oauth_token.json
+storage/mcp/instances/<id>/oauth_token.json
 ```
 
 ### “Something went wrong / weren’t able to give access”

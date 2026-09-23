@@ -133,7 +133,7 @@ This skill documents the official `hey` CLI (v1.6.0). In EmCP, call the matching
 
 **Accounts:** pass `account` on mail tools, or call `hey_accounts` / `hey_account_use`. Use `hey_account_senders` then `from` on compose or draft edit to pick a sending address.
 
-Do not run `hey auth login` from a tool. If a command returns auth exit 3, tell the user to paste a token at `/servers/hey/auth`.
+Do not run `hey auth login` from a tool. If a command returns auth exit 3, tell the user to paste a token at `/servers/<id>/auth`.
 
 
 # /hey - HEY Email Workflow Command

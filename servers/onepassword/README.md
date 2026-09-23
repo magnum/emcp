@@ -9,17 +9,17 @@ so the server does not need the 1Password desktop app.
 ## MCP endpoint
 
 ```text
-${EMCP_PUBLIC_URL}/servers/onepassword/mcp
+${EMCP_PUBLIC_URL}/servers/onepassword/<id>/mcp
 ```
 
-Operator UI: `/servers/onepassword/auth`
+Operator UI: `/servers/<id>/auth`
 
 ## Credentials
 
 1. On 1Password.com: **Developer → Service Accounts → Create**.
 2. Grant only the vaults EmCP should use (`read_items`, and `write_items` if you enable writes).
 3. Personal, Private, Employee, and the default Shared vault cannot be granted.
-4. Save the token when it is shown (once), then paste it on `/servers/onepassword/auth`.
+4. Save the token when it is shown (once), then paste it on `/servers/<id>/auth`.
 
 The token is stored as `OP_SERVICE_ACCOUNT_TOKEN`. EmCP unsets `OP_CONNECT_HOST` /
 `OP_CONNECT_TOKEN` for `op` so a leftover Connect config cannot override it.

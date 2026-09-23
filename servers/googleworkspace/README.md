@@ -23,7 +23,7 @@ gws auth status
 gws auth export --unmasked
 ```
 
-Paste the exported JSON into `/servers/googleworkspace/auth`. Leave the short-lived access token field empty: `GOOGLE_WORKSPACE_CLI_TOKEN` overrides the credentials file and expires quickly.
+Paste the exported JSON into `/servers/<id>/auth`. Leave the short-lived access token field empty: `GOOGLE_WORKSPACE_CLI_TOKEN` overrides the credentials file and expires quickly.
 
 If the Google Cloud OAuth consent screen is still in **Testing**, Google expires the refresh token after **7 days** and EmCP will show Not authenticated again. Publish the app (Publishing status: In production) for a durable token. Daily refresh keeps a *published* token from going idle (6 months); it does not extend Testing tokens.
 

@@ -7,16 +7,16 @@ EmCP integration for the [Toggl Track API v9](https://engineering.toggl.com/docs
 ## MCP endpoint
 
 ```text
-${EMCP_PUBLIC_URL}/servers/toggltrack/mcp
+${EMCP_PUBLIC_URL}/servers/toggltrack/<id>/mcp
 ```
 
-Operator UI: `/servers/toggltrack/auth`
+Operator UI: `/servers/<id>/auth`
 
 ## Credentials
 
 1. Create a personal API token in your Toggl Track profile.
 2. Note your **organization ID** and **workspace ID**.
-3. Paste them into `/servers/toggltrack/auth`.
+3. Paste them into `/servers/<id>/auth`.
 
 EmCP authenticates with HTTP Basic Auth as `token:api_token` (username = API token, password literal `api_token`), as documented by Toggl.
 

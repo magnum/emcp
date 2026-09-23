@@ -7,10 +7,10 @@ EmCP integration for [Basecamp](https://basecamp.com), backed by the official [`
 ## MCP endpoint
 
 ```text
-${EMCP_PUBLIC_URL}/servers/basecamp/mcp
+${EMCP_PUBLIC_URL}/servers/basecamp/<id>/mcp
 ```
 
-Operator UI: `/servers/basecamp/auth`
+Operator UI: `/servers/<id>/auth`
 
 ## Credentials (recommended: CLI credentials file)
 
@@ -19,7 +19,7 @@ Importing `credentials.json` lets the Basecamp CLI refresh OAuth tokens on the s
 1. On a trusted machine: `BASECAMP_NO_KEYRING=1 basecamp auth login`
 2. Copy `~/.config/basecamp/credentials.json` into the auth form (or scp it to the server CLI path under `storage/mcp/basecamp/home/.config/basecamp/`).
 3. Set the numeric **account ID** (`https://3.basecamp.com/<account_id>/…` or `basecamp accounts list`).
-4. Save credentials on `/servers/basecamp/auth`.
+4. Save credentials on `/servers/<id>/auth`.
 
 **Fallback:** paste only `basecamp auth token --quiet` — works until the access token expires (~2 weeks), with no background refresh.
 

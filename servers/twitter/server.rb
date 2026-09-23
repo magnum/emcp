@@ -67,7 +67,7 @@ module Emcp
             commands: [],
             note: "error=invalid_scope means portal App permissions do not cover the scopes EmCP requests " \
                   "(see below). “Something went wrong” on X is usually the same mismatch, or a wrong callback URI. " \
-                  "EmCP stores tokens under data/twitter/oauth_token.json.",
+                  "EmCP stores tokens under storage/mcp/instances/<id>/oauth_token.json.",
           }
         end
 

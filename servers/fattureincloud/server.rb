@@ -64,7 +64,7 @@ module Emcp
             ],
             commands: [],
             note: "EmCP stores the full OAuth token response (including refresh_token) under " \
-                  "data/fattureincloud/oauth_token.json. Access tokens expire in ~24h; EmCP " \
+                  "storage/mcp/instances/<id>/oauth_token.json. Access tokens expire in ~24h; EmCP " \
                   "refreshes them automatically using the refresh token (valid ~1 year). " \
                   "The default company ID is optional.",
           }
