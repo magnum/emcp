@@ -50,6 +50,7 @@ class McpServerTest < ActiveSupport::TestCase
     assert_equal 90, Emcp::Servers::Bluesky::Server.default_service_token_refresh_in_minutes
     assert_nil Emcp::Servers::Hey::Server.default_service_token_refresh_in_minutes
     assert_equal 10_080, Emcp::Servers::Basecamp::Server.default_service_token_refresh_in_minutes
+    assert_equal 50, Emcp::Servers::MicrosoftGraph::Server.default_service_token_refresh_in_minutes
   end
 
   test "teslamate tool catalog includes reports and run_sql" do

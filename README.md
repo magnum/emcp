@@ -87,7 +87,7 @@ The auth form prints that URL. Register that exact string with the provider.
 
 ## Integrations
 
-HEY (CLI 1.6.0), Basecamp (CLI 0.11.0), Fatture in Cloud (API v2), Google Workspace (`gws` 0.22.5), Toggl Track (API v9), Bluesky, Twitter/X (API v2), TeslaMate, Home Assistant (`hass-cli`), 1Password (CLI 2.39.0), WhatsApp (`whatsmeow` bridge). Details are in each `servers/*/README.md`.
+HEY (CLI 1.6.0), Basecamp (CLI 0.11.0), Fatture in Cloud (API v2), Google Workspace (`gws` 0.22.5), Toggl Track (API v9), Bluesky, Twitter/X (API v2), TeslaMate, Home Assistant (`hass-cli`), 1Password (CLI 2.39.0), WhatsApp (`whatsmeow` bridge), Microsoft Graph (SharePoint sites). Details are in each `servers/*/README.md`.
 
 ## Tests
 

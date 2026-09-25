@@ -66,4 +66,8 @@ servers:
     timeout: 30
     max_chars: 12000
     bin: whatsapp-bridge
+  microsoftgraph:
+    allow_write: false
+    timeout: 30
+    max_chars: 12000
 
