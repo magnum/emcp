@@ -31,15 +31,16 @@ module Emcp
           "taxes:r",
           "cashbook:r",
           "calendar:r",
-          "archive:a",
+          "archive:a"
         ].join(" ")
+        RECEIVED_TYPE_HELP = "Document type: expense (default), passive_credit_note, passive_delivery_note, self_invoice"
         LIST_PROPERTIES = {
           fields: { type: "string", description: "Comma-separated response fields" },
           fieldset: { type: "string", description: "Named response fieldset" },
           sort: { type: "string", description: "Sort expression" },
           page: { type: "integer", description: "Page number" },
           per_page: { type: "integer", description: "Items per page" },
-          q: { type: "string", description: "API search/filter query" },
+          q: { type: "string", description: "API search/filter query" }
         }.freeze
 
         def instructions
@@ -60,13 +61,13 @@ module Emcp
               "Choose Retrieve OAuth token (you are already signed in with EmCP).",
               "After the callback, the access token is stored in FATTUREINCLOUD_TOKEN " \
                 "(shown in the Access token field). Optionally set Default company ID " \
-                "(FATTUREINCLOUD_COMPANY_ID) separately.",
+                "(FATTUREINCLOUD_COMPANY_ID) separately."
             ],
             commands: [],
             note: "EmCP stores the full OAuth token response (including refresh_token) under " \
                   "storage/mcp/instances/<id>/oauth_token.json. Access tokens expire in ~24h; EmCP " \
                   "refreshes them automatically using the refresh token (valid ~1 year). " \
-                  "The default company ID is optional.",
+                  "The default company ID is optional."
           }
         end
 
@@ -79,7 +80,7 @@ module Emcp
               required: true,
               oauth_app: true,
               help: "From the Fatture in Cloud developer app. Stored on this instance, not in .env.",
-              env: "FATTUREINCLOUD_CLIENT_ID",
+              env: "FATTUREINCLOUD_CLIENT_ID"
             },
             {
               name: "fattureincloud_client_secret",
@@ -88,7 +89,7 @@ module Emcp
               required: true,
               oauth_app: true,
               help: "From the Fatture in Cloud developer app. Leave blank to keep a saved secret.",
-              env: "FATTUREINCLOUD_CLIENT_SECRET",
+              env: "FATTUREINCLOUD_CLIENT_SECRET"
             },
             {
               name: "fattureincloud_token",
@@ -97,7 +98,7 @@ module Emcp
               required: false,
               help: "Filled by Retrieve OAuth token (stored as FATTUREINCLOUD_TOKEN). " \
                     "You can also paste a token manually. Leave blank when saving to keep the current token.",
-              env: "FATTUREINCLOUD_TOKEN",
+              env: "FATTUREINCLOUD_TOKEN"
             },
             {
               name: "fattureincloud_company_id",
@@ -105,8 +106,8 @@ module Emcp
               type: "text",
               required: false,
               help: "Numeric company id only (FATTUREINCLOUD_COMPANY_ID). Not the OAuth access token.",
-              env: "FATTUREINCLOUD_COMPANY_ID",
-            },
+              env: "FATTUREINCLOUD_COMPANY_ID"
+            }
           ]
         end
 
@@ -116,13 +117,13 @@ module Emcp
           result = @client.get("/user/companies")
           {
             authenticated: result[:status].between?(200, 299),
-            company_id: ENV["FATTUREINCLOUD_COMPANY_ID"],
+            company_id: ENV["FATTUREINCLOUD_COMPANY_ID"]
           }
         rescue StandardError => e
           {
             authenticated: false,
             company_id: ENV["FATTUREINCLOUD_COMPANY_ID"],
-            error: e.message,
+            error: e.message
           }
         end
 
@@ -175,7 +176,7 @@ module Emcp
             client_id: client_id,
             redirect_uri: callback_url,
             scope: ENV.fetch("FATTUREINCLOUD_OAUTH_SCOPES", DEFAULT_SCOPES),
-            state: state,
+            state: state
           }
           { authorization_url: "https://api-v2.fattureincloud.it/oauth/authorize?#{URI.encode_www_form(query)}" }
         end
@@ -197,7 +198,7 @@ module Emcp
               client_id: client_id,
               client_secret: client_secret,
               redirect_uri: callback_url,
-              code: params["code"],
+              code: params["code"]
             },
           )
         end
@@ -208,6 +209,8 @@ module Emcp
           define_issued_document_tools
           define_collection_tools("clients", "/entities/clients", "client")
           define_collection_tools("suppliers", "/entities/suppliers", "supplier")
+          define_received_document_tools
+          define_cashbook_tools
         end
 
         def refresh_service_token!
@@ -308,25 +311,62 @@ module Emcp
           define_get_and_mutations(singular, api_path, label)
         end
 
-        def define_get_and_mutations(tool_name, api_path, label)
+        def define_received_document_tools
+          properties = { company_id: company_id_prop, type: string_prop(RECEIVED_TYPE_HELP), **LIST_PROPERTIES }
+          define_tool(
+            name: "fattureincloud_received_documents",
+            description: "List received documents (costs). The type defaults to expense.",
+            properties: properties,
+          ) do |company_id: nil, type: "expense", fields: nil, fieldset: nil, sort: nil, page: nil, per_page: nil, q: nil|
+            query = list_query(fields:, fieldset:, sort:, page:, per_page:, q:).merge(type: type || "expense")
+            api_response(@client.get(company_path(company_id, "/received_documents"), query: query))
+          end
+          define_get_tool("received_document", "/received_documents", "received document")
+        end
+
+        def define_cashbook_tools
+          define_tool(
+            name: "fattureincloud_cashbook",
+            description: "List cashbook entries between two dates.",
+            properties: {
+              company_id: company_id_prop,
+              date_from: string_prop("Start date, YYYY-MM-DD"),
+              date_to: string_prop("End date, YYYY-MM-DD"),
+              year: { type: "integer", description: "Filter by year" },
+              type: string_prop("Filter by entry type (in or out)"),
+              payment_account_id: { type: "integer", description: "Filter by payment account" }
+            },
+            required: %w[date_from date_to],
+          ) do |date_from:, date_to:, company_id: nil, year: nil, type: nil, payment_account_id: nil|
+            query = { date_from:, date_to:, year:, type:, payment_account_id: }
+            api_response(@client.get(company_path(company_id, "/cashbook"), query: query))
+          end
+          define_get_tool("cashbook_entry", "/cashbook", "cashbook entry")
+        end
+
+        def define_get_tool(tool_name, api_path, label)
           define_tool(
             name: "fattureincloud_#{tool_name}",
             description: "Get one #{label}.",
             properties: { company_id: company_id_prop, id: string_prop("#{label.capitalize} ID") },
-            required: ["id"],
+            required: [ "id" ],
           ) do |id:, company_id: nil|
             api_response(@client.get(company_path(company_id, "#{api_path}/#{path_id(id)}")))
           end
+        end
+
+        def define_get_and_mutations(tool_name, api_path, label)
+          define_get_tool(tool_name, api_path, label)
 
           payload_properties = {
             company_id: company_id_prop,
-            payload: { type: "object", description: "Raw Fatture in Cloud API JSON object", additionalProperties: true },
+            payload: { type: "object", description: "Raw Fatture in Cloud API JSON object", additionalProperties: true }
           }
           define_tool(
             name: "fattureincloud_#{tool_name}_create",
             description: "Create a #{label} from a raw API payload.",
             properties: payload_properties,
-            required: ["payload"],
+            required: [ "payload" ],
             write: true,
           ) do |payload:, company_id: nil|
             api_response(@client.post(company_path(company_id, api_path), body: require_payload(payload)))
@@ -346,7 +386,7 @@ module Emcp
             name: "fattureincloud_#{tool_name}_delete",
             description: "Delete a #{label}; optionally forward a raw API payload.",
             properties: payload_properties.merge(id: string_prop("#{label.capitalize} ID")),
-            required: ["id"],
+            required: [ "id" ],
             write: true,
           ) do |id:, payload: nil, company_id: nil|
             api_response(@client.delete(company_path(company_id, "#{api_path}/#{path_id(id)}"), body: optional_payload(payload)))
