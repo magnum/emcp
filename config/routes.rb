@@ -42,6 +42,7 @@ Rails.application.routes.draw do
       post "oauth", to: "mcp_servers/provider_oauth#create", as: :provider_oauth
       post "auth/save_oauth_token", to: "mcp_servers/provider_oauth#save_token", as: :save_oauth_token
     end
+    resources :context_memberships, module: :mcp_servers, only: %i[create update destroy]
   end
 
   # MCP host URLs stay unlocalized for connector compatibility.
@@ -69,10 +70,52 @@ Rails.application.routes.draw do
     match ".well-known/openid-configuration", to: "mcp_servers/oauth#options", via: :options
   end
 
+  scope "/context/:id", as: :context_host, defaults: { type_code: "context" } do
+    post "mcp", to: "mcp_servers/mcp#create", as: :mcp
+    match "mcp", to: "mcp_servers/mcp#options", via: :options
+    get "mcp", to: "mcp_servers/mcp#method_not_allowed"
+    delete "mcp", to: "mcp_servers/mcp#method_not_allowed"
+
+    post "tools/:tool", to: "mcp_servers/tools#create", as: :tool
+
+    get "auth/authorize", to: "mcp_servers/oauth#authorize"
+    post "auth/register", to: "mcp_servers/oauth#register"
+    post "auth/token", to: "mcp_servers/oauth#token"
+    post "auth/revoke", to: "mcp_servers/oauth#revoke"
+    match "auth/register", to: "mcp_servers/oauth#options", via: :options
+    match "auth/token", to: "mcp_servers/oauth#options", via: :options
+    match "auth/revoke", to: "mcp_servers/oauth#options", via: :options
+
+    get ".well-known/oauth-authorization-server", to: "mcp_servers/oauth#authorization_server"
+    match ".well-known/oauth-authorization-server", to: "mcp_servers/oauth#options", via: :options
+    get ".well-known/openid-configuration", to: "mcp_servers/oauth#authorization_server"
+    match ".well-known/openid-configuration", to: "mcp_servers/oauth#options", via: :options
+  end
+
   get "/.well-known/oauth-protected-resource/servers/:type_code/:id/mcp",
       to: "mcp_servers/oauth#protected_resource"
   match "/.well-known/oauth-protected-resource/servers/:type_code/:id/mcp",
         to: "mcp_servers/oauth#options", via: :options
+  get "/.well-known/oauth-protected-resource/context/:id/mcp",
+      to: "mcp_servers/oauth#protected_resource", defaults: { type_code: "context" }
+  match "/.well-known/oauth-protected-resource/context/:id/mcp",
+        to: "mcp_servers/oauth#options", via: :options, defaults: { type_code: "context" }
+  get "/.well-known/oauth-authorization-server/context/:id",
+      to: "mcp_servers/oauth#authorization_server", defaults: { type_code: "context" }
+  match "/.well-known/oauth-authorization-server/context/:id",
+        to: "mcp_servers/oauth#options", via: :options, defaults: { type_code: "context" }
+  get "/.well-known/oauth-authorization-server/context/:id/mcp",
+      to: "mcp_servers/oauth#authorization_server", defaults: { type_code: "context" }
+  match "/.well-known/oauth-authorization-server/context/:id/mcp",
+        to: "mcp_servers/oauth#options", via: :options, defaults: { type_code: "context" }
+  get "/.well-known/openid-configuration/context/:id",
+      to: "mcp_servers/oauth#authorization_server", defaults: { type_code: "context" }
+  match "/.well-known/openid-configuration/context/:id",
+        to: "mcp_servers/oauth#options", via: :options, defaults: { type_code: "context" }
+  get "/.well-known/openid-configuration/context/:id/mcp",
+      to: "mcp_servers/oauth#authorization_server", defaults: { type_code: "context" }
+  match "/.well-known/openid-configuration/context/:id/mcp",
+        to: "mcp_servers/oauth#options", via: :options, defaults: { type_code: "context" }
   get "/.well-known/oauth-authorization-server/servers/:type_code/:id",
       to: "mcp_servers/oauth#authorization_server"
   match "/.well-known/oauth-authorization-server/servers/:type_code/:id",

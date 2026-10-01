@@ -44,6 +44,13 @@
     <p class="mt-1  text-stone-600">Comma-separated. Suggestions are tags you already use.</p>
   </div>
 
+  <% if server.persisted? && server.context? %>
+    <label class="flex items-center gap-2 font-semibold">
+      <%= f.check_box :active, class: "h-4 w-4 rounded border-stone-300" %>
+      Active (inactive contexts refuse proxied tool calls)
+    </label>
+  <% end %>
+
   <div class="flex gap-3">
     <%= f.submit class: "btn-emcp-solid" %>
     <%= link_to "Cancel", server.persisted? ? mcp_server_path(server) : mcp_servers_path, class: "inline-flex items-center font-semibold underline" %>

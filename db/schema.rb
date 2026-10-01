@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_12_183007) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_01_155000) do
   create_table "api_keys", force: :cascade do |t|
     t.bigint "bearer_id", null: false
     t.string "bearer_type", null: false
@@ -23,6 +23,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_12_183007) do
     t.datetime "updated_at", null: false
     t.index ["bearer_type", "bearer_id"], name: "index_api_keys_on_bearer"
     t.index ["token_digest"], name: "index_api_keys_on_token_digest", unique: true
+  end
+
+  create_table "context_memberships", force: :cascade do |t|
+    t.boolean "active", default: true, null: false
+    t.integer "context_id", null: false
+    t.datetime "created_at", null: false
+    t.integer "mcp_server_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["context_id", "mcp_server_id"], name: "index_context_memberships_on_context_id_and_mcp_server_id", unique: true
+    t.index ["context_id"], name: "index_context_memberships_on_context_id"
+    t.index ["mcp_server_id"], name: "index_context_memberships_on_mcp_server_id"
+    t.check_constraint "context_id <> mcp_server_id", name: "context_memberships_no_self"
   end
 
   create_table "invitations", force: :cascade do |t|
@@ -141,6 +153,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_12_183007) do
   end
 
   create_table "mcp_servers", force: :cascade do |t|
+    t.boolean "active", default: true, null: false
     t.boolean "allow_write", default: false, null: false
     t.datetime "created_at", null: false
     t.text "credentials"
@@ -245,6 +258,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_12_183007) do
     t.index ["user_id"], name: "index_users_roles_on_user_id"
   end
 
+  add_foreign_key "context_memberships", "mcp_servers"
+  add_foreign_key "context_memberships", "mcp_servers", column: "context_id"
   add_foreign_key "mcp_oauth_access_tokens", "mcp_oauth_clients"
   add_foreign_key "mcp_oauth_access_tokens", "mcp_servers"
   add_foreign_key "mcp_oauth_auth_codes", "mcp_oauth_clients"

@@ -8,7 +8,7 @@ module McpAuthenticatable
       token = bearer_token
       payload = oauth_provider.load_access_token(token)
       unless payload
-        metadata = "#{Emcp.public_url}/.well-known/oauth-protected-resource/servers/#{mcp_server.code}/#{mcp_server.id}/mcp"
+        metadata = mcp_server.oauth_protected_resource_metadata_url
         headers["WWW-Authenticate"] =
           %(Bearer error="invalid_token", resource_metadata="#{metadata}")
         render json: { error: "invalid_token", error_description: "Authentication required" }, status: :unauthorized

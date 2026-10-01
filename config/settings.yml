@@ -74,4 +74,8 @@ servers:
     allow_write: false
     timeout: 30
     max_chars: 12000
+  context:
+    allow_write: true
+    timeout: 60
+    max_chars: 12000
 

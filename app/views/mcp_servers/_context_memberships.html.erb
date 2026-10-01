@@ -1,0 +1,61 @@
+<%# locals: context %>
+<section class="mt-10 border-t border-stone-300 pt-8 dark:border-zinc-700">
+  <h2 class="text-2xl font-bold tracking-tight">Proxied servers</h2>
+  <p class="mt-2 leading-7 text-stone-700 dark:text-zinc-300">
+    MCP clients connect to this Context URL only. The hub forwards tools to the servers below.
+  </p>
+
+  <% memberships = context.context_memberships.includes(mcp_server: :mcp_server_type).order(:id) %>
+  <% if memberships.empty? %>
+    <p class="mt-6 text-stone-600 dark:text-zinc-400">No servers yet. Add HEY, Home Assistant, TeslaMate, …</p>
+  <% else %>
+    <ul class="mt-6 divide-y divide-stone-300 border-t border-b border-stone-300 dark:divide-zinc-700 dark:border-zinc-700">
+      <% memberships.each do |membership| %>
+        <% server = membership.mcp_server %>
+        <li class="flex flex-col gap-3 py-5 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p class="font-bold"><%= server.name %></p>
+            <p class="font-mono text-stone-500 dark:text-zinc-400"><%= server.activity_log_code %></p>
+            <p class="mt-1">
+              <span class="<%= membership.active? ? "text-emerald-800 dark:text-emerald-300" : "text-amber-800 dark:text-amber-200" %> font-semibold">
+                <%= membership.active? ? "active" : "paused" %>
+              </span>
+              <span class="text-stone-400">·</span>
+              <%= server.mcp_server_type.name %>
+            </p>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <%= button_to membership.active? ? "Pause" : "Enable",
+                  mcp_server_context_membership_path(context, membership),
+                  method: :patch,
+                  params: { context_membership: { active: !membership.active? } },
+                  class: "btn-emcp-outline h-10" %>
+            <%= button_to "Remove",
+                  mcp_server_context_membership_path(context, membership),
+                  method: :delete,
+                  class: "btn-emcp-ghost h-10",
+                  form: { data: { turbo_confirm: "Remove #{server.name} from this context?" } } %>
+          </div>
+        </li>
+      <% end %>
+    </ul>
+  <% end %>
+
+  <% available = context.available_proxied_servers %>
+  <% if available.any? %>
+    <%= form_with url: mcp_server_context_memberships_path(context), method: :post, class: "mt-8 flex flex-col gap-3 sm:flex-row sm:items-end" do %>
+      <div class="min-w-0 flex-1">
+        <label for="context_membership_mcp_server_id" class="mb-2 block font-semibold">Add a server</label>
+        <select name="context_membership[mcp_server_id]" id="context_membership_mcp_server_id"
+                class="w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-stone-900 outline-none focus:border-stone-500 dark:border-zinc-600 dark:bg-zinc-950 dark:text-zinc-100"
+                required>
+          <option value="">Choose a server</option>
+          <% available.each do |server| %>
+            <option value="<%= server.id %>"><%= server.name %> (<%= server.activity_log_code %>)</option>
+          <% end %>
+        </select>
+      </div>
+      <button type="submit" class="btn-emcp-solid h-10">Add</button>
+    <% end %>
+  <% end %>
+</section>

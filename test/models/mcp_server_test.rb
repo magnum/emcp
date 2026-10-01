@@ -14,6 +14,7 @@ class McpServerTest < ActiveSupport::TestCase
     assert_includes codes, "teslamate"
     assert_includes codes, "toggltrack"
     assert_includes codes, "onepassword"
+    assert_includes codes, "context"
   end
 
   test "sti fetch returns concrete class" do

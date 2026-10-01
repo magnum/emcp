@@ -6,7 +6,7 @@ class McpServersController < ApplicationController
   before_action :set_server, only: %i[show edit update destroy]
 
   def index
-    @servers = current_user.mcp_servers.includes(:mcp_server_type).order(:name)
+    @servers = current_user.mcp_servers.includes(:mcp_server_type, :context_memberships).order(:name)
     @servers = @servers.where(mcp_server_type_id: params[:mcp_server_type_id]) if params[:mcp_server_type_id].present?
     @servers = @servers.search(params[:q])
     @user_tags = McpServer.tag_names_for(current_user)
@@ -23,7 +23,9 @@ class McpServersController < ApplicationController
   def create
     @server = current_user.mcp_servers.new(server_params)
     if @server.save
-      redirect_to auth_mcp_server_path(@server), notice: "Server created"
+      destination = @server.context? ? mcp_server_path(@server) : auth_mcp_server_path(@server)
+      notice = @server.context? ? "Context created — add the servers it should proxy." : "Server created"
+      redirect_to destination, notice: notice
     else
       render :new, status: :unprocessable_entity
     end
@@ -66,6 +68,7 @@ class McpServersController < ApplicationController
   def server_params
     permitted = [ :name, :description, :tag_list ]
     permitted << :mcp_server_type_id if action_name == "create"
+    permitted << :active if action_name != "create" && @server&.context?
     params.require(:mcp_server).permit(permitted)
   end
 end

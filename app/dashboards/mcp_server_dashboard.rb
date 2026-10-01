@@ -12,6 +12,7 @@ class McpServerDashboard < Administrate::BaseDashboard
     name: Field::String,
     description: Field::Text,
     allow_write: Field::Boolean,
+    active: Field::Boolean,
     token_refresh_in_minutes: Field::Number,
     service_token_refresh_in_minutes: Field::Number,
     tags: Field::ActsAsTaggable,
@@ -19,13 +20,13 @@ class McpServerDashboard < Administrate::BaseDashboard
     updated_at: Field::DateTime,
   }.freeze
 
-  COLLECTION_ATTRIBUTES = %i[id name user mcp_server_type tags allow_write].freeze
+  COLLECTION_ATTRIBUTES = %i[id name user mcp_server_type tags allow_write active].freeze
   SHOW_PAGE_ATTRIBUTES = %i[
-    id user mcp_server_type type name description tags allow_write
+    id user mcp_server_type type name description tags allow_write active
     token_refresh_in_minutes service_token_refresh_in_minutes created_at updated_at
   ].freeze
   FORM_ATTRIBUTES = %i[
-    user mcp_server_type name description tags allow_write
+    user mcp_server_type name description tags allow_write active
     token_refresh_in_minutes service_token_refresh_in_minutes
   ].freeze
   COLLECTION_FILTERS = {}.freeze

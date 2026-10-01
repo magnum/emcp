@@ -29,4 +29,12 @@
   </header>
 
   <%= render "mcp_servers/mcp_endpoint", url: @server.mcp_url %>
+
+  <% unless @server.active? %>
+    <p class="mt-6 rounded-lg border border-amber-700 bg-amber-50 px-4 py-3 text-amber-950 dark:bg-amber-950 dark:text-amber-100">
+      This context is inactive. MCP clients can still connect, but proxied tool calls are refused.
+    </p>
+  <% end %>
+
+  <%= render "mcp_servers/context_memberships", context: @server if @server.context? %>
 </div>

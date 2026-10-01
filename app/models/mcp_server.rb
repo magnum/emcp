@@ -3,6 +3,7 @@
 require "fileutils"
 require "json"
 require "mcp"
+require "uri"
 
 class McpServer < ApplicationRecord
   include McpServer::Tools
@@ -22,6 +23,10 @@ class McpServer < ApplicationRecord
   has_many :mcp_oauth_auth_codes, dependent: :destroy
   has_many :mcp_oauth_login_states, dependent: :destroy
   has_many :mcp_provider_oauth_states, dependent: :destroy
+  has_many :context_memberships, foreign_key: :context_id, dependent: :destroy, inverse_of: :context
+  has_many :proxied_servers, through: :context_memberships, source: :mcp_server
+  has_many :member_context_memberships, class_name: "ContextMembership",
+           foreign_key: :mcp_server_id, dependent: :destroy, inverse_of: :mcp_server
 
   encrypts :credentials, :oauth_token_payload
 
@@ -45,6 +50,9 @@ class McpServer < ApplicationRecord
            :class_name, to: :mcp_server_type, allow_nil: true
 
   scope :for_user, ->(user) { where(user: user) }
+  scope :proxyable, -> {
+    joins(:mcp_server_type).where.not(mcp_server_types: { code: "context" })
+  }
   scope :search, ->(query) {
     parsed = parse_search_query(query)
     rel = all
@@ -204,6 +212,7 @@ class McpServer < ApplicationRecord
 
       discover!
       McpServerType.find_each do |server_type|
+        next if server_type.code == "context"
         next if exists?(user: user, mcp_server_type: server_type)
 
         create!(
@@ -283,12 +292,19 @@ class McpServer < ApplicationRecord
     )
   end
 
+  def context? = code.to_s == "context"
+
   def issuer_url
     "#{Emcp.public_url}/servers/#{code}/#{id}"
   end
 
   def mcp_url
     "#{issuer_url}/mcp"
+  end
+
+  def oauth_protected_resource_metadata_url
+    path = URI.parse(mcp_url).path
+    "#{Emcp.public_url}/.well-known/oauth-protected-resource#{path}"
   end
 
   def provider_oauth_callback_url
