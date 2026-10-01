@@ -16,7 +16,7 @@ module Emcp
         def self.default_service_token_refresh_in_minutes = 50
 
         DEFAULT_READ_SCOPES = %w[offline_access User.Read Sites.Read.All].freeze
-        DEFAULT_WRITE_SCOPES = %w[Sites.ReadWrite.All].freeze
+        DEFAULT_WRITE_SCOPES = %w[Sites.ReadWrite.All SitePages.ReadWrite.All].freeze
 
         def instructions
           "Use Microsoft Graph tools to read the signed-in user and SharePoint sites. " \
@@ -29,14 +29,14 @@ module Emcp
           {
             title: "Authorize Microsoft Graph",
             description: "Register a confidential Entra app and complete the OAuth code flow in this form. " \
-                         "SharePoint edits need Sites.ReadWrite.All and admin consent in many tenants.",
+                         "SharePoint edits need Sites.ReadWrite.All, modern pages need SitePages.ReadWrite.All, and many tenants require admin consent.",
             steps: [
               "In Microsoft Entra, register an app (Accounts in any organizational directory, or your tenant only).",
               "Add a Web redirect URI equal to the callback URL shown below.",
               "Create a client secret and paste the Application (client) ID and secret here.",
               "Set the Directory (tenant) ID, or leave the tenant as organizations.",
               "API permissions: delegated offline_access, User.Read, Sites.Read.All. " \
-                "Add Sites.ReadWrite.All when MICROSOFTGRAPH_ALLOW_WRITE=true, then grant admin consent.",
+                "With writes enabled, also add Sites.ReadWrite.All and SitePages.ReadWrite.All, then grant admin consent.",
               "Choose Retrieve OAuth token. Optionally set a default SharePoint hostname and site path.",
             ],
             commands: [],

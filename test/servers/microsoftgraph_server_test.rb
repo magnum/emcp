@@ -99,6 +99,7 @@ class MicrosoftGraphServerTest < ActiveSupport::TestCase
       url = @server.oauth_call(callback_url: "https://emcp.example/callback", state: "state-1")[:authorization_url]
       assert_includes url, "https://login.microsoftonline.com/contoso.onmicrosoft.com/oauth2/v2.0/authorize"
       assert_includes url, "Sites.ReadWrite.All"
+      assert_includes url, "SitePages.ReadWrite.All"
       assert_includes url, "offline_access"
     end
   end

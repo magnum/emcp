@@ -20,7 +20,7 @@ Operator UI: `/servers/<id>/auth`
    ${EMCP_PUBLIC_URL}/servers/microsoftgraph/<id>/oauth_callback
    ```
 
-2. Delegated permissions: `offline_access`, `User.Read`, `Sites.Read.All`. Add `Sites.ReadWrite.All` to edit a site, then grant admin consent.
+2. Delegated permissions: `offline_access`, `User.Read`, `Sites.Read.All`. To edit a site add `Sites.ReadWrite.All`. To edit modern pages add `SitePages.ReadWrite.All`. Then grant admin consent.
 3. Paste the tenant ID, application ID, and client secret in `/servers/<id>/auth`, then choose **Retrieve OAuth token**.
 4. EmCP stores the token response, including `refresh_token`, at `storage/mcp/instances/<id>/oauth_token.json`. Access tokens last about an hour and are refreshed automatically.
 
@@ -42,7 +42,7 @@ Optional defaults: `MICROSOFTGRAPH_SITE_HOSTNAME` (`contoso.sharepoint.com`), `M
 | `MICROSOFTGRAPH_ALLOW_WRITE` | Enable site, list, and item mutations |
 | `MICROSOFTGRAPH_TIMEOUT` | HTTP timeout seconds (default `30`) |
 
-Writes need both `Sites.ReadWrite.All` on the token and `MICROSOFTGRAPH_ALLOW_WRITE=true`.
+Writes need `MICROSOFTGRAPH_ALLOW_WRITE=true` on the instance and a token that includes `Sites.ReadWrite.All`. Modern page edits also need `SitePages.ReadWrite.All`. Re-run Retrieve OAuth token after changing scopes.
 
 ## Tools
 
