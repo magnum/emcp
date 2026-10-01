@@ -1,4 +1,9 @@
-<%= form_with model: server, local: true, class: "space-y-4" do |f| %>
+<% form_url = local_assigns[:form_url]
+   cancel_path = local_assigns[:cancel_path] || (server.persisted? ? mcp_server_path(server) : mcp_servers_path)
+   hide_type = local_assigns.fetch(:hide_type, false)
+   form_options = { model: server, local: true, class: "space-y-4" }
+   form_options[:url] = form_url if form_url.present? %>
+<%= form_with **form_options do |f| %>
   <% if server.errors.any? %>
     <div class="rounded-lg border border-amber-700 bg-amber-50 p-4 text-amber-950 dark:bg-amber-950 dark:text-amber-100">
       <ul class="list-disc pl-5">
@@ -9,13 +14,15 @@
     </div>
   <% end %>
 
-  <div>
-    <%= f.label :mcp_server_type_id, "Server type", class: "mb-2 block font-semibold" %>
-    <%= f.collection_select :mcp_server_type_id, server_types, :id, :name,
-          { prompt: "Choose a type" },
-          { class: "w-full rounded-lg border border-stone-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-950",
-            disabled: server.persisted? } %>
-  </div>
+  <% unless hide_type %>
+    <div>
+      <%= f.label :mcp_server_type_id, "Server type", class: "mb-2 block font-semibold" %>
+      <%= f.collection_select :mcp_server_type_id, server_types, :id, :name,
+            { prompt: "Choose a type" },
+            { class: "w-full rounded-lg border border-stone-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-950",
+              disabled: server.persisted? } %>
+    </div>
+  <% end %>
 
   <div>
     <%= f.label :name, class: "mb-2 block font-semibold" %>
@@ -53,6 +60,6 @@
 
   <div class="flex gap-3">
     <%= f.submit class: "btn-emcp-solid" %>
-    <%= link_to "Cancel", server.persisted? ? mcp_server_path(server) : mcp_servers_path, class: "inline-flex items-center font-semibold underline" %>
+    <%= link_to "Cancel", cancel_path, class: "inline-flex items-center font-semibold underline" %>
   </div>
 <% end %>

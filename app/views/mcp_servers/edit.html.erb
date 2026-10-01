@@ -4,6 +4,6 @@
   <p class="mb-4">
     <%= link_to "← #{@server.name}", mcp_server_path(@server), class: "font-semibold underline" %>
   </p>
-  <h1 class="mb-8 text-3xl font-bold tracking-tight">Edit server</h1>
-  <%= render "form", server: @server, server_types: @server_types %>
+  <h1 class="mb-8 text-3xl font-bold tracking-tight">Edit <%= @server.context? ? "context" : "server" %></h1>
+  <%= render "form", server: @server, server_types: @server_types, hide_type: @server.context? %>
 </div>

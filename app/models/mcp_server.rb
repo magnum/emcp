@@ -50,8 +50,11 @@ class McpServer < ApplicationRecord
            :class_name, to: :mcp_server_type, allow_nil: true
 
   scope :for_user, ->(user) { where(user: user) }
+  scope :contexts, -> {
+    where(mcp_server_type_id: McpServerType.select(:id).where(code: "context"))
+  }
   scope :proxyable, -> {
-    joins(:mcp_server_type).where.not(mcp_server_types: { code: "context" })
+    where.not(mcp_server_type_id: McpServerType.select(:id).where(code: "context"))
   }
   scope :search, ->(query) {
     parsed = parse_search_query(query)

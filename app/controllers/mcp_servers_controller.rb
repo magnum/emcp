@@ -6,7 +6,7 @@ class McpServersController < ApplicationController
   before_action :set_server, only: %i[show edit update destroy]
 
   def index
-    @servers = current_user.mcp_servers.includes(:mcp_server_type, :context_memberships).order(:name)
+    @servers = current_user.mcp_servers.proxyable.includes(:mcp_server_type).order(:name)
     @servers = @servers.where(mcp_server_type_id: params[:mcp_server_type_id]) if params[:mcp_server_type_id].present?
     @servers = @servers.search(params[:q])
     @user_tags = McpServer.tag_names_for(current_user)
@@ -44,7 +44,8 @@ class McpServersController < ApplicationController
 
   def destroy
     @server.destroy!
-    redirect_to mcp_servers_path, notice: "Server deleted"
+    redirect_to(@server.context? ? contexts_path : mcp_servers_path,
+                notice: @server.context? ? "Context deleted" : "Server deleted")
   end
 
   def tags
@@ -58,7 +59,7 @@ class McpServersController < ApplicationController
 
   def load_catalog
     McpServerType.discover!
-    @server_types = McpServerType.order(:name)
+    @server_types = McpServerType.where.not(code: "context").order(:name)
   end
 
   def set_server

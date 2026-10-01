@@ -1,7 +1,7 @@
 <% content_for :title, "#{@server.name} authentication" %>
 
 <p class="mb-4">
-  <%= link_to "← Servers", mcp_servers_path, class: "font-semibold underline" %>
+  <%= link_to "← #{@server.context? ? "Contexts" : "Servers"}", catalog_path_for(@server), class: "font-semibold underline" %>
 </p>
 
 <header class="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">

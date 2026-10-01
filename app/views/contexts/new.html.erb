@@ -1,0 +1,9 @@
+<% content_for :title, "New context" %>
+
+<div class="w-full max-w-2xl mx-auto">
+  <p class="mb-4">
+    <%= link_to "← Contexts", contexts_path, class: "font-semibold underline" %>
+  </p>
+  <h1 class="mb-8 text-3xl font-bold tracking-tight">New context</h1>
+  <%= render "mcp_servers/form", server: @server, server_types: [], hide_type: true, form_url: contexts_path, cancel_path: contexts_path %>
+</div>

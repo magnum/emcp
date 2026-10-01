@@ -19,8 +19,11 @@ class McpServersControllerTest < ActionDispatch::IntegrationTest
     get mcp_servers_path
     assert_equal "/servers", mcp_servers_path
     assert_response :success
-    assert_match(/servers/, response.body)
     assert_match(/teslamate/i, response.body)
+    assert_select "a[href=?]", mcp_servers_path, text: "Servers"
+    assert_select "a[href=?]", contexts_path, text: "Contexts"
+    assert_select "a.underline", text: "Servers"
+    assert_select "option", text: "Context", count: 0
     assert_select "a", text: "Reset", count: 0
   end
 
@@ -87,5 +90,15 @@ class McpServersControllerTest < ActionDispatch::IntegrationTest
     assert_equal "HEY work", server.name
     assert_equal [ "work" ], server.tag_list
     assert_redirected_to auth_mcp_server_path(server)
+  end
+
+  test "index hides contexts" do
+    post sign_in_path, params: { email: @user.email, password: "password123" }
+    create_context!(name: "House")
+
+    get mcp_servers_path
+    assert_response :success
+    refute_match(/House/, response.body)
+    assert_select "a.underline", text: "Servers"
   end
 end

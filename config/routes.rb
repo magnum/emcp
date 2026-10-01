@@ -45,6 +45,8 @@ Rails.application.routes.draw do
     resources :context_memberships, module: :mcp_servers, only: %i[create update destroy]
   end
 
+  resources :contexts, only: %i[index new create]
+
   # MCP host URLs stay unlocalized for connector compatibility.
   scope "/servers/:type_code/:id", as: :instance do
     post "mcp", to: "mcp_servers/mcp#create", as: :mcp

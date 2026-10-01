@@ -11,10 +11,9 @@ class McpServers::ContextMembershipsControllerTest < ActionDispatch::Integration
   end
 
   test "create context redirects to the hub page instead of auth" do
-    type = McpServerType.fetch!("context")
     assert_difference -> { @user.mcp_servers.count }, 1 do
-      post mcp_servers_path, params: {
-        mcp_server: { mcp_server_type_id: type.id, name: "Work", description: "office" }
+      post contexts_path, params: {
+        mcp_server: { name: "Work", description: "office" }
       }
     end
     context = @user.mcp_servers.order(:id).last

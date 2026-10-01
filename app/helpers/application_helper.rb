@@ -30,4 +30,17 @@ module ApplicationHelper
   def badge(state, value = nil)
     content_tag(:span, value || state.to_s.humanize, class: "whitespace-nowrap rounded-md #{state_bg_color(state)} px-2 py-1 text-md font-medium #{state_text_color(state)}")
   end
+
+  def catalog_path_for(server)
+    server.context? ? contexts_path : mcp_servers_path
+  end
+
+  def catalog_nav_class(active)
+    base = "font1 text-4xl font-bold tracking-tight"
+    if active
+      "#{base} underline decoration-2 underline-offset-8"
+    else
+      "#{base} text-stone-400 hover:text-stone-900 dark:text-zinc-500 dark:hover:text-zinc-100"
+    end
+  end
 end

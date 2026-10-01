@@ -3,7 +3,7 @@
 <div class="w-full max-w-4xl mx-auto">
   <header class="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
     <div>
-      <h1 class="font1 text-4xl font-bold tracking-tight">Servers</h1>
+      <%= render "shared/catalog_nav", current: :servers %>
       <p class="mt-3 text-base leading-7 text-stone-700 dark:text-zinc-300">
         Each server instance has its own MCP endpoint, credentials, and tags.
       </p>
@@ -119,12 +119,6 @@
             <dt class="font-semibold text-stone-500 dark:text-zinc-400">Write methods</dt>
             <dd><%= server.allow_write? ? "Enabled" : "Disabled" %></dd>
           </div>
-          <% if server.context? %>
-            <div class="flex flex-wrap items-baseline gap-2">
-              <dt class="font-semibold text-stone-500 dark:text-zinc-400">Proxied</dt>
-              <dd><%= server.context_memberships.size %> server<%= "s" unless server.context_memberships.size == 1 %><%= " · paused" unless server.active? %></dd>
-            </div>
-          <% end %>
         </dl>
 
         <div class="min-w-0 md:col-span-2">

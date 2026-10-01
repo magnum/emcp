@@ -1,0 +1,9 @@
+<%# locals: current %>
+<nav class="flex flex-wrap items-baseline gap-6" aria-label="Catalog">
+  <%= link_to "Servers", mcp_servers_path,
+        class: catalog_nav_class(current == :servers),
+        aria: { current: ("page" if current == :servers) } %>
+  <%= link_to "Contexts", contexts_path,
+        class: catalog_nav_class(current == :contexts),
+        aria: { current: ("page" if current == :contexts) } %>
+</nav>

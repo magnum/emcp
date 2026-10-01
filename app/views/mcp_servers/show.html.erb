@@ -2,7 +2,7 @@
 
 <div class="w-full max-w-4xl mx-auto">
   <p class="mb-4">
-    <%= link_to "← Servers", mcp_servers_path, class: "font-semibold underline" %>
+    <%= link_to "← #{@server.context? ? "Contexts" : "Servers"}", catalog_path_for(@server), class: "font-semibold underline" %>
   </p>
 
   <header class="mb-8">
