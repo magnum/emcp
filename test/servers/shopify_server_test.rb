@@ -71,6 +71,8 @@ class ShopifyServerTest < ActiveSupport::TestCase
 
   test "shop domain rejects hosts outside myshopify.com" do
     assert_equal "cool-store.myshopify.com", Emcp::Servers::Shopify::Client.shop_domain("cool-store")
+    assert_equal "escapista-store.myshopify.com",
+      Emcp::Servers::Shopify::Client.shop_domain("https://admin.shopify.com/store/escapista-store/oauth/authorize")
     assert_raises(Emcp::Servers::Shopify::Client::Error) do
       Emcp::Servers::Shopify::Client.shop_domain("evil.example")
     end

@@ -153,10 +153,6 @@ module Emcp
           end
 
           shop = Client.shop_domain(params["shop"])
-          configured = Emcp.sanitize_env_value(ENV["SHOPIFY_SHOP"])
-          if configured.present? && Client.shop_domain(configured) != shop
-            raise "Shopify callback shop does not match SHOPIFY_SHOP"
-          end
           persist_credentials!("SHOPIFY_SHOP" => shop)
 
           @client.exchange_authorization_code(code: params["code"])

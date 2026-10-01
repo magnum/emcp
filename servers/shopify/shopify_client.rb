@@ -82,8 +82,13 @@ module Emcp
         end
 
         def self.shop_domain(value = ENV["SHOPIFY_SHOP"])
-          shop = Emcp.sanitize_env_value(value).downcase.sub(%r{\Ahttps?://}, "").sub(%r{/.*\z}, "")
-          shop = "#{shop}.myshopify.com" unless shop.include?(".")
+          shop = Emcp.sanitize_env_value(value).downcase
+          shop = shop.sub(%r{\Ahttps?://}, "").sub(%r{/.*\z}, "").sub(/:\d+\z/, "")
+          if shop == "admin.shopify.com" && value.to_s.include?("/store/")
+            handle = value.to_s[/\/store\/([^\/?#]+)/, 1].to_s.downcase
+            shop = handle unless handle.empty?
+          end
+          shop = "#{shop}.myshopify.com" unless shop.end_with?(".myshopify.com")
           unless shop.match?(/\A[a-z0-9][a-z0-9-]*\.myshopify\.com\z/)
             raise Error, "SHOPIFY_SHOP must be a *.myshopify.com domain"
           end
