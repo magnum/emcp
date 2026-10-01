@@ -26,7 +26,8 @@ bin/dev
 - Password: `EMCP_USER1_PASSWORD`, or `emcp-dev-password` in development
 - After seed, the console prints a development ApiKey (`tkn_usr_…`) when the user has none
 - Integrations: `/servers`
-- Instance auth: `/servers/<id>/auth` (numeric instance id, from the servers list)
+- Contexts (hubs that proxy other servers): `/contexts`
+- Instance auth: `/servers/<id>/auth` (numeric instance id, from the servers or contexts list)
 - Google Sign-In is optional. It appears only when `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are set. Redirect: `${APP_HOST}/auth/google_oauth2/callback`
 
 CLI-backed tools (HEY, Basecamp, Google Workspace, 1Password, Home Assistant) call binaries. The Docker image ships them. A local `bin/dev` process uses whatever is on `PATH` (`HEY_BIN`, `BASECAMP_BIN`, `OP_BIN`, `HASS_CLI_BIN`, and `gws`). WhatsApp’s Go bridge is built from `servers/whatsapp/bridge` or baked into the image.
@@ -51,7 +52,13 @@ Copy the endpoint from `/servers`. It includes the type code and the instance id
 ${EMCP_PUBLIC_URL}/servers/<type_code>/<id>/mcp
 ```
 
-Claude, ChatGPT, Cursor, and similar tools are MCP clients. Several of them can attach to the same instance. Use separate instances for isolated credentials (work vs personal, two Fatture companies).
+A **Context** is one MCP URL that proxies a bundle of your other servers (house, work, a project). Copy it from `/contexts`:
+
+```text
+${EMCP_PUBLIC_URL}/context/<id>/mcp
+```
+
+Claude, ChatGPT, Cursor, and similar tools are MCP clients. Several of them can attach to the same instance. Use separate instances for isolated credentials (work vs personal, two Fatture companies). Point a client at a Context when it should see a whole bundle through one connector.
 
 **ApiKey**
 
@@ -67,6 +74,11 @@ Send `Authorization: Bearer tkn_usr_...`. The key authenticates as the instance 
 - `/.well-known/oauth-authorization-server/servers/<type_code>/<id>`
 - `/.well-known/oauth-protected-resource/servers/<type_code>/<id>/mcp`
 
+Per context:
+
+- `/.well-known/oauth-authorization-server/context/<id>`
+- `/.well-known/oauth-protected-resource/context/<id>/mcp`
+
 Provider OAuth callbacks (Fatture in Cloud, X, …) are:
 
 ```text
@@ -77,8 +89,9 @@ The auth form prints that URL. Register that exact string with the provider.
 
 ## Architecture
 
-- **Type** (`McpServerType`): catalog entry (`hey`, `fattureincloud`, …). Shared defaults live in `config/settings.yml` under `servers.<code>`.
+- **Type** (`McpServerType`): catalog entry (`hey`, `fattureincloud`, `context`, …). Shared defaults live in `config/settings.yml` under `servers.<code>`.
 - **Instance** (`McpServer`): one row per user, with its own name, tags, credentials, and MCP URL. Many instances of the same type are allowed.
+- **Context**: an instance of type `context`. Not seeded by `provision_defaults_for!`. Join table `context_memberships` (`active` pauses a member without removing it). Nested contexts are forbidden.
 - One instance is one provider account. Many AI clients can connect to it.
 - `servers/<code>/server.rb` registers with `Emcp.register_integration(...)`.
 - Instance credentials: encrypted columns plus `storage/mcp/instances/<id>/` (`server.yml`, `oauth_token.json`). That directory is gitignored.
@@ -87,7 +100,15 @@ The auth form prints that URL. Register that exact string with the provider.
 
 ## Integrations
 
-HEY (CLI 1.6.0), Basecamp (CLI 0.11.0), Fatture in Cloud (API v2), Google Workspace (`gws` 0.22.5), Toggl Track (API v9), Bluesky, Twitter/X (API v2), TeslaMate, Home Assistant (`hass-cli`), 1Password (CLI 2.39.0), WhatsApp (`whatsmeow` bridge), Microsoft Graph (SharePoint sites), Shopify (Admin API, one store per instance). Details are in each `servers/*/README.md`.
+HEY (CLI 1.6.0), Basecamp (CLI 0.11.0), Fatture in Cloud (API v2), Google Workspace (`gws` 0.22.5), Toggl Track (API v9), Bluesky, Twitter/X (API v2), TeslaMate, Home Assistant (`hass-cli`), 1Password (CLI 2.39.0), WhatsApp (`whatsmeow` bridge), Microsoft Graph (SharePoint sites), Shopify (Admin API, one store per instance), Context (hub that proxies other instances). Details are in each `servers/*/README.md`.
+
+## Contexts
+
+The operator UI splits **Servers** (`/servers`) and **Contexts** (`/contexts`). The active tab is underlined.
+
+Create a context, open it, attach the servers it should proxy. Pause a membership to keep it listed without exposing tools. Turn the context itself inactive to refuse proxied calls while MCP clients can still connect.
+
+The hub does not flatten child catalogs. Clients call `context_list_servers`, then `context_get_server` / `context_list_tools`, then `context_call_tool` with the child tool name and arguments. Identify a proxied server by numeric id, instance id (`hey-12`), or type code when it is unique in that context. See `servers/context/README.md`.
 
 ## Tests
 

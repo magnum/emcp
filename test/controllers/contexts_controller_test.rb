@@ -29,6 +29,15 @@ class ContextsControllerTest < ActionDispatch::IntegrationTest
     assert_select "a.underline", text: "Servers", count: 0
   end
 
+  test "new is a context form without a type picker" do
+    post sign_in_path, params: { email: @user.email, password: "password123" }
+
+    get new_context_path
+    assert_response :success
+    assert_select "form[action=?]", contexts_path
+    assert_select "select#mcp_server_mcp_server_type_id", count: 0
+  end
+
   test "create builds a context and goes to the hub page" do
     post sign_in_path, params: { email: @user.email, password: "password123" }
 

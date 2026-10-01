@@ -10,23 +10,13 @@ class McpServers::ContextMembershipsControllerTest < ActionDispatch::Integration
     post sign_in_path, params: { email: @user.email, password: "password123" }
   end
 
-  test "create context redirects to the hub page instead of auth" do
-    assert_difference -> { @user.mcp_servers.count }, 1 do
-      post contexts_path, params: {
-        mcp_server: { name: "Work", description: "office" }
-      }
-    end
-    context = @user.mcp_servers.order(:id).last
-    assert context.context?
-    assert_redirected_to mcp_server_path(context)
-  end
-
   test "show lists memberships and the context MCP url" do
     @context.context_memberships.create!(mcp_server: @hey)
     get mcp_server_path(@context)
     assert_response :success
     assert_match @context.mcp_url, response.body
     assert_match @hey.name, response.body
+    assert_select "a[href=?]", contexts_path, text: "← Contexts"
     assert_select "form[action=?]", mcp_server_context_memberships_path(@context)
   end
 

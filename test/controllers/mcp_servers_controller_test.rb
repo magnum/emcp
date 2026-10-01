@@ -101,4 +101,12 @@ class McpServersControllerTest < ActionDispatch::IntegrationTest
     refute_match(/House/, response.body)
     assert_select "a.underline", text: "Servers"
   end
+
+  test "destroying a context returns to contexts" do
+    post sign_in_path, params: { email: @user.email, password: "password123" }
+    context = create_context!(name: "House")
+
+    delete mcp_server_path(context)
+    assert_redirected_to contexts_path
+  end
 end

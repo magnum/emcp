@@ -24,6 +24,16 @@ class McpServers::OauthControllerTest < ActionDispatch::IntegrationTest
     assert body["issuer"].end_with?("/servers/teslamate/#{@server.id}")
   end
 
+  test "context issuer has path-inserted openid-configuration" do
+    context = create_context!
+    get "/.well-known/openid-configuration/context/#{context.id}"
+    assert_response :success
+    body = JSON.parse(response.body)
+    assert body["issuer"].end_with?("/context/#{context.id}")
+    assert body["authorization_endpoint"].end_with?("/context/#{context.id}/auth/authorize")
+    assert_includes body["code_challenge_methods_supported"], "S256"
+  end
+
   test "root openid-configuration is JSON not HTML" do
     get "/.well-known/openid-configuration"
     assert_response :not_found
