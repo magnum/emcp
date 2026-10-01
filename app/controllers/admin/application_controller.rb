@@ -32,6 +32,21 @@ module Admin
 
     private
 
+    # STI subclasses (Emcp::Servers::Hey::Server, …) must resolve to the
+    # Administrate resource name (`mcp_servers`), not `emcp/servers/hey/servers`.
+    # Otherwise Destroy/Edit disappear even when Pundit allows the action.
+    def existing_action?(resource, action_name)
+      routes.include?([ administrate_route_key(resource), action_name.to_s ])
+    end
+
+    def administrate_route_key(resource)
+      if resource.respond_to?(:model_name)
+        resource.model_name.route_key.to_s
+      else
+        resource.to_s.underscore.pluralize
+      end
+    end
+
     def user_not_authorized
       flash[:alert] = t("views.auth.not_authorized")
       redirect_to sign_in_path
