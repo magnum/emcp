@@ -70,4 +70,8 @@ servers:
     allow_write: false
     timeout: 30
     max_chars: 12000
+  shopify:
+    allow_write: false
+    timeout: 30
+    max_chars: 12000
 
