@@ -97,7 +97,7 @@ gem 'administrate-field-acts_as_taggable', github: "magnum/administrate-field-ac
 #gem 'administrate-field-acts_as_taggable', path: "../administrate-field-acts_as_taggable"
 
 
-gem "ruby_llm"
+gem "ruby_llm", "~> 2.0"
 gem "mission_control-jobs"
 gem "heroicon"
 gem "httparty"
