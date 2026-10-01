@@ -63,6 +63,10 @@ class ShopifyServerTest < ActiveSupport::TestCase
 
     assert Emcp::Servers::Shopify::Client.valid_hmac?(params, secret: secret)
     refute Emcp::Servers::Shopify::Client.valid_hmac?(params.merge("code" => "nope"), secret: secret)
+    assert Emcp::Servers::Shopify::Client.valid_hmac?(
+      params.merge("id" => "12", "type_code" => "shopify", "controller" => "mcp_servers/provider_oauth"),
+      secret: secret,
+    )
   end
 
   test "shop domain rejects hosts outside myshopify.com" do

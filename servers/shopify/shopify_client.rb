@@ -101,12 +101,22 @@ module Emcp
           "https://#{shop_domain}/admin/oauth/authorize?#{URI.encode_www_form(query)}"
         end
 
+        # Shopify signs only its query string. The callback route also adds id and type_code.
+        HMAC_PARAMS = %w[code host shop state timestamp].freeze
+
         def self.valid_hmac?(params, secret:)
-          hmac = params["hmac"].to_s
+          values = params.to_h.transform_keys(&:to_s)
+          hmac = values["hmac"].to_s
           return false if hmac.empty? || secret.to_s.empty?
 
-          message = params.except("hmac").sort.map { |key, value| "#{key}=#{value}" }.join("&")
+          message = HMAC_PARAMS.filter_map { |key|
+            next unless values.key?(key)
+
+            "#{key}=#{values[key]}"
+          }.join("&")
           digest = OpenSSL::HMAC.hexdigest("SHA256", secret, message)
+          return false unless digest.bytesize == hmac.bytesize
+
           ActiveSupport::SecurityUtils.secure_compare(digest, hmac)
         end
 
