@@ -39,8 +39,11 @@ end
 threads_count = Integer(ENV.fetch("RAILS_MAX_THREADS", 5))
 threads threads_count, threads_count
 
-# Specifies the `port` that Puma will listen on to receive requests; default is 3000.
-port ENV.fetch("PORT", 3000)
+# Thruster (Go) dials localhost, which Docker resolves as [::1] first.
+# `port` binds 0.0.0.0 only, so IPv6 healthchecks 502 forever.
+puma_port = Integer(ENV.fetch("PORT", 3000))
+port puma_port
+bind "tcp://[::1]:#{puma_port}"
 
 # Allow puma to be restarted by `bin/rails restart` command.
 plugin :tmp_restart

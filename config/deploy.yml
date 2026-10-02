@@ -27,8 +27,9 @@ servers:
 # sulla porta host 8001 (cloudflared → 192.168.0.92:8001 → app).
 #
 # Con SSL terminato a monte, abilita config.assume_ssl in production.rb.
-# Image boots db:prepare then a full Rails eager-load; 30s is too tight.
-deploy_timeout: 90
+# Image boots db:prepare then a full Rails eager-load; Thruster is up before
+# Puma binds, so kamal-proxy 502s until listen. 90s was still too tight.
+deploy_timeout: 180
 drain_timeout: 30
 
 proxy:
