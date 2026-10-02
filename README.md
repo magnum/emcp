@@ -120,6 +120,8 @@ bin/rails test
 
 Kamal config is `config/deploy.yml`. The image downloads the CLI binaries and builds the WhatsApp bridge. Production secrets (`RAILS_MASTER_KEY`, Google OmniAuth) come from `.kamal/secrets`. Other runtime env can live in `/data/emcp/storage/.env` on the host volume, loaded at boot and not overriding values already set by Kamal.
 
+The footer (`vX.Y.Z · abc1234`) is baked into `VERSION` at image build (`GIT_COMMIT` / `GIT_TAG` from the current git HEAD and the highest `v*` tag). The image does not include `.git`. A new version number needs a new tag (`git tag v1.2.1`); the short SHA updates on every deploy.
+
 ```bash
 install -m 600 /dev/stdin /data/emcp/storage/.env < .env
 ```

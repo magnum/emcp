@@ -35,12 +35,15 @@ module ApplicationHelper
     server.context? ? contexts_path : mcp_servers_path
   end
 
+  def catalog_heading_class
+    "font1 text-4xl font-bold tracking-tight"
+  end
+
   def catalog_nav_class(active)
-    base = "font1 text-4xl font-bold tracking-tight"
     if active
-      "#{base} underline decoration-2 underline-offset-8"
+      "#{catalog_heading_class} underline decoration-2 underline-offset-8"
     else
-      "#{base} text-stone-400 hover:text-stone-900 dark:text-zinc-500 dark:hover:text-zinc-100"
+      "#{catalog_heading_class} text-stone-400 hover:text-stone-900 dark:text-zinc-500 dark:hover:text-zinc-100"
     end
   end
 end

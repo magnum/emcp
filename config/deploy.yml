@@ -97,16 +97,24 @@ volumes:
 # version inside the asset_path.
 asset_path: /rails/public/assets
 
-# Configure the image builder.
+# Footer tag/commit: the image has no .git (.dockerignore). Bake them at build.
+<%
+  git_commit = `git rev-parse --short HEAD`.to_s.strip
+  git_tag = `git for-each-ref --sort=-v:refname --format=%(refname:short) refs/tags`
+    .to_s.split("\n")
+    .find { |name| name.match?(/\Av\d+\.\d+(?:\.\d+)?\z/) }
+    .to_s
+%>
 builder:
   arch: amd64
+  args:
+    GIT_COMMIT: "<%= git_commit %>"
+    GIT_TAG: "<%= git_tag %>"
 
   # # Build image via remote server (useful for faster amd64 builds on arm64 computers)
   # remote: ssh://docker@docker-builder-server
   #
   # # Pass arguments and secrets to the Docker build process
-  # args:
-  #   RUBY_VERSION: ruby-3.3.6
   # secrets:
   #   - GITHUB_TOKEN
   #   - RAILS_MASTER_KEY

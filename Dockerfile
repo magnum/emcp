@@ -153,6 +153,8 @@ ENV RAILS_ENV="production" \
 
 # Throw-away build stage to reduce size of final image
 FROM base AS build
+ARG GIT_COMMIT=""
+ARG GIT_TAG=""
 
 # Install packages needed to build gems
 RUN apt-get update -qq && \
@@ -170,6 +172,11 @@ RUN bundle install && \
 
 # Copy application code
 COPY . .
+
+# Production has no .git. Kamal passes GIT_COMMIT / GIT_TAG; keep VERSION if unset.
+RUN if [ -n "${GIT_COMMIT}" ] || [ -n "${GIT_TAG}" ]; then \
+      printf 'commit=%s\ntag=%s\n' "${GIT_COMMIT}" "${GIT_TAG}" > VERSION; \
+    fi
 
 # Precompile bootsnap code for faster boot times.
 # -j 1 disable parallel compilation to avoid a QEMU bug: https://github.com/rails/bootsnap/issues/495

@@ -52,7 +52,7 @@
     <% @contexts.each do |context| %>
       <article class="grid grid-cols-1 items-start gap-4 py-9 md:grid-cols-[minmax(0,1fr)_auto]">
         <div class="min-w-0">
-          <h2 class="text-2xl font-bold tracking-tight">
+          <h2 class="<%= catalog_heading_class %>">
             <%= link_to context.name, mcp_server_path(context), class: "hover:underline" %>
           </h2>
           <div class="mt-1 flex flex-wrap items-center gap-2">
