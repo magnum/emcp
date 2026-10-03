@@ -47,6 +47,7 @@ bridge URL. The HTTP API is a superset of the original lharries send endpoint
 | `WHATSAPP_BRIDGE_BIN` | Path to the Go binary (default `whatsapp-bridge` on `PATH`, or `servers/whatsapp/bridge/whatsapp-bridge`) |
 | `WHATSAPP_TIMEOUT` | HTTP timeout seconds (default `30`) |
 | `WHATSAPP_ALLOW_WRITE` | Enable `whatsapp_send_message` and `whatsapp_set_owner_status` |
+| `WHATSAPP_WEBHOOK_CHAT_HISTORY` | Default number of recent messages sent in `history`. Default `100`. The cache keeps up to 1000 per chat. A hook’s Messages history value replaces this |
 
 ## Incoming webhooks
 
@@ -66,14 +67,11 @@ Configure one or more hooks on the instance page. The secret is stored encrypted
 | Option | Default | Meaning |
 | --- | --- | --- |
 | `owner_status` | `active` | `active` or `away`. Tool: `whatsapp_set_owner_status` |
-| `consider_mentions` | true | Direct chats, plus group mentions and replies to you |
-| `consider_all_messages` | false | Every inbound message |
-| `consider_words` | `embot` | Comma-separated, case-insensitive, whole word |
-| `respond_by_status` | `every` | `every`, `active` (only while owner is active), `away` |
-| `respond_numbers_filtered_in` | empty | Only these numbers. Empty means no allow-list |
-| `respond_numbers_filtered_out` | empty | Never these numbers. Wins if a number is in both lists |
+| `respond_when` | `mention` | `never` sends nothing. `always` sends every message. `mention` sends direct chats and mentions. `word` sends only when `consider_words` matches |
+| `consider_words` | `bot` | Comma-separated, case-insensitive, whole word. Used when `respond_when` is `word` |
+| `history_limit` | env | Messages included in `history`, from 0 to 1000. Empty uses `WHATSAPP_WEBHOOK_CHAT_HISTORY` |
 
-A message is eligible when all-messages is on, or it is addressed to you, or it contains a trigger word. Your own messages (`is_from_me`) are eligible only when they contain a trigger word. Number filters and `respond_by_status` run after that. A message that fails is not posted. The first decision for a `message_id` is kept, so reconnects and history sync do not send it twice.
+`respond_when` is the only send rule. A message that fails is not posted. The first decision for a `message_id` is kept, so reconnects and history sync do not send it twice.
 
 The bridge does not notify for the initial history sync (`INITIAL_BOOTSTRAP`, `FULL`, and the non-message sync types). After that first connection, a later `RECENT` sync can notify messages that were not stored yet (caught up while the bridge was down). Live `events.Message` traffic is always eligible, including messages that arrive while another device reads them. Reactions, protocol/system messages, receipts, typing, and calls are not forwarded. Ephemeral and view-once messages are unwrapped and treated as normal text or media. Edits of a message already stored are not sent again.
 
@@ -94,17 +92,24 @@ Payload:
   "sender_name": "Ada",
   "is_from_me": false,
   "type": "text",
-  "text": "ciao embot",
+  "text": "ciao",
   "quoted_message_id": null,
   "mentions_owner": true,
-  "matched_words": ["embot"],
+  "matched_words": [],
   "match_reason": "mention",
   "owner_status": "active",
-  "media": null
+  "media": null,
+  "history": [
+    {
+      "message_id": "ABC",
+      "timestamp": "2026-10-03T12:00:00Z",
+      "text": "ciao"
+    }
+  ]
 }
 ```
 
-`match_reason` is `all`, `mention`, or `words`. `media` is `{ "mimetype", "filename" }` and does not include the file. Delivery is async, times out after 10 seconds, retries up to 3 times on network errors and HTTP 5xx, and does not retry HTTP 4xx. `Send test` on the instance page performs one synchronous call and shows the status code and response. `PurgeWebhooksJob` deletes the stored call (body, response, headers) after `WEBHOOK_RETAIN` seconds, default 7 days. The WhatsApp receipt that blocks a second send of the same message stays.
+`match_reason` is `always`, `mention`, or `word`. `media` is `{ "mimetype", "filename" }` and does not include the file. `history` is the newest messages of that chat, oldest first, including this message. The count is the hook’s Messages history when set, otherwise `WHATSAPP_WEBHOOK_CHAT_HISTORY` (default 100). Every inbound message is cached, including ones that do not fire a webhook. Delivery is async, times out after 10 seconds, retries up to 3 times on network errors and HTTP 5xx, and does not retry HTTP 4xx. `Send test` on the instance page performs one synchronous call and shows the status code and response. `PurgeWebhooksJob` deletes the stored call (body, response, headers) after `WEBHOOK_RETAIN` seconds, default 7 days. The WhatsApp receipt that blocks a second send of the same message stays.
 
 ## Tools
 
@@ -119,6 +124,7 @@ history still records when a message had media.
 
 - `server.rb` — MCP tools and auth form
 - `dispatch.rb` — whether an incoming message calls a webhook
+- `chat_history.rb` — last messages per chat, in Solid Cache
 - `hook.rb` — per-instance webhook settings
 - `whatsapp_client.rb` — HTTP client for the Go bridge
 - `bridge_process.rb` — starts/stops a per-instance bridge on localhost

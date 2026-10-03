@@ -5,6 +5,7 @@ require_relative "whatsapp_client"
 require_relative "keepalive"
 require_relative "hook"
 require_relative "inbound_message"
+require_relative "chat_history"
 require_relative "dispatch"
 
 module Emcp
@@ -171,6 +172,7 @@ module Emcp
 
         def accept_inbound_message!(attrs)
           message = InboundMessage.new(attrs)
+          ChatHistory.record!(id, message)
           whatsapp_hooks.enabled.find_each { |hook| hook.deliver_message!(message) }
         end
 

@@ -12,6 +12,8 @@ module Emcp
 
         def id = attributes["message_id"].to_s
 
+        def chat_jid = attributes["chat_jid"].to_s
+
         def text = attributes["text"].to_s
 
         def phone = attributes["sender_phone"].to_s.gsub(/\D/, "")

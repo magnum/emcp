@@ -8,6 +8,8 @@ require Rails.root.join("servers/whatsapp/dispatch").to_s
 class WhatsappDispatchTest < ActiveSupport::TestCase
   include ActiveJob::TestHelper
   setup do
+    @previous_cache = Rails.cache
+    Rails.cache = ActiveSupport::Cache::MemoryStore.new
     @server = mcp_server_for("whatsapp")
     @hook = @server.whatsapp_hooks.create!(
       url: "https://example.com/hook",
@@ -31,70 +33,44 @@ class WhatsappDispatchTest < ActiveSupport::TestCase
       end
     end
     assert @hook.receipts.find_by(message_id: "g1").filtered?
-    assert_equal "not_considered", @hook.receipts.find_by(message_id: "g1").reason
+    assert_equal "mention", @hook.receipts.find_by(message_id: "g1").reason
   end
 
-  test "group mentions and trigger words send" do
-    deliver(text: "hey", group: true, mentions_owner: true, id: "m1")
-    assert_equal "mention", @hook.receipts.find_by!(message_id: "m1").reason
+  test "when never sends nothing and when always sends every message" do
+    @hook.update!(respond_when: "never")
+    assert_no_difference -> { Webhook.count } do
+      deliver(text: "ciao", id: "never")
+    end
+    assert_equal "never", @hook.receipts.find_by!(message_id: "never").reason
 
-    @hook.update!(consider_mentions: false)
-    deliver(text: "please EMBOT help", group: true, mentions_owner: false, id: "w1")
-    receipt = @hook.receipts.find_by!(message_id: "w1")
-    assert receipt.sent?
-    assert_equal "words", receipt.reason
-    assert_includes JSON.parse(receipt.webhook.body)["matched_words"], "embot"
+    @hook.update!(respond_when: "always")
+    deliver(text: "ciao", group: true, mentions_owner: false, from_me: true, id: "always")
+    assert @hook.receipts.find_by!(message_id: "always").sent?
+    assert_equal "always", @hook.receipts.find_by!(message_id: "always").reason
   end
 
-  test "whole words only" do
-    deliver(text: "embotting", group: true, mentions_owner: false, id: "part")
+  test "word matches a whole word and mention does not" do
+    @hook.update!(respond_when: "mention")
+    deliver(text: "hey bot", group: true, mentions_owner: false, id: "word-ignored")
+    assert @hook.receipts.find_by!(message_id: "word-ignored").filtered?
+
+    @hook.update!(respond_when: "word", consider_words: "bot")
+    deliver(text: "botting", group: true, mentions_owner: true, id: "part")
     assert @hook.receipts.find_by!(message_id: "part").filtered?
+
+    deliver(text: "hey BOT", group: true, mentions_owner: false, id: "word")
+    receipt = @hook.receipts.find_by!(message_id: "word")
+    assert receipt.sent?
+    assert_equal "word", receipt.reason
+    assert_equal [ "bot" ], JSON.parse(receipt.webhook.body)["matched_words"]
   end
 
-  test "messages from me are ignored unless they contain a trigger word" do
-    deliver(text: "ciao", group: false, from_me: true, id: "me1")
-    assert_equal "from_me", @hook.receipts.find_by!(message_id: "me1").reason
-    assert_no_enqueued_jobs only: WebhookJob
-
-    deliver(text: "embot", group: false, from_me: true, id: "me2")
-    assert @hook.receipts.find_by!(message_id: "me2").sent?
-  end
-
-  test "all messages still ignores is_from_me" do
-    @hook.update!(consider_all_messages: true)
-    deliver(text: "ciao", group: true, from_me: true, id: "all-me")
-    assert_equal "from_me", @hook.receipts.find_by!(message_id: "all-me").reason
-
-    deliver(text: "ciao", group: true, mentions_owner: false, id: "all")
-    assert_equal "all", @hook.receipts.find_by!(message_id: "all").reason
-  end
-
-  test "number filters and filtered_out wins" do
-    @hook.update!(respond_numbers_filtered_in: "+39 111", respond_numbers_filtered_out: "39111")
-    deliver(text: "ciao", phone: "39111", id: "both")
-    assert_equal "filtered_out", @hook.receipts.find_by!(message_id: "both").reason
-
-    @hook.receipts.delete_all
-    @hook.update!(respond_numbers_filtered_out: "")
-    deliver(text: "ciao", phone: "39 111", id: "in")
-    assert @hook.receipts.find_by!(message_id: "in").sent?
-
-    deliver(text: "ciao", phone: "39222", id: "out")
-    assert_equal "filtered_in", @hook.receipts.find_by!(message_id: "out").reason
-  end
-
-  test "respond_by_status follows owner_status" do
-    @hook.update!(owner_status: "away", respond_by_status: "active")
-    deliver(text: "ciao", id: "away-active")
-    assert_equal "owner_status", @hook.receipts.find_by!(message_id: "away-active").reason
-
-    @hook.update!(respond_by_status: "away")
-    deliver(text: "ciao", id: "away-away")
-    assert @hook.receipts.find_by!(message_id: "away-away").sent?
-
-    @hook.update!(owner_status: "active", respond_by_status: "every")
-    deliver(text: "ciao", id: "every")
-    assert @hook.receipts.find_by!(message_id: "every").sent?
+  test "a custom history limit wins over the environment default" do
+    @hook.update!(history_limit: 1, respond_when: "always")
+    deliver(text: "one", id: "h1")
+    deliver(text: "two", id: "h2")
+    history = JSON.parse(@hook.receipts.find_by!(message_id: "h2").webhook.body)["history"]
+    assert_equal [ "h2" ], history.map { |entry| entry["message_id"] }
   end
 
   test "the same message is not sent twice" do
@@ -113,7 +89,13 @@ class WhatsappDispatchTest < ActiveSupport::TestCase
     parsed = JSON.parse(body)
     assert_equal "message.received", parsed["event"]
     assert_equal @server.activity_log_code, parsed["instance"]
-    assert_equal [ "embot" ], parsed["matched_words"]
+    assert_equal "mention", parsed["match_reason"]
+    assert_equal [ "body" ], parsed["history"].map { |entry| entry["message_id"] }
+    refute_includes parsed["history"].to_json, @hook.secret
+  end
+
+  teardown do
+    Rails.cache = @previous_cache
   end
 
   private

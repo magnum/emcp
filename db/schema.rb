@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_03_180000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_03_190000) do
   create_table "api_keys", force: :cascade do |t|
     t.bigint "bearer_id", null: false
     t.string "bearer_type", null: false
@@ -295,14 +295,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_03_180000) do
   create_table "whatsapp_hooks", force: :cascade do |t|
     t.boolean "consider_all_messages", default: false, null: false
     t.boolean "consider_mentions", default: true, null: false
-    t.string "consider_words", default: "embot", null: false
+    t.string "consider_words", default: "bot", null: false
     t.datetime "created_at", null: false
     t.boolean "enabled", default: true, null: false
+    t.integer "history_limit"
     t.integer "mcp_server_id", null: false
     t.string "owner_status", default: "active", null: false
     t.string "respond_by_status", default: "every", null: false
     t.string "respond_numbers_filtered_in", default: "", null: false
     t.string "respond_numbers_filtered_out", default: "", null: false
+    t.string "respond_when", default: "mention", null: false
     t.text "secret", null: false
     t.string "secret_header", default: "Authorization", null: false
     t.datetime "updated_at", null: false
@@ -310,6 +312,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_03_180000) do
     t.index ["mcp_server_id"], name: "index_whatsapp_hooks_on_mcp_server_id"
     t.check_constraint "owner_status IN ('active', 'away')", name: "whatsapp_hooks_owner_status"
     t.check_constraint "respond_by_status IN ('every', 'active', 'away')", name: "whatsapp_hooks_respond_by_status"
+    t.check_constraint "respond_when IN ('never', 'always', 'mention', 'word')", name: "whatsapp_hooks_respond_when"
   end
 
   add_foreign_key "context_memberships", "mcp_servers"

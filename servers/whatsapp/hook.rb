@@ -20,6 +20,7 @@ module Emcp
 
         enum :owner_status, { active: "active", away: "away" }, prefix: :owner, validate: true
         enum :respond_by_status, { every: "every", active: "active", away: "away" }, prefix: :respond, validate: true
+        enum :respond_when, { never: "never", always: "always", mention: "mention", word: "word" }, prefix: :trigger, validate: true
 
         normalizes :url, with: ->(value) { value.to_s.strip }
         normalizes :secret_header, with: ->(value) { value.to_s.strip }
@@ -29,6 +30,7 @@ module Emcp
         validates :url, :secret, :secret_header, presence: true
         validates :secret, length: { minimum: 8 }, format: { without: /[\r\n]/ }
         validates :secret_header, format: { with: /\A[A-Za-z0-9-]+\z/ }
+        validates :history_limit, numericality: { only_integer: true, greater_than_or_equal_to: 0, less_than_or_equal_to: 1000 }, allow_nil: true
         validate :https_url
 
         scope :enabled, -> { where(enabled: true) }
@@ -39,6 +41,12 @@ module Emcp
 
         def self.normalize_phone_list(value)
           value.to_s.split(",").filter_map { |part| part.gsub(/\D/, "").presence }.join(", ")
+        end
+
+        def history_size
+          return ChatHistory.limit if history_limit.nil?
+
+          history_limit.to_i.clamp(0, ChatHistory::MAX_STORED)
         end
 
         def deliver_message!(message)

@@ -1,0 +1,55 @@
+<%# locals: (f:, input_class:) %>
+<% new_record = f.object.new_record? %>
+<% history_value = f.object.history_limit.nil? ? Emcp::Servers::Whatsapp::ChatHistory.limit : f.object.history_limit %>
+<div class="space-y-4">
+  <div>
+    <%= f.label :url, "URL", class: "mb-2 block font-semibold" %>
+    <%= f.url_field :url, required: true, placeholder: "https://assistant.example/hooks/whatsapp", class: input_class %>
+  </div>
+  <div>
+    <%= f.label :secret, "Secret", class: "mb-2 block font-semibold" %>
+    <%= f.password_field :secret,
+          value: nil,
+          required: new_record,
+          autocomplete: "new-password",
+          placeholder: (new_record ? nil : "Leave blank to keep the current secret"),
+          class: input_class %>
+  </div>
+  <div>
+    <%= f.label :secret_header, "Secret header", class: "mb-2 block font-semibold" %>
+    <%= f.text_field :secret_header, required: true, class: input_class %>
+    <p class="mt-1 text-stone-500 dark:text-zinc-400">Sent as Bearer &lt;secret&gt;. Default Authorization.</p>
+  </div>
+</div>
+
+<hr class="my-6 border-stone-300 dark:border-zinc-700">
+<h3 class="text-lg font-bold">Owner</h3>
+<div class="mt-4">
+  <%= f.label :owner_status, "Status", class: "mb-2 block font-semibold" %>
+  <%= f.select :owner_status, %w[active away], {}, class: input_class %>
+</div>
+
+<hr class="my-6 border-stone-300 dark:border-zinc-700">
+<h3 class="text-lg font-bold">Rules</h3>
+<div class="mt-4 space-y-4">
+  <div>
+    <%= f.label :respond_when, "When", class: "mb-2 block font-semibold" %>
+    <%= f.select :respond_when, [
+          [ "Never", "never" ],
+          [ "Always (autoresponder)", "always" ],
+          [ "Mention", "mention" ],
+          [ "Word", "word" ],
+        ], {}, class: input_class %>
+    <p class="mt-1 text-stone-500 dark:text-zinc-400">Never skips the call. Always sends every message. Mention sends direct chats and when you are mentioned. Word sends only when a word below matches.</p>
+  </div>
+  <div>
+    <%= f.label :consider_words, "Words", class: "mb-2 block font-semibold" %>
+    <%= f.text_field :consider_words, class: input_class %>
+    <p class="mt-1 text-stone-500 dark:text-zinc-400">Comma-separated, case-insensitive, whole word. Default bot.</p>
+  </div>
+  <div>
+    <%= f.label :history_limit, "Messages history", class: "mb-2 block font-semibold" %>
+    <%= f.number_field :history_limit, value: history_value, min: 0, max: 1000, step: 1, required: true, class: input_class %>
+    <p class="mt-1 text-stone-500 dark:text-zinc-400">How many recent messages of this chat to include. 0 to 1000. The default comes from WHATSAPP_WEBHOOK_CHAT_HISTORY. A different number is used for this webhook.</p>
+  </div>
+</div>

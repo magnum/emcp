@@ -46,11 +46,14 @@ module McpServers
 
     def hook_params
       permitted = params.expect(whatsapp_hook: [
-        :url, :secret, :secret_header, :enabled, :owner_status,
-        :consider_mentions, :consider_all_messages, :consider_words,
-        :respond_by_status, :respond_numbers_filtered_in, :respond_numbers_filtered_out
+        :url, :secret, :secret_header, :owner_status, :respond_when, :consider_words, :history_limit
       ])
       permitted.delete(:secret) if permitted[:secret].blank?
+      if permitted.key?(:history_limit)
+        raw = permitted[:history_limit].presence
+        number = raw&.to_i
+        permitted[:history_limit] = (number.nil? || number == Emcp::Servers::Whatsapp::ChatHistory.limit) ? nil : number
+      end
       permitted
     end
 

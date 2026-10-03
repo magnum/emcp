@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative "chat_history"
+
 module Emcp
   module Servers
     module Whatsapp
@@ -16,6 +18,7 @@ module Emcp
         end
 
         def deliver!
+          ChatHistory.record!(hook.mcp_server_id, message)
           return if message.id.blank?
           return if hook.receipts.exists?(message_id: message.id)
 
@@ -44,21 +47,16 @@ module Emcp
 
         def decision_for
           words = matched_words(message.text)
-          if message.from_me?
-            return skip("from_me") if words.empty?
-
-            return gate(match_reason: "words", matched_words: words)
+          case hook.respond_when
+          when "never"
+            skip("never")
+          when "always"
+            deliver_decision("always", words)
+          when "word"
+            words.empty? ? skip("words") : deliver_decision("word", words)
+          else
+            message.addressed_to_owner? ? deliver_decision("mention", words) : skip("mention")
           end
-
-          if hook.consider_all_messages?
-            return gate(match_reason: "all", matched_words: words)
-          end
-          if hook.consider_mentions? && message.addressed_to_owner?
-            return gate(match_reason: "mention", matched_words: words)
-          end
-          return gate(match_reason: "words", matched_words: words) if words.any?
-
-          skip("not_considered")
         end
 
         private
@@ -87,6 +85,7 @@ module Emcp
             "match_reason" => decision.match_reason,
             "owner_status" => hook.owner_status,
             "media" => message.media,
+            "history" => ChatHistory.for(hook.mcp_server_id, message.chat_jid, limit: hook.history_size),
           }
         end
 
@@ -97,26 +96,8 @@ module Emcp
           tokens.select { |token| text.match?(/(?<![[:alnum:]_])#{Regexp.escape(token)}(?![[:alnum:]_])/i) }
         end
 
-        def gate(match_reason:, matched_words:)
-          phone = message.phone
-          blocked = phone_list(hook.respond_numbers_filtered_out)
-          allowed = phone_list(hook.respond_numbers_filtered_in)
-          return skip("filtered_out") if phone.present? && blocked.include?(phone)
-          return skip("filtered_in") if allowed.any? && !allowed.include?(phone)
-          return skip("owner_status") unless status_allows?
-
-          Decision.new(deliver: true, match_reason: match_reason, matched_words: matched_words)
-        end
-
-        def status_allows?
-          return true if hook.respond_every?
-          return hook.owner_active? if hook.respond_active?
-
-          hook.owner_away?
-        end
-
-        def phone_list(raw)
-          Hook.normalize_phone_list(raw).split(", ").reject(&:blank?)
+        def deliver_decision(reason, words)
+          Decision.new(deliver: true, match_reason: reason, matched_words: words)
         end
 
         def skip(reason)
