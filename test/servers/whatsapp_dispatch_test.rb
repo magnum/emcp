@@ -18,22 +18,23 @@ class WhatsappDispatchTest < ActiveSupport::TestCase
     )
   end
 
-  test "direct chats send and plain group messages do not" do
-    assert_difference -> { Webhook.count }, 1 do
-      assert_enqueued_jobs 1, only: WebhookJob do
-        deliver(text: "ciao", group: false)
-      end
-    end
-    assert @hook.receipts.last.sent?
-    assert_equal "mention", @hook.receipts.last.reason
-
+  test "mention sends only an @mention and always sends every chat" do
     assert_no_difference -> { Webhook.count } do
-      assert_no_enqueued_jobs only: WebhookJob do
-        deliver(text: "ciao", group: true, mentions_owner: false, id: "g1")
-      end
+      deliver(text: "ciao", id: "dm")
+      deliver(text: "ciao", group: true, id: "g1")
     end
-    assert @hook.receipts.find_by(message_id: "g1").filtered?
-    assert_equal "mention", @hook.receipts.find_by(message_id: "g1").reason
+    assert_equal "mention", @hook.receipts.find_by!(message_id: "dm").reason
+    assert_equal "mention", @hook.receipts.find_by!(message_id: "g1").reason
+
+    assert_difference -> { Webhook.count }, 1 do
+      deliver(text: "@Antonio Molinari", group: true, mentions_owner: true, id: "g2")
+    end
+    assert_equal "mention", @hook.receipts.find_by!(message_id: "g2").reason
+
+    @hook.update!(respond_when: "always")
+    deliver(text: "ciao", group: true, id: "g3")
+    assert @hook.receipts.find_by!(message_id: "g3").sent?
+    assert_equal "always", @hook.receipts.find_by!(message_id: "g3").reason
   end
 
   test "when never sends nothing and when always sends every message" do
@@ -80,7 +81,7 @@ class WhatsappDispatchTest < ActiveSupport::TestCase
       respond_when: "always",
     )
     assert_difference -> { Webhook.count }, 1 do
-      @server.accept_inbound_message!(inbound(text: "ciao", id: "same-url"))
+      @server.accept_inbound_message!(inbound(text: "ciao", id: "same-url", mentions_owner: true))
     end
     receipts = [ @hook, other ].map { |hook| hook.receipts.find_by!(message_id: "same-url") }
     assert_equal 1, receipts.count(&:sent?)
@@ -127,7 +128,7 @@ class WhatsappDispatchTest < ActiveSupport::TestCase
   end
 
   test "the same message is not sent twice" do
-    deliver(text: "ciao", id: "dup")
+    deliver(text: "ciao", id: "dup", mentions_owner: true)
     assert_no_difference -> { @hook.receipts.count } do
       assert_no_enqueued_jobs only: WebhookJob do
         deliver(text: "ciao", id: "dup")
@@ -136,7 +137,7 @@ class WhatsappDispatchTest < ActiveSupport::TestCase
   end
 
   test "payload omits the secret" do
-    deliver(text: "embot ciao", id: "body")
+    deliver(text: "embot ciao", id: "body", mentions_owner: true)
     body = @hook.receipts.find_by!(message_id: "body").webhook.body
     refute_includes body, @hook.secret
     parsed = JSON.parse(body)

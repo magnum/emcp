@@ -26,8 +26,6 @@ module Emcp
 
         def mentions_owner? = ActiveModel::Type::Boolean.new.cast(attributes["mentions_owner"])
 
-        def addressed_to_owner? = !group? || mentions_owner?
-
         def chat_kind
           user, server = chat_jid.downcase.split("@", 2)
           return "status" if server == "broadcast" && user == "status"

@@ -5,7 +5,7 @@
   <p class="mt-2 leading-7 text-stone-700 dark:text-zinc-300">
     Each hook has its own URL and rules. Status updates, channel posts, and broadcast lists stay off until you tick them.
     Never skips the call. Always sends every message from the chats you tick.
-    Mention sends direct chats and messages that mention you. Word sends only when the text contains one of the words.
+    Mention sends only when the message @mentions your WhatsApp account. Word sends only when the text contains one of the words.
   </p>
 
   <% server.whatsapp_hooks.order(:id).each do |hook| %>

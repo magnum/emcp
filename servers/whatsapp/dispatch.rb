@@ -58,7 +58,7 @@ module Emcp
           when "word"
             words.empty? ? skip("words") : deliver_decision("word", words)
           else
-            message.addressed_to_owner? ? deliver_decision("mention", words) : skip("mention")
+            message.mentions_owner? ? deliver_decision("mention", words) : skip("mention")
           end
         end
 
@@ -94,7 +94,7 @@ module Emcp
             "type" => message.attributes["type"].presence || "text",
             "text" => message.text,
             "quoted_message_id" => message.attributes["quoted_message_id"].presence,
-            "mentions_owner" => message.addressed_to_owner?,
+            "mentions_owner" => message.mentions_owner?,
             "matched_words" => decision.matched_words,
             "match_reason" => decision.match_reason,
             "owner_status" => hook.owner_status,

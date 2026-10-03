@@ -42,8 +42,8 @@ func TestClassifyCoversLiveMessageKinds(t *testing.T) {
 		SenderJID: "393331111111@s.whatsapp.net", SenderPhone: "393331111111",
 		IsGroup: false, Message: &waE2E.Message{Conversation: proto.String("ciao")}, OwnUsers: own,
 	})
-	if direct == nil || direct.Type != "text" || !direct.MentionsOwner || direct.Text != "ciao" {
-		t.Fatalf("direct text: %#v", direct)
+	if direct == nil || direct.Type != "text" || direct.MentionsOwner || direct.Text != "ciao" {
+		t.Fatalf("direct text without an @mention: %#v", direct)
 	}
 
 	group := buildInbound(inboundSource{
@@ -59,17 +59,44 @@ func TestClassifyCoversLiveMessageKinds(t *testing.T) {
 		ID: "group-2", Timestamp: when, ChatJID: "120363@g.us", IsGroup: true,
 		SenderPhone: "393331111111",
 		Message: &waE2E.Message{ExtendedTextMessage: &waE2E.ExtendedTextMessage{
-			Text: proto.String("hey"),
+			Text: proto.String("@Antonio Molinari hey"),
 			ContextInfo: &waE2E.ContextInfo{
 				MentionedJID: []string{"393330000000@s.whatsapp.net"},
-				StanzaID:     proto.String("quoted-9"),
-				Participant:  proto.String("393330000000@s.whatsapp.net"),
 			},
 		}},
 		OwnUsers: own,
 	})
-	if mention == nil || !mention.MentionsOwner || mention.QuotedMessageID != "quoted-9" {
-		t.Fatalf("group mention/reply: %#v", mention)
+	if mention == nil || !mention.MentionsOwner {
+		t.Fatalf("group @mention of the phone jid: %#v", mention)
+	}
+
+	lidMention := buildInbound(inboundSource{
+		ID: "group-3", Timestamp: when, ChatJID: "120363@g.us", IsGroup: true,
+		Message: &waE2E.Message{ExtendedTextMessage: &waE2E.ExtendedTextMessage{
+			Text: proto.String("@Antonio Molinari"),
+			ContextInfo: &waE2E.ContextInfo{
+				MentionedJID: []string{"111222333@lid"},
+			},
+		}},
+		OwnUsers: []string{"393330000000", "111222333"},
+	})
+	if lidMention == nil || !lidMention.MentionsOwner {
+		t.Fatalf("group @mention of the lid: %#v", lidMention)
+	}
+
+	quoteOnly := buildInbound(inboundSource{
+		ID: "group-4", Timestamp: when, ChatJID: "120363@g.us", IsGroup: true,
+		Message: &waE2E.Message{ExtendedTextMessage: &waE2E.ExtendedTextMessage{
+			Text: proto.String("reply"),
+			ContextInfo: &waE2E.ContextInfo{
+				StanzaID:    proto.String("quoted-9"),
+				Participant: proto.String("393330000000@s.whatsapp.net"),
+			},
+		}},
+		OwnUsers: own,
+	})
+	if quoteOnly == nil || quoteOnly.MentionsOwner || quoteOnly.QuotedMessageID != "quoted-9" {
+		t.Fatalf("a reply without an @mention is not a mention: %#v", quoteOnly)
 	}
 
 	image := buildInbound(inboundSource{

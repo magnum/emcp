@@ -90,8 +90,8 @@ func buildInbound(src inboundSource) *inboundMessage {
 		return nil
 	}
 
-	quoted, mentioned, participant := contextFields(msg)
-	mentions := mentionsOwner(src.IsGroup, mentioned, participant, src.OwnUsers)
+	quoted, mentioned, _ := contextFields(msg)
+	mentions := mentionsOwner(mentioned, src.OwnUsers)
 
 	payload := &inboundMessage{
 		MessageID:       src.ID,
@@ -208,16 +208,13 @@ func contextInfo(msg *waE2E.Message) *waE2E.ContextInfo {
 	}
 }
 
-func mentionsOwner(isGroup bool, mentioned []string, quotedParticipant string, own []string) bool {
-	if !isGroup {
-		return true
-	}
+func mentionsOwner(mentioned []string, own []string) bool {
 	for _, jid := range mentioned {
 		if jidMatchesOwn(jid, own) {
 			return true
 		}
 	}
-	return jidMatchesOwn(quotedParticipant, own)
+	return false
 }
 
 func jidMatchesOwn(raw string, own []string) bool {

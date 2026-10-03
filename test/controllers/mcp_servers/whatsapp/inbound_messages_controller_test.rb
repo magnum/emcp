@@ -52,6 +52,7 @@ class WhatsappInboundMessagesControllerTest < ActionDispatch::IntegrationTest
       chat_jid: "393331111111@s.whatsapp.net",
       is_group: false,
       is_from_me: false,
+      mentions_owner: true,
       sender_phone: "393331111111",
       type: "text",
       text: "ciao",
