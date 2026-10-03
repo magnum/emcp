@@ -66,7 +66,6 @@ Configure one or more hooks on the instance page. The secret is stored encrypted
 
 | Option | Default | Meaning |
 | --- | --- | --- |
-| `owner_status` | `active` | `active` or `away`. Tool: `whatsapp_set_owner_status` |
 | `respond_when` | `mention` | `never` sends nothing. `always` sends every message. `mention` sends direct chats and mentions. `word` sends only when `consider_words` matches |
 | `consider_words` | `bot` | Comma-separated, case-insensitive, whole word. Used when `respond_when` is `word` |
 | `history_limit` | env | Messages included in `history`, from 0 to 1000. Empty uses `WHATSAPP_WEBHOOK_CHAT_HISTORY` |

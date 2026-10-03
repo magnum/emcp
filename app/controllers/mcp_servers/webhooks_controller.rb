@@ -46,7 +46,7 @@ module McpServers
 
     def hook_params
       permitted = params.expect(whatsapp_hook: [
-        :url, :secret, :secret_header, :owner_status, :respond_when, :consider_words, :history_limit
+        :url, :secret, :secret_header, :respond_when, :consider_words, :history_limit
       ])
       permitted.delete(:secret) if permitted[:secret].blank?
       if permitted.key?(:history_limit)

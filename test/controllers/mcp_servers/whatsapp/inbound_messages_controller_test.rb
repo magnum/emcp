@@ -30,7 +30,7 @@ class WhatsappInboundMessagesControllerTest < ActionDispatch::IntegrationTest
     refute_includes response.body, "supersecret"
     assert_select "form[action='#{mcp_server_webhooks_path(@server)}']" do
       assert_select "input[name='whatsapp_hook[url]']"
-      assert_select "select[name='whatsapp_hook[owner_status]'] option[selected][value='active']"
+      assert_select "select[name='whatsapp_hook[owner_status]']", count: 0
       assert_select "select[name='whatsapp_hook[respond_when]'] option[selected][value='mention']"
       assert_select "input[name='whatsapp_hook[consider_words]'][value='bot']"
       assert_select "input[name='whatsapp_hook[history_limit]'][value='100']"
