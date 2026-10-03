@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_03_190000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_04_010000) do
   create_table "api_keys", force: :cascade do |t|
     t.bigint "bearer_id", null: false
     t.string "bearer_type", null: false
@@ -293,6 +293,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_03_190000) do
   end
 
   create_table "whatsapp_hooks", force: :cascade do |t|
+    t.string "chat_kinds", default: "direct,group", null: false
     t.boolean "consider_all_messages", default: false, null: false
     t.boolean "consider_mentions", default: true, null: false
     t.string "consider_words", default: "bot", null: false

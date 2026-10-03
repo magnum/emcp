@@ -18,6 +18,14 @@ module Emcp
         encrypts :secret
         self.filter_attributes += [ :secret ]
 
+        CHAT_KINDS = {
+          "direct" => "Direct chats",
+          "group" => "Groups",
+          "status" => "Status",
+          "newsletter" => "Channels",
+          "broadcast" => "Broadcast lists",
+        }.freeze
+
         enum :owner_status, { active: "active", away: "away" }, prefix: :owner, validate: true
         enum :respond_by_status, { every: "every", active: "active", away: "away" }, prefix: :respond, validate: true
         enum :respond_when, { never: "never", always: "always", mention: "mention", word: "word" }, prefix: :trigger, validate: true
@@ -41,6 +49,23 @@ module Emcp
 
         def self.normalize_phone_list(value)
           value.to_s.split(",").filter_map { |part| part.gsub(/\D/, "").presence }.join(", ")
+        end
+
+        def self.normalize_chat_kinds(value)
+          picked = Array(value).flat_map { |part| part.to_s.split(",") }.map(&:strip).reject(&:blank?)
+          CHAT_KINDS.keys.select { |kind| picked.include?(kind) }.join(",")
+        end
+
+        def chat_kinds=(value)
+          super(self.class.normalize_chat_kinds(value))
+        end
+
+        def selected_chat_kinds
+          chat_kinds.to_s.split(",").map(&:strip).reject(&:blank?)
+        end
+
+        def accepts_chat?(message)
+          selected_chat_kinds.include?(message.chat_kind)
         end
 
         def history_size

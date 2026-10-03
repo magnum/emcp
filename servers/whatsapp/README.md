@@ -66,11 +66,12 @@ Configure one or more hooks on the instance page. The secret is stored encrypted
 
 | Option | Default | Meaning |
 | --- | --- | --- |
-| `respond_when` | `mention` | `never` sends nothing. `always` sends every message. `mention` sends direct chats and mentions. `word` sends only when `consider_words` matches |
+| `chat_kinds` | `direct,group` | Which chats can fire the webhook. `direct` and `group` are on. `status` (`status@broadcast`), `newsletter` (channels), and `broadcast` (broadcast lists) are off until ticked. A direct chat includes `@s.whatsapp.net`, `@lid`, and `@c.us` |
+| `respond_when` | `mention` | `never` sends nothing. `always` sends every message from the ticked chats. `mention` sends direct chats and mentions. `word` sends only when `consider_words` matches |
 | `consider_words` | `bot` | Comma-separated, case-insensitive, whole word. Used when `respond_when` is `word` |
 | `history_limit` | env | Messages included in `history`, from 0 to 1000. Empty uses `WHATSAPP_WEBHOOK_CHAT_HISTORY` |
 
-`respond_when` is the only send rule. A message that fails is not posted. The first decision for a `message_id` is kept, so reconnects and history sync do not send it twice. Two hooks with the same URL share that decision: the message is posted once. Messages sent through the bridge API are written into the chat archive and into `history`, and they do not fire a webhook. An echo of that same `message_id` is discarded.
+A chat that is not ticked is not posted, including when When is Always. `respond_when` then decides the rest. A message that fails is not posted. The first decision for a `message_id` is kept, so reconnects and history sync do not send it twice. Two hooks with the same URL share that decision: the message is posted once. Messages sent through the bridge API are written into the chat archive and into `history`, and they do not fire a webhook. An echo of that same `message_id` is discarded.
 
 The bridge does not notify for the initial history sync (`INITIAL_BOOTSTRAP`, `FULL`, and the non-message sync types). After that first connection, a later `RECENT` sync can notify messages that were not stored yet (caught up while the bridge was down). Live `events.Message` traffic is always eligible, including messages that arrive while another device reads them. Reactions, protocol/system messages, receipts, typing, and calls are not forwarded. Ephemeral and view-once messages are unwrapped and treated as normal text or media. Edits of a message already stored are not sent again.
 

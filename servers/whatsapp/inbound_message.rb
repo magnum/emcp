@@ -28,6 +28,16 @@ module Emcp
 
         def addressed_to_owner? = !group? || mentions_owner?
 
+        def chat_kind
+          user, server = chat_jid.downcase.split("@", 2)
+          return "status" if server == "broadcast" && user == "status"
+          return "newsletter" if server == "newsletter"
+          return "broadcast" if server == "broadcast"
+          return "group" if group? || server == "g.us"
+
+          "direct"
+        end
+
         def timestamp
           Time.iso8601(attributes["timestamp"].to_s).utc.iso8601
         rescue ArgumentError

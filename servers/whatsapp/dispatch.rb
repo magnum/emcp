@@ -47,6 +47,8 @@ module Emcp
         end
 
         def decision_for
+          return skip(message.chat_kind) unless hook.accepts_chat?(message)
+
           words = matched_words(message.text)
           case hook.respond_when
           when "never"
