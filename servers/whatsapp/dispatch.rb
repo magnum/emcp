@@ -23,6 +23,7 @@ module Emcp
           return if hook.receipts.exists?(message_id: message.id)
 
           decision = decision_for
+          decision = skip("duplicate") if decision.deliver? && !claim_url!
           receipt = hook.receipts.create!(
             message_id: message.id,
             outcome: decision.deliver? ? "sent" : "filtered",
@@ -62,6 +63,17 @@ module Emcp
         private
 
         attr_reader :hook, :message
+
+        def claim_url!
+          Rails.cache.write(
+            "whatsapp/hook_delivery/#{hook.mcp_server_id}/#{hook.url}/#{message.id}",
+            hook.id,
+            unless_exist: true,
+            expires_in: 7.days,
+          )
+        rescue StandardError
+          true
+        end
 
         def payload(decision)
           {

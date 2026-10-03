@@ -36,6 +36,31 @@ class WebhookJobTest < ActiveJob::TestCase
     assert_equal 503, record.response_code
   end
 
+  test "a read timeout is final so the receiver is not run twice" do
+    record = enqueue_webhook
+    assert_no_enqueued_jobs only: WebhookJob do
+      with_post(-> { raise Net::ReadTimeout, "timed out" }) { WebhookJob.perform_now(record.id) }
+    end
+    assert record.reload.error?
+    assert_nil record.response_code
+    assert record.error_message.start_with?("delivered:")
+
+    assert_no_enqueued_jobs only: WebhookJob do
+      with_post(-> { raise "posted again" }) { WebhookJob.perform_now(record.id) }
+    end
+  end
+
+  test "an in flight delivery is not posted by a second job" do
+    previous = Rails.cache
+    Rails.cache = ActiveSupport::Cache::MemoryStore.new
+    record = enqueue_webhook
+    Rails.cache.write("webhook/delivery/#{record.id}", true)
+    with_post(-> { raise "posted again" }) { WebhookJob.perform_now(record.id) }
+    assert_not record.reload.completed?
+  ensure
+    Rails.cache = previous
+  end
+
   test "a network error is scheduled again without a status" do
     record = enqueue_webhook
     assert_enqueued_jobs 1, only: WebhookJob do

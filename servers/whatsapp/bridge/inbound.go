@@ -29,6 +29,7 @@ type inboundMessage struct {
 	SenderPhone     string        `json:"sender_phone,omitempty"`
 	SenderName      string        `json:"sender_name,omitempty"`
 	IsFromMe        bool          `json:"is_from_me"`
+	SkipWebhook     bool          `json:"skip_webhook,omitempty"`
 	Type            string        `json:"type"`
 	Text            string        `json:"text,omitempty"`
 	QuotedMessageID string        `json:"quoted_message_id,omitempty"`

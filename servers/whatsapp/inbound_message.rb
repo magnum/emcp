@@ -20,6 +20,8 @@ module Emcp
 
         def from_me? = ActiveModel::Type::Boolean.new.cast(attributes["is_from_me"])
 
+        def skip_webhook? = ActiveModel::Type::Boolean.new.cast(attributes["skip_webhook"])
+
         def group? = ActiveModel::Type::Boolean.new.cast(attributes["is_group"])
 
         def mentions_owner? = ActiveModel::Type::Boolean.new.cast(attributes["mentions_owner"])

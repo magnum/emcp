@@ -173,6 +173,11 @@ module Emcp
         def accept_inbound_message!(attrs)
           message = InboundMessage.new(attrs)
           ChatHistory.record!(id, message)
+          if message.skip_webhook?
+            remember_api_send!(message)
+            return
+          end
+
           whatsapp_hooks.enabled.find_each { |hook| hook.deliver_message!(message) }
         end
 
@@ -191,6 +196,16 @@ module Emcp
         def credential_env_keys = %w[WHATSAPP_BRIDGE_URL WHATSAPP_BRIDGE_TOKEN]
 
         private
+
+        def remember_api_send!(message)
+          return if message.id.blank?
+
+          whatsapp_hooks.find_each do |hook|
+            hook.receipts.create!(message_id: message.id, outcome: "filtered", reason: "api_send")
+          rescue ActiveRecord::RecordNotUnique
+            nil
+          end
+        end
 
         def pairing_status(raw)
           body = stringify_keys(raw)

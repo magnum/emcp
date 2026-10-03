@@ -73,6 +73,38 @@ class WhatsappDispatchTest < ActiveSupport::TestCase
     assert_equal [ "h2" ], history.map { |entry| entry["message_id"] }
   end
 
+  test "two hooks that share a url send the message once" do
+    other = @server.whatsapp_hooks.create!(
+      url: @hook.url,
+      secret: "anothersecret",
+      respond_when: "always",
+    )
+    assert_difference -> { Webhook.count }, 1 do
+      @server.accept_inbound_message!(inbound(text: "ciao", id: "same-url"))
+    end
+    receipts = [ @hook, other ].map { |hook| hook.receipts.find_by!(message_id: "same-url") }
+    assert_equal 1, receipts.count(&:sent?)
+    assert_equal "duplicate", receipts.find(&:filtered?).reason
+  end
+
+  test "an api send stays in history and does not fire a webhook" do
+    @hook.update!(respond_when: "always")
+    assert_no_difference -> { Webhook.count } do
+      @server.accept_inbound_message!(inbound(text: "risposta", id: "out-1", from_me: true, skip_webhook: true))
+    end
+    assert_equal "api_send", @hook.receipts.find_by!(message_id: "out-1").reason
+
+    assert_no_difference -> { Webhook.count } do
+      deliver(text: "risposta", from_me: true, id: "out-1")
+    end
+
+    deliver(text: "grazie", id: "in-2")
+    history = JSON.parse(@hook.receipts.find_by!(message_id: "in-2").webhook.body)["history"]
+    sent = history.find { |entry| entry["message_id"] == "out-1" }
+    assert_equal "risposta", sent["text"]
+    assert_equal true, sent["is_from_me"]
+  end
+
   test "the same message is not sent twice" do
     deliver(text: "ciao", id: "dup")
     assert_no_difference -> { @hook.receipts.count } do
@@ -101,17 +133,21 @@ class WhatsappDispatchTest < ActiveSupport::TestCase
   private
 
   def deliver(text:, id: "m", group: false, from_me: false, mentions_owner: false, phone: "393331111111")
-    message = Emcp::Servers::Whatsapp::InboundMessage.new(
+    @hook.deliver_message!(Emcp::Servers::Whatsapp::InboundMessage.new(inbound(text:, id:, group:, from_me:, mentions_owner:, phone:)))
+  end
+
+  def inbound(text:, id: "m", group: false, from_me: false, mentions_owner: false, phone: "393331111111", skip_webhook: false)
+    {
       "message_id" => id,
       "timestamp" => "2026-10-03T12:00:00Z",
       "chat_jid" => (group ? "120363@g.us" : "#{phone}@s.whatsapp.net"),
       "is_group" => group,
       "is_from_me" => from_me,
+      "skip_webhook" => skip_webhook,
       "mentions_owner" => mentions_owner,
       "sender_phone" => phone,
       "type" => "text",
       "text" => text,
-    )
-    @hook.deliver_message!(message)
+    }
   end
 end

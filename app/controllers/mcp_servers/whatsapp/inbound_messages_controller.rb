@@ -33,7 +33,7 @@ module McpServers
       def inbound_params
         params.permit(
           :message_id, :timestamp, :chat_jid, :chat_name, :is_group,
-          :sender_jid, :sender_phone, :sender_name, :is_from_me, :type, :text,
+          :sender_jid, :sender_phone, :sender_name, :is_from_me, :skip_webhook, :type, :text,
           :quoted_message_id, :mentions_owner, media: %i[mimetype filename],
         ).to_h
       end

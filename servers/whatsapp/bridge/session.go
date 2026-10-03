@@ -221,10 +221,49 @@ func (s *Session) Send(recipient, message string) error {
 	if err != nil {
 		return err
 	}
-	_, err = client.SendMessage(context.Background(), jid, &waE2E.Message{
+	resp, err := client.SendMessage(context.Background(), jid, &waE2E.Message{
 		Conversation: proto.String(message),
 	})
-	return err
+	if err != nil {
+		return err
+	}
+	s.recordOutbound(client, jid, message, string(resp.ID))
+	return nil
+}
+
+// recordOutbound keeps an API send in the local archive and in the Rails chat
+// history. skip_webhook stops that echo from firing the operator webhook.
+func (s *Session) recordOutbound(client *whatsmeow.Client, jid types.JID, text, messageID string) {
+	if messageID == "" {
+		return
+	}
+	chatJID := jid.String()
+	sender := ""
+	senderJID := ""
+	if client.Store != nil && client.Store.ID != nil {
+		sender = client.Store.ID.User
+		senderJID = client.Store.ID.String()
+	}
+	now := time.Now().UTC()
+	name := s.chatName(jid, chatJID, sender)
+	_ = s.messages.StoreChat(chatJID, name, now)
+	payload := &inboundMessage{
+		MessageID:   messageID,
+		Timestamp:   now.Format(time.RFC3339),
+		ChatJID:     chatJID,
+		ChatName:    name,
+		IsGroup:     groupJID(chatJID),
+		SenderJID:   senderJID,
+		SenderPhone: sender,
+		IsFromMe:    true,
+		SkipWebhook: true,
+		Type:        "text",
+		Text:        text,
+	}
+	s.persistAndMaybeNotify(payload, sender, now, false)
+	if s.notifier != nil {
+		s.notifier.Notify(*payload)
+	}
 }
 
 func (s *Session) Logout() error {
