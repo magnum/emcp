@@ -102,7 +102,9 @@ asset_path: /rails/public/assets
 # Footer tag/commit: the image has no .git (.dockerignore). Bake them at build.
 <%
   git_commit = `git rev-parse --short HEAD`.to_s.strip
-  git_tag = `git for-each-ref --sort=-v:refname --format=%(refname:short) refs/tags`
+  # Quote the format. Unquoted %(refname) is a shell syntax error, so the tag
+  # was baked into the image as blank and the footer showed only the commit.
+  git_tag = `git for-each-ref --sort=-v:refname --format='%(refname:short)' refs/tags`
     .to_s.split("\n")
     .find { |name| name.match?(/\Av\d+\.\d+(?:\.\d+)?\z/) }
     .to_s
