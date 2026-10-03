@@ -30,7 +30,7 @@ module McpServer::AuthStatus
         value = instance_exec(&value) if value.respond_to?(:call)
         value
       elsif field[:env]
-        ENV[field[:env]]
+        credentials_hash[field[:env].to_s].presence || ENV[field[:env]]
       end
     Emcp.sanitize_env_value(raw)
   end

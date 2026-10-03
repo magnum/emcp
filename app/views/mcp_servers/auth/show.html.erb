@@ -101,6 +101,14 @@
   <% end %>
 <% end %>
 
+<% if @server.is_a?(Emcp::Servers::Whatsapp::Server) %>
+  <p class="mt-10 leading-7 text-stone-700 dark:text-zinc-300">
+    Webhook rules are on the
+    <%= link_to "server page", mcp_server_path(@server), class: "font-semibold underline" %>.
+    The fields below only connect this instance to the WhatsApp bridge.
+  </p>
+<% end %>
+
 <%= form_with url: auth_credentials_mcp_server_path(@server), method: :post, local: true, class: "mt-10 space-y-4" do %>
   <% fields = @server.oauth_token_retrieval? ? @server.credential_auth_fields : @server.auth_fields %>
   <% fields.each do |field| %>
