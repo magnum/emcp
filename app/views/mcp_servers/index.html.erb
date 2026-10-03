@@ -1,6 +1,6 @@
 <% content_for :title, "Servers" %>
 
-<div class="w-full max-w-4xl mx-auto">
+<div class="w-full">
   <header class="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
     <div>
       <%= render "shared/catalog_nav", current: :servers %>
@@ -56,75 +56,13 @@
     </div>
   <% end %>
 
-  <div class="divide-y divide-stone-300 border-t border-b border-stone-300 dark:divide-zinc-700 dark:border-zinc-700">
-    <% if @servers.empty? %>
-      <p class="py-9 text-stone-600 dark:text-zinc-400">No servers match these filters. Create one to get a dedicated MCP URL.</p>
-    <% end %>
-
-    <% @servers.each do |server| %>
-      <article class="grid grid-cols-1 items-start gap-4 py-9 md:grid-cols-[minmax(0,1fr)_auto]">
-        <div class="min-w-0">
-          <h2 class="<%= catalog_heading_class %>">
-            <%= link_to server.name, mcp_server_path(server), class: "hover:underline" %>
-          </h2>
-          <div class="mt-1 flex flex-wrap items-center gap-2">
-            <p class="group relative font-semibold uppercase tracking-widest text-stone-500 dark:text-zinc-400">
-              <span class="<%= 'cursor-help' if server.mcp_server_type.description.present? %>"><%= server.mcp_server_type.name %></span>
-              <% if server.mcp_server_type.description.present? %>
-                <span role="tooltip" class="pointer-events-none absolute left-0 top-full z-20 mt-1 hidden min-w-sm rounded-sm bg-stone-800 px-4 py-2 text-left font-normal normal-case leading-5 tracking-normal text-white shadow group-hover:block dark:bg-zinc-700 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                  <%= server.mcp_server_type.description %>
-                </span>
-              <% end %>
-            </p>
-            <% if server.tag_list.any? %>
-              <ul class="flex flex-wrap gap-2">
-                <% server.tag_list.each do |tag| %>
-                  <li class="rounded-sm bg-stone-500 px-2.5 py-0.5 text-white"><%= tag %></li>
-                <% end %>
-              </ul>
-            <% end %>
-          </div>
-        </div>
-
-        <div class="flex flex-wrap items-center gap-2 md:col-start-2 md:row-start-1 md:justify-end">
-          <%= turbo_frame_tag dom_id(server, :auth_status),
-                src: auth_status_mcp_server_path(server),
-                loading: :lazy do %>
-            <span class="inline-flex h-10 items-center justify-center rounded-lg border border-stone-300 bg-stone-100 px-4 text-stone-500 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-400"
-                  title="Checking authentication">
-              Checking…
-            </span>
-          <% end %>
-
-          <%= link_to auth_status_mcp_server_path(server, refresh: 1),
-                class: "btn-emcp-ghost h-10 w-10 px-0",
-                title: "Refresh auth status",
-                aria: { label: "Refresh auth status" },
-                data: { turbo_frame: dom_id(server, :auth_status) } do %>
-            <%= heroicon "arrow-path", options: { class: "h-5 w-5" } %>
-          <% end %>
-
-          <%= link_to "Auth", auth_mcp_server_path(server),
-                class: "btn-emcp-solid h-10" %>
-          <%= link_to "json", tools_mcp_server_path(server),
-                class: "btn-emcp-outline h-10" %>
-        </div>
-
-        <dl class="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-x-10 sm:gap-y-2 md:col-start-1">
-          <div class="flex flex-wrap items-baseline gap-2">
-            <dt class="font-semibold text-stone-500 dark:text-zinc-400">Server ID</dt>
-            <dd class="font-mono"><%= server.activity_log_code %></dd>
-          </div>
-          <div class="flex flex-wrap items-baseline gap-2">
-            <dt class="font-semibold text-stone-500 dark:text-zinc-400">Write methods</dt>
-            <dd><%= server.allow_write? ? "Enabled" : "Disabled" %></dd>
-          </div>
-        </dl>
-
-        <div class="min-w-0 md:col-span-2">
-          <%= render "mcp_servers/mcp_endpoint", url: server.mcp_url %>
-        </div>
-      </article>
-    <% end %>
-  </div>
+  <% if @servers.empty? %>
+    <p class="py-9 text-stone-600 dark:text-zinc-400">No servers match these filters. Create one to get a dedicated MCP URL.</p>
+  <% else %>
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <% @servers.each do |server| %>
+        <%= render "shared/catalog_card", server: server %>
+      <% end %>
+    </div>
+  <% end %>
 </div>

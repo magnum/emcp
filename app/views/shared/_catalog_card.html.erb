@@ -1,0 +1,72 @@
+<%# locals: server %>
+<% icon_button = "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-stone-700 hover:bg-stone-200 dark:text-zinc-200 dark:hover:bg-zinc-800" %>
+<article class="flex h-full flex-col rounded-2xl border border-stone-300 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-950">
+  <div class="flex items-start justify-between gap-2">
+    <div class="min-w-0">
+      <h2 class="truncate text-lg font-bold tracking-tight" title="<%= server.name %>">
+        <%= link_to server.name, mcp_server_path(server), class: "hover:underline" %>
+      </h2>
+      <p class="mt-1 truncate text-xs font-semibold uppercase tracking-widest text-stone-500 dark:text-zinc-400"
+         title="<%= server.mcp_server_type.description.presence %>">
+        <%= server.mcp_server_type.name %>
+      </p>
+    </div>
+
+    <div class="flex shrink-0 items-center gap-1">
+      <%= turbo_frame_tag dom_id(server, :auth_status),
+            src: auth_status_mcp_server_path(server),
+            loading: :lazy do %>
+        <span class="inline-flex h-8 w-8 items-center justify-center text-stone-400 dark:text-zinc-500" title="Checking authentication" aria-label="Checking authentication">
+          <%= heroicon "lock-closed", variant: :outline, options: { class: "h-5 w-5" } %>
+        </span>
+      <% end %>
+
+      <% if server.allow_write? %>
+        <span class="group relative inline-flex h-8 w-8 shrink-0 items-center justify-center text-red-600 dark:text-red-400"
+              aria-label="write enabled">
+          <%= heroicon "bolt", variant: :outline, options: { class: "h-5 w-5" } %>
+          <span role="tooltip" class="pointer-events-none absolute bottom-full right-0 z-20 mb-1 hidden w-max rounded bg-stone-600 px-3 py-1.5 text-base font-normal whitespace-nowrap text-white group-hover:block">write enabled</span>
+        </span>
+      <% else %>
+        <span class="group relative inline-flex h-8 w-8 shrink-0 items-center justify-center text-stone-400 dark:text-zinc-500"
+              aria-label="read only">
+          <%= heroicon "bolt-slash", variant: :outline, options: { class: "h-5 w-5" } %>
+          <span role="tooltip" class="pointer-events-none absolute bottom-full right-0 z-20 mb-1 hidden w-max rounded bg-stone-600 px-3 py-1.5 text-base font-normal whitespace-nowrap text-white group-hover:block">read only</span>
+        </span>
+      <% end %>
+
+      <%= link_to auth_mcp_server_path(server),
+            class: icon_button,
+            title: "Auth",
+            aria: { label: "Auth" } do %>
+        <%= heroicon "user", variant: :outline, options: { class: "h-5 w-5" } %>
+      <% end %>
+
+      <%= link_to tools_mcp_server_path(server),
+            class: icon_button,
+            title: "JSON",
+            aria: { label: "JSON" } do %>
+        <%= heroicon "code-bracket", variant: :outline, options: { class: "h-5 w-5" } %>
+      <% end %>
+    </div>
+  </div>
+
+  <div class="mt-4 flex items-center justify-between gap-2" data-controller="clipboard">
+    <p class="min-w-0 truncate font-mono text-sm text-stone-700 dark:text-zinc-300" title="<%= server.activity_log_code %>">
+      <%= server.activity_log_code %>
+    </p>
+    <span class="sr-only" data-clipboard-target="source"><%= server.mcp_url %></span>
+    <span class="group relative inline-flex shrink-0">
+      <button type="button"
+              data-clipboard-target="button"
+              data-action="clipboard#copy"
+              aria-label="Copy MCP endpoint"
+              class="<%= icon_button %>">
+        <%= heroicon "clipboard", variant: :outline, options: { class: "h-5 w-5" } %>
+      </button>
+      <span role="tooltip" class="pointer-events-none absolute bottom-full right-0 z-20 mb-1 hidden w-max max-w-sm rounded bg-stone-600 px-3 py-1.5 text-left text-base font-normal break-all whitespace-normal text-white group-hover:block">
+        <%= server.mcp_url %>
+      </span>
+    </span>
+  </div>
+</article>

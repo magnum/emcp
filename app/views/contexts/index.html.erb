@@ -1,6 +1,6 @@
 <% content_for :title, "Contexts" %>
 
-<div class="w-full max-w-4xl mx-auto">
+<div class="w-full">
   <header class="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
     <div>
       <%= render "shared/catalog_nav", current: :contexts %>
@@ -44,51 +44,13 @@
     </div>
   <% end %>
 
-  <div class="divide-y divide-stone-300 border-t border-b border-stone-300 dark:divide-zinc-700 dark:border-zinc-700">
-    <% if @contexts.empty? %>
-      <p class="py-9 text-stone-600 dark:text-zinc-400">No contexts yet. Create one to bundle servers behind a single MCP URL.</p>
-    <% end %>
-
-    <% @contexts.each do |context| %>
-      <article class="grid grid-cols-1 items-start gap-4 py-9 md:grid-cols-[minmax(0,1fr)_auto]">
-        <div class="min-w-0">
-          <h2 class="<%= catalog_heading_class %>">
-            <%= link_to context.name, mcp_server_path(context), class: "hover:underline" %>
-          </h2>
-          <div class="mt-1 flex flex-wrap items-center gap-2">
-            <p class="font-semibold uppercase tracking-widest text-stone-500 dark:text-zinc-400">
-              <%= context.active? ? "Active" : "Inactive" %>
-            </p>
-            <% if context.tag_list.any? %>
-              <ul class="flex flex-wrap gap-2">
-                <% context.tag_list.each do |tag| %>
-                  <li class="rounded-sm bg-stone-500 px-2.5 py-0.5 text-white"><%= tag %></li>
-                <% end %>
-              </ul>
-            <% end %>
-          </div>
-        </div>
-
-        <div class="flex flex-wrap items-center gap-2 md:col-start-2 md:row-start-1 md:justify-end">
-          <%= link_to "Open", mcp_server_path(context), class: "btn-emcp-solid h-10" %>
-          <%= link_to "json", tools_mcp_server_path(context), class: "btn-emcp-outline h-10" %>
-        </div>
-
-        <dl class="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-x-10 sm:gap-y-2 md:col-start-1">
-          <div class="flex flex-wrap items-baseline gap-2">
-            <dt class="font-semibold text-stone-500 dark:text-zinc-400">Context ID</dt>
-            <dd class="font-mono"><%= context.activity_log_code %></dd>
-          </div>
-          <div class="flex flex-wrap items-baseline gap-2">
-            <dt class="font-semibold text-stone-500 dark:text-zinc-400">Proxied</dt>
-            <dd><%= pluralize(context.context_memberships.size, "server") %></dd>
-          </div>
-        </dl>
-
-        <div class="min-w-0 md:col-span-2">
-          <%= render "mcp_servers/mcp_endpoint", url: context.mcp_url %>
-        </div>
-      </article>
-    <% end %>
-  </div>
+  <% if @contexts.empty? %>
+    <p class="py-9 text-stone-600 dark:text-zinc-400">No contexts yet. Create one to bundle servers behind a single MCP URL.</p>
+  <% else %>
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <% @contexts.each do |context| %>
+        <%= render "shared/catalog_card", server: context %>
+      <% end %>
+    </div>
+  <% end %>
 </div>
