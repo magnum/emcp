@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_01_155000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_03_180000) do
   create_table "api_keys", force: :cascade do |t|
     t.bigint "bearer_id", null: false
     t.string "bearer_type", null: false
@@ -258,6 +258,60 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_01_155000) do
     t.index ["user_id"], name: "index_users_roles_on_user_id"
   end
 
+  create_table "webhooks", force: :cascade do |t|
+    t.boolean "async", default: false
+    t.text "body"
+    t.datetime "created_at", null: false
+    t.text "error_backtrace"
+    t.string "error_message"
+    t.json "headers"
+    t.string "method"
+    t.text "response_body"
+    t.integer "response_code"
+    t.json "response_headers"
+    t.string "state", default: "created"
+    t.datetime "updated_at", null: false
+    t.string "url"
+    t.integer "webhookable_id"
+    t.string "webhookable_type"
+    t.index ["created_at"], name: "index_webhooks_on_created_at"
+    t.index ["webhookable_type", "webhookable_id"], name: "index_webhooks_on_webhookable"
+  end
+
+  create_table "whatsapp_hook_receipts", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "message_id", null: false
+    t.string "outcome", null: false
+    t.string "reason"
+    t.datetime "updated_at", null: false
+    t.integer "webhook_id"
+    t.integer "whatsapp_hook_id", null: false
+    t.index ["webhook_id"], name: "index_whatsapp_hook_receipts_on_webhook_id"
+    t.index ["whatsapp_hook_id", "message_id"], name: "index_whatsapp_hook_receipts_on_hook_and_message", unique: true
+    t.index ["whatsapp_hook_id"], name: "index_whatsapp_hook_receipts_on_whatsapp_hook_id"
+    t.check_constraint "outcome IN ('sent', 'filtered')", name: "whatsapp_hook_receipts_outcome"
+  end
+
+  create_table "whatsapp_hooks", force: :cascade do |t|
+    t.boolean "consider_all_messages", default: false, null: false
+    t.boolean "consider_mentions", default: true, null: false
+    t.string "consider_words", default: "embot", null: false
+    t.datetime "created_at", null: false
+    t.boolean "enabled", default: true, null: false
+    t.integer "mcp_server_id", null: false
+    t.string "owner_status", default: "active", null: false
+    t.string "respond_by_status", default: "every", null: false
+    t.string "respond_numbers_filtered_in", default: "", null: false
+    t.string "respond_numbers_filtered_out", default: "", null: false
+    t.text "secret", null: false
+    t.string "secret_header", default: "Authorization", null: false
+    t.datetime "updated_at", null: false
+    t.string "url", null: false
+    t.index ["mcp_server_id"], name: "index_whatsapp_hooks_on_mcp_server_id"
+    t.check_constraint "owner_status IN ('active', 'away')", name: "whatsapp_hooks_owner_status"
+    t.check_constraint "respond_by_status IN ('every', 'active', 'away')", name: "whatsapp_hooks_respond_by_status"
+  end
+
   add_foreign_key "context_memberships", "mcp_servers"
   add_foreign_key "context_memberships", "mcp_servers", column: "context_id"
   add_foreign_key "mcp_oauth_access_tokens", "mcp_oauth_clients"
@@ -274,4 +328,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_01_155000) do
   add_foreign_key "plans", "plan_types"
   add_foreign_key "plans", "users"
   add_foreign_key "taggings", "tags"
+  add_foreign_key "whatsapp_hook_receipts", "webhooks", on_delete: :nullify
+  add_foreign_key "whatsapp_hook_receipts", "whatsapp_hooks"
+  add_foreign_key "whatsapp_hooks", "mcp_servers"
 end

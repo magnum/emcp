@@ -3,6 +3,9 @@
 require "securerandom"
 require_relative "whatsapp_client"
 require_relative "keepalive"
+require_relative "hook"
+require_relative "inbound_message"
+require_relative "dispatch"
 
 module Emcp
   module Servers
@@ -18,7 +21,8 @@ module Emcp
             "Recipients are a phone number with country code and no +, or a JID " \
             "(example: 393331234567 or 393331234567@s.whatsapp.net, groups end with @g.us). " \
             "Write tools stay disabled unless WHATSAPP_ALLOW_WRITE=true. " \
-            "This links a personal WhatsApp account as a companion device (whatsmeow), not the Cloud API."
+            "This links a personal WhatsApp account as a companion device (whatsmeow), not the Cloud API. " \
+            "Incoming messages can call the webhooks configured on this instance."
         end
 
         def auth_help_content
@@ -152,7 +156,34 @@ module Emcp
             store_dir: File.join(data_dir, "whatsapp"),
             binary: ENV["WHATSAPP_BRIDGE_BIN"],
             timeout: ENV.fetch("WHATSAPP_TIMEOUT", "30").to_i,
+            inbound_url: inbound_messages_url,
           )
+        end
+
+        def inbound_messages_url
+          return if id.blank?
+
+          "#{Emcp.public_url}/servers/#{id}/inbound_messages"
+        end
+
+        has_many :whatsapp_hooks, class_name: "Emcp::Servers::Whatsapp::Hook",
+                 foreign_key: :mcp_server_id, dependent: :destroy
+
+        def accept_inbound_message!(attrs)
+          message = InboundMessage.new(attrs)
+          whatsapp_hooks.enabled.find_each { |hook| hook.deliver_message!(message) }
+        end
+
+        def set_owner_status!(status, webhook_id: nil)
+          value = status.to_s
+          raise ArgumentError, "status must be active or away" unless %w[active away].include?(value)
+
+          scope = whatsapp_hooks
+          scope = scope.where(id: webhook_id) if webhook_id.present?
+          raise "No WhatsApp webhooks configured" unless scope.exists?
+
+          scope.update_all(owner_status: value, updated_at: Time.current)
+          whatsapp_hooks.order(:id).map { |hook| { "id" => hook.id, "owner_status" => hook.owner_status } }
         end
 
         def credential_env_keys = %w[WHATSAPP_BRIDGE_URL WHATSAPP_BRIDGE_TOKEN]
@@ -290,6 +321,22 @@ module Emcp
             required: %w[recipient message],
             write: true,
           ) { |recipient:, message:| api_response { @client.send_message(recipient: recipient, message: message) } }
+
+          define_tool(
+            name: "whatsapp_set_owner_status",
+            description: "Set owner presence (active or away) for this instance’s WhatsApp webhooks. " \
+                         "Omit webhook_id to update every webhook. Does not send a WhatsApp message.",
+            properties: {
+              status: string_prop("active or away"),
+              webhook_id: string_prop("Optional webhook id. Omit to update every webhook on this instance.")
+            },
+            required: [ "status" ],
+            write: true,
+          ) { |status:, webhook_id: nil| config_response { set_owner_status!(status, webhook_id: webhook_id) } }
+        end
+
+        def config_response
+          ::McpServer.instance_method(:api_response).bind_call(self) { yield }
         end
       end
     end

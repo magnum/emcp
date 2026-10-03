@@ -9,12 +9,13 @@ module Emcp
         START_TIMEOUT = 20
         DEFAULT_BINARY = File.expand_path("bridge/whatsapp-bridge", __dir__)
 
-        attr_reader :store_dir, :binary, :token
+        attr_reader :store_dir, :binary, :token, :inbound_url
 
-        def initialize(store_dir:, binary:, token: nil)
+        def initialize(store_dir:, binary:, token: nil, inbound_url: nil)
           @store_dir = store_dir.to_s
           @binary = binary.to_s
           @token = token.to_s
+          @inbound_url = inbound_url.to_s
         end
 
         def configured?
@@ -43,8 +44,11 @@ module Emcp
         end
 
         def ensure_running!
-          return url if running? && url.present?
+          if running? && url.present? && inbound_current?
+            return url
+          end
 
+          stop! if running?
           start!
           url
         end
@@ -53,6 +57,7 @@ module Emcp
           raise missing_binary_message unless configured?
 
           FileUtils.mkdir_p(store_dir)
+          File.write(inbound_file, inbound_url, perm: 0o600)
           File.open(lock_file, File::RDWR | File::CREAT, 0o600) do |lock|
             lock.flock(File::LOCK_EX)
             return url if running? && url.present?
@@ -95,6 +100,7 @@ module Emcp
         def url_file = File.join(store_dir, "bridge.url")
         def lock_file = File.join(store_dir, "bridge.lock")
         def log_file = File.join(store_dir, "bridge.log")
+        def inbound_file = File.join(store_dir, "bridge.inbound_url")
 
         private
 
@@ -109,12 +115,19 @@ module Emcp
         end
 
         def spawn_env
-          {
+          env = {
             "WHATSAPP_STORE_DIR" => store_dir,
             "WHATSAPP_LISTEN" => "127.0.0.1:0",
             "WHATSAPP_URL_FILE" => url_file,
             "WHATSAPP_BRIDGE_TOKEN" => token
           }
+          env["WHATSAPP_INBOUND_URL"] = inbound_url if inbound_url.present?
+          env
+        end
+
+        def inbound_current?
+          recorded = File.file?(inbound_file) ? File.read(inbound_file).strip : ""
+          recorded == inbound_url
         end
 
         def wait_for_url!

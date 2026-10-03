@@ -102,18 +102,28 @@ func (store *MessageStore) StoreChat(jid, name string, lastMessageTime time.Time
 	return err
 }
 
-func (store *MessageStore) StoreMessage(id, chatJID, sender, content string, timestamp time.Time, isFromMe bool, mediaType, filename string) error {
-	if content == "" && mediaType == "" {
-		return nil
+func (store *MessageStore) StoreMessage(id, chatJID, sender, content string, timestamp time.Time, isFromMe bool, mediaType, filename string) (bool, error) {
+	if id == "" || (content == "" && mediaType == "") {
+		return false, nil
 	}
 
-	_, err := store.db.Exec(
+	var existing string
+	err := store.db.QueryRow(`SELECT id FROM messages WHERE id = ? AND chat_jid = ?`, id, chatJID).Scan(&existing)
+	inserted := err == sql.ErrNoRows
+	if err != nil && err != sql.ErrNoRows {
+		return false, err
+	}
+
+	_, err = store.db.Exec(
 		`INSERT OR REPLACE INTO messages
 			(id, chat_jid, sender, content, timestamp, is_from_me, media_type, filename)
 			VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
 		id, chatJID, sender, content, timestamp.UTC().Format(time.RFC3339), boolToInt(isFromMe), mediaType, filename,
 	)
-	return err
+	if err != nil {
+		return false, err
+	}
+	return inserted, nil
 }
 
 func (store *MessageStore) ChatName(jid string) string {

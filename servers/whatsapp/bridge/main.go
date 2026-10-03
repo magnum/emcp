@@ -235,7 +235,7 @@ func main() {
 		}
 	}()
 
-	session, err := NewSession(storeDir, messages)
+	session, err := NewSession(storeDir, messages, newInboundNotifier(os.Getenv("WHATSAPP_INBOUND_URL"), token))
 	if err != nil {
 		log.Printf("whatsapp session: %v", err)
 		live.set(nil, err)

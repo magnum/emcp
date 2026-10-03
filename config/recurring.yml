@@ -18,6 +18,10 @@ production:
     class: PurgeMcpActivityLogsJob
     queue: default
     schedule: every day at 12:20am
+  purge_webhooks:
+    class: PurgeWebhooksJob
+    queue: default
+    schedule: every day at 12:40am
   sqlite_checkpoint:
     class: SqliteCheckpointJob
     queue: default
@@ -35,6 +39,10 @@ development:
     class: PurgeMcpActivityLogsJob
     queue: default
     schedule: every day at 12:20am
+  purge_webhooks:
+    class: PurgeWebhooksJob
+    queue: default
+    schedule: every day at 12:40am
   sqlite_checkpoint:
     class: SqliteCheckpointJob
     queue: default

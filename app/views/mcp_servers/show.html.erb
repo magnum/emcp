@@ -37,4 +37,5 @@
   <% end %>
 
   <%= render "mcp_servers/context_memberships", context: @server if @server.context? %>
+  <%= render "mcp_servers/webhooks", server: @server if @server.is_a?(Emcp::Servers::Whatsapp::Server) %>
 </div>

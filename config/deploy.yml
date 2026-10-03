@@ -21,6 +21,7 @@ servers:
     cmd: bin/rails solid_queue:start
     env:
       clear:
+        WEBHOOK_RETAIN: 604800
         SOLID_QUEUE_WORKER: true
 
 # Traffico HTTPS termina su Cloudflare/cloudflared; kamal-proxy ascolta solo HTTP

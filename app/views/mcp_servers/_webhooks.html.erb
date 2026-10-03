@@ -1,0 +1,101 @@
+<%# locals: server %>
+<% input_class = "w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-stone-900 outline-none focus:border-stone-500 dark:border-zinc-600 dark:bg-zinc-950 dark:text-zinc-100" %>
+<section class="mt-10 border-t border-stone-300 pt-8 dark:border-zinc-700">
+  <h2 class="text-2xl font-bold tracking-tight">Webhooks</h2>
+  <p class="mt-2 leading-7 text-stone-700 dark:text-zinc-300">
+    When a message passes a hook’s filters, EmCP creates an app-wide webhook call and posts JSON in the background.
+    Direct chats count as addressed to you. In groups, only mentions and replies to your messages do.
+    Messages you send are ignored unless they contain a trigger word.
+  </p>
+
+  <% server.whatsapp_hooks.order(:id).each do |hook| %>
+    <article class="mt-8 rounded-lg border border-stone-300 p-4 dark:border-zinc-700">
+      <%= form_with model: hook, url: mcp_server_webhook_path(server, hook), method: :patch, class: "space-y-4" do |f| %>
+        <div class="grid gap-4 sm:grid-cols-2">
+          <div class="sm:col-span-2">
+            <%= f.label :url, "URL", class: "mb-2 block font-semibold" %>
+            <%= f.url_field :url, required: true, class: input_class %>
+          </div>
+          <div>
+            <%= f.label :secret, "Secret", class: "mb-2 block font-semibold" %>
+            <%= f.password_field :secret, value: nil, autocomplete: "new-password", placeholder: "Leave blank to keep the current secret", class: input_class %>
+          </div>
+          <div>
+            <%= f.label :secret_header, "Secret header", class: "mb-2 block font-semibold" %>
+            <%= f.text_field :secret_header, required: true, class: input_class %>
+            <p class="mt-1 text-stone-500 dark:text-zinc-400">Value sent as Bearer &lt;secret&gt;.</p>
+          </div>
+          <div>
+            <%= f.label :owner_status, "Owner status", class: "mb-2 block font-semibold" %>
+            <%= f.select :owner_status, %w[active away], {}, class: input_class %>
+          </div>
+          <div>
+            <%= f.label :respond_by_status, "Respond when", class: "mb-2 block font-semibold" %>
+            <%= f.select :respond_by_status, %w[every active away], {}, class: input_class %>
+          </div>
+          <div class="sm:col-span-2">
+            <%= f.label :consider_words, "Trigger words", class: "mb-2 block font-semibold" %>
+            <%= f.text_field :consider_words, class: input_class %>
+          </div>
+          <div>
+            <%= f.label :respond_numbers_filtered_in, "Only these numbers", class: "mb-2 block font-semibold" %>
+            <%= f.text_field :respond_numbers_filtered_in, class: input_class %>
+          </div>
+          <div>
+            <%= f.label :respond_numbers_filtered_out, "Never these numbers", class: "mb-2 block font-semibold" %>
+            <%= f.text_field :respond_numbers_filtered_out, class: input_class %>
+          </div>
+        </div>
+        <div class="flex flex-wrap gap-4">
+          <label class="flex items-center gap-2"><%= f.check_box :enabled %> Enabled</label>
+          <label class="flex items-center gap-2"><%= f.check_box :consider_mentions %> Mentions and direct chats</label>
+          <label class="flex items-center gap-2"><%= f.check_box :consider_all_messages %> All messages</label>
+        </div>
+        <%= f.submit "Save", class: "btn-emcp-solid h-10" %>
+      <% end %>
+
+      <div class="mt-3 flex flex-wrap gap-2">
+        <%= button_to "Send test", test_mcp_server_webhook_path(server, hook), method: :post, class: "btn-emcp-outline h-10" %>
+        <%= button_to "Remove", mcp_server_webhook_path(server, hook), method: :delete, class: "btn-emcp-ghost h-10",
+              form: { data: { turbo_confirm: "Remove this webhook?" } } %>
+      </div>
+
+      <% calls = hook.webhooks.order(id: :desc).limit(8) %>
+      <% filtered = hook.receipts.filtered.order(id: :desc).limit(8) %>
+      <% if calls.any? || filtered.any? %>
+        <ul class="mt-4 space-y-2 text-stone-700 dark:text-zinc-300">
+          <% calls.each do |call| %>
+            <li>
+              <%= call.created_at.utc.iso8601 %>
+              · <%= call.state %>
+              <% if call.response_code %> · HTTP <%= call.response_code %><% end %>
+              <% if call.error_message.present? && call.response_code.blank? %> · <%= call.error_message %><% end %>
+            </li>
+          <% end %>
+          <% filtered.each do |receipt| %>
+            <li>
+              <%= receipt.created_at.utc.iso8601 %>
+              · filtered
+              · <%= receipt.reason %>
+              · <%= receipt.message_id %>
+            </li>
+          <% end %>
+        </ul>
+      <% end %>
+    </article>
+  <% end %>
+
+  <h3 class="mt-10 text-xl font-bold">Add a webhook</h3>
+  <%= form_with model: Emcp::Servers::Whatsapp::Hook.new(secret_header: "Authorization"), url: mcp_server_webhooks_path(server), class: "mt-4 space-y-4" do |f| %>
+    <div>
+      <%= f.label :url, "URL", class: "mb-2 block font-semibold" %>
+      <%= f.url_field :url, required: true, placeholder: "https://assistant.example/hooks/whatsapp", class: input_class %>
+    </div>
+    <div>
+      <%= f.label :secret, "Secret", class: "mb-2 block font-semibold" %>
+      <%= f.password_field :secret, required: true, autocomplete: "new-password", class: input_class %>
+    </div>
+    <%= f.hidden_field :secret_header, value: "Authorization" %>
+    <%= f.submit "Add webhook", class: "btn-emcp-solid h-10" %>
+  <% end %>
+</section>

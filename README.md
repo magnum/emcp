@@ -41,6 +41,7 @@ CLI-backed tools (HEY, Basecamp, Google Workspace, 1Password, Home Assistant) ca
 | `API_KEY_HMAC_SECRET_KEY` | HMAC secret for ApiKey digests. Development falls back to a fixed dev secret |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Optional Google Sign-In |
 | `APP_HOST` | Optional. Used as the public URL when `EMCP_PUBLIC_URL` is unset |
+| `WEBHOOK_RETAIN` | Seconds to keep outbound webhook rows. Default `604800` (7 days). `PurgeWebhooksJob` runs daily |
 
 Per-integration variables are in `.env.example` and `servers/<code>/README.md`. Prefer the auth form over putting provider tokens in `.env`.
 

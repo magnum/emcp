@@ -34,19 +34,21 @@ type SessionStatus struct {
 }
 
 type Session struct {
-	mu        sync.RWMutex
-	storeDir  string
-	container *sqlstore.Container
-	client    *whatsmeow.Client
-	messages  *MessageStore
-	logger    waLog.Logger
-	qr        string
-	qrPNG     string
-	pairing   bool
-	lastError string
+	mu           sync.RWMutex
+	storeDir     string
+	container    *sqlstore.Container
+	client       *whatsmeow.Client
+	messages     *MessageStore
+	logger       waLog.Logger
+	notifier     *inboundNotifier
+	historyReady bool
+	qr           string
+	qrPNG        string
+	pairing      bool
+	lastError    string
 }
 
-func NewSession(storeDir string, messages *MessageStore) (*Session, error) {
+func NewSession(storeDir string, messages *MessageStore, notifier *inboundNotifier) (*Session, error) {
 	if err := os.MkdirAll(storeDir, 0o700); err != nil {
 		return nil, err
 	}
@@ -60,10 +62,12 @@ func NewSession(storeDir string, messages *MessageStore) (*Session, error) {
 	}
 
 	session := &Session{
-		storeDir:  storeDir,
-		container: container,
-		messages:  messages,
-		logger:    logger,
+		storeDir:     storeDir,
+		container:    container,
+		messages:     messages,
+		logger:       logger,
+		notifier:     notifier,
+		historyReady: historyReadyFileExists(storeDir),
 	}
 	if err := session.start(ctx); err != nil {
 		return nil, err
@@ -276,6 +280,7 @@ func (s *Session) handleEvent(evt any) {
 			s.applyPairingCode(v.Codes[0])
 		}
 	case *events.Connected:
+		s.noteConnected()
 		s.setError("")
 		// Websocket connect happens during QR pairing too. Only clear the QR
 		// after the device is actually linked.
@@ -285,10 +290,44 @@ func (s *Session) handleEvent(evt any) {
 		if linked {
 			s.setPairing("", false, "")
 		}
+	case *events.OfflineSyncCompleted:
+		// The ready file lets the next connection forward RECENT catch-up.
+		// This connection keeps the flag it had when it connected, so the
+		// initial history blob is stored without calling Rails.
+		writeHistoryReadyFile(s.storeDir)
 	case *events.LoggedOut:
 		s.setError("WhatsApp logged this device out — click Start pairing for a new QR code")
 		s.setPairing("", true, "")
 	}
+}
+
+func (s *Session) noteConnected() {
+	s.mu.Lock()
+	s.historyReady = historyReadyFileExists(s.storeDir)
+	s.mu.Unlock()
+}
+
+func (s *Session) catchUpReady() bool {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.historyReady
+}
+
+func (s *Session) ownUsers() []string {
+	s.mu.RLock()
+	client := s.client
+	s.mu.RUnlock()
+	if client == nil || client.Store == nil {
+		return nil
+	}
+	var users []string
+	if client.Store.ID != nil && client.Store.ID.User != "" {
+		users = append(users, client.Store.ID.User)
+	}
+	if client.Store.LID.User != "" {
+		users = append(users, client.Store.LID.User)
+	}
+	return users
 }
 
 func (s *Session) storeIncoming(msg *events.Message) {
@@ -298,17 +337,28 @@ func (s *Session) storeIncoming(msg *events.Message) {
 	chatJID := msg.Info.Chat.String()
 	name := s.chatName(msg.Info.Chat, chatJID, msg.Info.Sender.User)
 	_ = s.messages.StoreChat(chatJID, name, msg.Info.Timestamp)
-	content := extractText(msg.Message)
-	mediaType, filename := extractMediaMeta(msg.Message)
-	if err := s.messages.StoreMessage(msg.Info.ID, chatJID, msg.Info.Sender.User, content, msg.Info.Timestamp, msg.Info.IsFromMe, mediaType, filename); err != nil {
-		s.logger.Warnf("store message: %v", err)
-	}
+	payload := buildInbound(inboundSource{
+		ID:          msg.Info.ID,
+		Timestamp:   msg.Info.Timestamp,
+		ChatJID:     chatJID,
+		ChatName:    name,
+		SenderJID:   msg.Info.Sender.String(),
+		SenderPhone: phoneFromInfo(msg.Info),
+		SenderName:  msg.Info.PushName,
+		IsFromMe:    msg.Info.IsFromMe,
+		IsGroup:     msg.Info.IsGroup,
+		Message:     msg.Message,
+		OwnUsers:    s.ownUsers(),
+	})
+	s.persistAndMaybeNotify(payload, msg.Info.Sender.User, msg.Info.Timestamp, true)
 }
 
 func (s *Session) storeHistory(sync *events.HistorySync) {
 	if sync == nil || sync.Data == nil {
 		return
 	}
+	notify := historySyncShouldNotify(sync.Data.GetSyncType(), s.catchUpReady())
+	own := s.ownUsers()
 	for _, conversation := range sync.Data.GetConversations() {
 		chatJID := conversation.GetID()
 		if chatJID == "" {
@@ -346,18 +396,49 @@ func (s *Session) storeHistory(sync *events.HistorySync) {
 			if info == nil {
 				continue
 			}
-			content := extractText(webMsg.GetMessage())
-			mediaType, filename := extractMediaMeta(webMsg.GetMessage())
 			sender := info.GetParticipant()
 			if sender == "" {
 				sender = info.GetRemoteJID()
 			}
-			_ = s.messages.StoreMessage(info.GetID(), chatJID, sender, content, ts, info.GetFromMe(), mediaType, filename)
+			payload := buildInbound(inboundSource{
+				ID:          info.GetID(),
+				Timestamp:   ts,
+				ChatJID:     chatJID,
+				ChatName:    name,
+				SenderJID:   sender,
+				SenderPhone: jidUser(sender),
+				SenderName:  webMsg.GetPushName(),
+				IsFromMe:    info.GetFromMe(),
+				IsGroup:     groupJID(chatJID),
+				Message:     webMsg.GetMessage(),
+				OwnUsers:    own,
+			})
+			s.persistAndMaybeNotify(payload, sender, ts, notify)
 		}
 		if latest.IsZero() {
 			latest = time.Now()
 		}
 		_ = s.messages.StoreChat(chatJID, name, latest)
+	}
+}
+
+func (s *Session) persistAndMaybeNotify(payload *inboundMessage, sender string, ts time.Time, notify bool) {
+	if payload == nil {
+		return
+	}
+	mediaType := ""
+	filename := ""
+	if payload.Media != nil {
+		mediaType = payload.Type
+		filename = payload.Media.Filename
+	}
+	inserted, err := s.messages.StoreMessage(payload.MessageID, payload.ChatJID, sender, payload.Text, ts, payload.IsFromMe, mediaType, filename)
+	if err != nil {
+		s.logger.Warnf("store message: %v", err)
+		return
+	}
+	if notify && inserted && s.notifier != nil {
+		s.notifier.Notify(*payload)
 	}
 }
 
@@ -443,48 +524,4 @@ func parseRecipient(recipient string) (types.JID, error) {
 		return types.JID{}, fmt.Errorf("invalid recipient")
 	}
 	return types.JID{User: cleaned, Server: types.DefaultUserServer}, nil
-}
-
-func extractText(msg *waE2E.Message) string {
-	if msg == nil {
-		return ""
-	}
-	if text := msg.GetConversation(); text != "" {
-		return text
-	}
-	if extended := msg.GetExtendedTextMessage(); extended != nil {
-		return extended.GetText()
-	}
-	if img := msg.GetImageMessage(); img != nil {
-		return img.GetCaption()
-	}
-	if vid := msg.GetVideoMessage(); vid != nil {
-		return vid.GetCaption()
-	}
-	if doc := msg.GetDocumentMessage(); doc != nil {
-		return doc.GetCaption()
-	}
-	return ""
-}
-
-func extractMediaMeta(msg *waE2E.Message) (string, string) {
-	if msg == nil {
-		return "", ""
-	}
-	switch {
-	case msg.GetImageMessage() != nil:
-		return "image", "image.jpg"
-	case msg.GetVideoMessage() != nil:
-		return "video", "video.mp4"
-	case msg.GetAudioMessage() != nil:
-		return "audio", "audio.ogg"
-	case msg.GetDocumentMessage() != nil:
-		name := msg.GetDocumentMessage().GetFileName()
-		if name == "" {
-			name = "document"
-		}
-		return "document", name
-	default:
-		return "", ""
-	}
 }

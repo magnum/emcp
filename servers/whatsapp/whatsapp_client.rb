@@ -13,16 +13,18 @@ module Emcp
 
         DEFAULT_BINARY = BridgeProcess::DEFAULT_BINARY
 
-        def initialize(base_url: nil, token: nil, store_dir:, binary: nil, timeout: 30, transport: nil)
+        def initialize(base_url: nil, token: nil, store_dir:, binary: nil, timeout: 30, transport: nil, inbound_url: nil)
           @base_url = Emcp.sanitize_env_value(base_url)
           @token = Emcp.sanitize_env_value(token)
           @store_dir = store_dir.to_s
+          @inbound_url = inbound_url.to_s
           @timeout = timeout.to_i.positive? ? timeout.to_i : 30
           @transport = transport
           @process = BridgeProcess.new(
             store_dir: @store_dir,
             binary: binary.presence || ENV["WHATSAPP_BRIDGE_BIN"].presence || DEFAULT_BINARY,
             token: @token,
+            inbound_url: @inbound_url,
           )
         end
 

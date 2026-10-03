@@ -14,6 +14,11 @@ Rails.application.routes.draw do
         put "/event/:event", to: "invitations#event", as: :event
       end
     end
+    resources :webhooks do
+      member do
+        put "/event/:event", to: "webhooks#event", as: :event
+      end
+    end
     root to: "users#index"
   end
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
@@ -38,11 +43,17 @@ Rails.application.routes.draw do
       post "auth/continue", to: "mcp_servers/auth#continue", as: :auth_continue
       match "auth/logout", to: "mcp_servers/auth#logout", via: %i[get post], as: :auth_logout
       post "auth/clear_service", to: "mcp_servers/auth#clear_service", as: :auth_clear_service
+      post "inbound_messages", to: "mcp_servers/whatsapp/inbound_messages#create", as: :inbound_messages
 
       post "oauth", to: "mcp_servers/provider_oauth#create", as: :provider_oauth
       post "auth/save_oauth_token", to: "mcp_servers/provider_oauth#save_token", as: :save_oauth_token
     end
     resources :context_memberships, module: :mcp_servers, only: %i[create update destroy]
+    resources :webhooks, module: :mcp_servers, only: %i[create update destroy] do
+      member do
+        post :test
+      end
+    end
   end
 
   resources :contexts, only: %i[index new create]
