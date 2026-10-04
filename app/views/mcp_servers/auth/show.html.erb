@@ -43,6 +43,13 @@
   </section>
 <% end %>
 
+<% if @server.code.to_s == "telegram" %>
+  <%= render "mcp_servers/auth/telegram_pairing",
+        server: @server,
+        status: status,
+        status_url: auth_status_mcp_server_path(@server) %>
+<% end %>
+
 <% if @server.respond_to?(:auth_submit_label) && @server.code.to_s == "whatsapp" %>
   <%= render "mcp_servers/auth/whatsapp_pairing",
         server: @server,
@@ -108,11 +115,11 @@
   <% end %>
 <% end %>
 
-<% if @server.is_a?(Emcp::Servers::Whatsapp::Server) %>
+<% if @server.is_a?(Emcp::Servers::Whatsapp::Server) || @server.is_a?(Emcp::Servers::Telegram::Server) %>
   <p class="mt-10 leading-7 text-stone-700 dark:text-zinc-300">
     Webhook rules are on the
     <%= link_to "server page", mcp_server_path(@server), class: "font-semibold underline" %>.
-    The fields below only connect this instance to the WhatsApp bridge.
+    The fields below only connect this instance to the bridge.
   </p>
 <% end %>
 

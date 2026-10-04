@@ -21,7 +21,8 @@ class HealthController < ActionController::Base
   def ready
     ActiveRecord::Base.connection.select_value("SELECT 1")
     keepalive = defined?(Emcp::Servers::Whatsapp::Keepalive) && Emcp::Servers::Whatsapp::Keepalive.alive?
-    payload = { status: "ok", whatsapp_keepalive: keepalive }
+    telegram = defined?(Emcp::Servers::Telegram::Keepalive) && Emcp::Servers::Telegram::Keepalive.alive?
+    payload = { status: "ok", whatsapp_keepalive: keepalive, telegram_keepalive: telegram }
 
     if keepalive_required? && !keepalive
       render json: payload.merge(status: "degraded"), status: :service_unavailable

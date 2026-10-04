@@ -66,6 +66,11 @@ servers:
     timeout: 30
     max_chars: 12000
     bin: whatsapp-bridge
+  telegram:
+    allow_write: true
+    timeout: 30
+    max_chars: 12000
+    bin: telegram-bridge
   microsoftgraph:
     allow_write: false
     timeout: 30

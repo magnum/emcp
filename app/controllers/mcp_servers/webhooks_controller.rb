@@ -7,11 +7,11 @@ module McpServers
     before_action :set_hook, only: %i[edit update destroy test]
 
     def new
-      @hook = @server.whatsapp_hooks.new
+      @hook = hook_scope.new
     end
 
     def create
-      @hook = @server.whatsapp_hooks.new(hook_params)
+      @hook = hook_scope.new(hook_params)
       if @hook.save
         redirect_to @server, notice: "Webhook saved. The secret is stored encrypted and will not be shown again."
       else
@@ -47,14 +47,22 @@ module McpServers
 
     def set_server
       @server = current_user.mcp_servers.find(params[:mcp_server_id])
-      raise ActiveRecord::RecordNotFound unless @server.is_a?(Emcp::Servers::Whatsapp::Server)
+      return if @server.is_a?(Emcp::Servers::Whatsapp::Server) || @server.is_a?(Emcp::Servers::Telegram::Server)
+
+      raise ActiveRecord::RecordNotFound
     end
 
     def set_hook
-      @hook = @server.whatsapp_hooks.find(params[:id])
+      @hook = hook_scope.find(params[:id])
+    end
+
+    def hook_scope
+      @server.is_a?(Emcp::Servers::Telegram::Server) ? @server.telegram_hooks : @server.whatsapp_hooks
     end
 
     def hook_params
+      return telegram_hook_params if @server.is_a?(Emcp::Servers::Telegram::Server)
+
       permitted = params.expect(whatsapp_hook: [
         :url, :secret, :secret_header, :respond_when, :consider_words, :history_limit,
         chat_kinds: [],
@@ -67,6 +75,19 @@ module McpServers
         raw = permitted[:history_limit].presence
         number = raw&.to_i
         permitted[:history_limit] = (number.nil? || number == Emcp::Servers::Whatsapp::ChatHistory.limit) ? nil : number
+      end
+      permitted
+    end
+
+    def telegram_hook_params
+      permitted = params.expect(telegram_hook: [
+        :url, :secret, :secret_header, :enabled, :respond_by_status, :chat_ids,
+        :mentions_only, :ignore_muted, :ignore_channels, :debounce_minutes,
+        chat_types: [],
+      ])
+      permitted.delete(:secret) if permitted[:secret].blank?
+      if permitted.key?(:chat_types)
+        permitted[:chat_types] = Emcp::Servers::Telegram::Hook.normalize_chat_types(permitted[:chat_types])
       end
       permitted
     end

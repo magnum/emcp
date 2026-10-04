@@ -1,5 +1,5 @@
 <%# locals: server %>
-<% hooks = server.whatsapp_hooks.order(:id) %>
+<% hooks = server.is_a?(Emcp::Servers::Telegram::Server) ? server.telegram_hooks.order(:id) : server.whatsapp_hooks.order(:id) %>
 <% icon_button = "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-stone-700 hover:bg-stone-200 dark:text-zinc-200 dark:hover:bg-zinc-800" %>
 <section class="mt-10 border-t border-stone-300 pt-8 dark:border-zinc-700">
   <h2 class="text-2xl font-bold tracking-tight">Webhooks</h2>

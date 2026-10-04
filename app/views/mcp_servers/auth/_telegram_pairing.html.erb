@@ -1,0 +1,23 @@
+<%# locals: (server:, status:, status_url:) %>
+<section class="mb-8 rounded-lg border border-stone-300 p-4 dark:border-zinc-700"
+         data-controller="telegram-pairing"
+         data-telegram-pairing-url-value="<%= status_url %>">
+  <h2 class="text-xl font-bold">Linking</h2>
+  <p class="mt-2 leading-7 text-stone-700 dark:text-zinc-300" data-telegram-pairing-target="hint">
+    <% case status[:auth_step].to_s %>
+    <% when "code" %>
+      Telegram sent a login code. Enter it below and click Submit code.
+    <% when "password" %>
+      This account has a cloud password. Enter it below and click Submit password.
+    <% when "ready" %>
+      Linked<% if status[:username].present? %> as @<%= status[:username] %><% end %><% if status[:user_id].present? %> (<%= status[:user_id] %>)<% end %>.
+    <% else %>
+      Save api_id, api_hash, and the phone number, then click Start linking.
+    <% end %>
+  </p>
+  <% if status[:error].present? %>
+    <p class="mt-3 text-amber-800 dark:text-amber-200" data-telegram-pairing-target="error"><%= status[:error] %></p>
+  <% else %>
+    <p class="mt-3 hidden text-amber-800 dark:text-amber-200" data-telegram-pairing-target="error"></p>
+  <% end %>
+</section>

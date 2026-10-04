@@ -58,6 +58,9 @@ on_booted do
   require Rails.root.join("servers/whatsapp/keepalive")
   Emcp::Servers::Whatsapp::Keepalive.start_in_puma
   Emcp::Servers::Whatsapp::Keepalive.supervise
+  require Rails.root.join("servers/telegram/keepalive")
+  Emcp::Servers::Telegram::Keepalive.start_in_puma
+  Emcp::Servers::Telegram::Keepalive.supervise
 end
 
 # Specify the PID file. Defaults to tmp/pids/server.pid in development.

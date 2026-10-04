@@ -1,4 +1,7 @@
 <%# locals: (f:, input_class:, viewing: false) %>
+<% if f.object.is_a?(Emcp::Servers::Telegram::Hook) %>
+  <%= render "mcp_servers/telegram_webhook_fields", f: f, input_class: input_class, viewing: viewing %>
+<% else %>
 <% new_record = f.object.new_record? %>
 <% history_value = f.object.history_limit.nil? ? Emcp::Servers::Whatsapp::ChatHistory.limit : f.object.history_limit %>
 <% field_class = "#{input_class} disabled:bg-stone-100 disabled:text-stone-800 dark:disabled:bg-zinc-900 dark:disabled:text-zinc-200" %>
@@ -67,4 +70,5 @@
     <p class="mt-1 text-stone-500 dark:text-zinc-400">How many recent messages of this chat to include. 0 to 1000. The default comes from WHATSAPP_WEBHOOK_CHAT_HISTORY. A different number is used for this webhook.</p>
   </div>
 </div>
+<% end %>
 <% end %>

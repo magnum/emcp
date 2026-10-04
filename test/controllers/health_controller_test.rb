@@ -17,6 +17,7 @@ class HealthControllerTest < ActionDispatch::IntegrationTest
     json = JSON.parse(response.body)
     assert_equal "ok", json["status"]
     assert_includes json.keys, "whatsapp_keepalive"
+    assert_includes json.keys, "telegram_keepalive"
   end
 
   test "healthz still lists registered servers" do

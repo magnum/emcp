@@ -30,7 +30,7 @@ bin/dev
 - Instance auth: `/servers/<id>/auth` (numeric instance id, from the servers or contexts list)
 - Google Sign-In is optional. It appears only when `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are set. Redirect: `${APP_HOST}/auth/google_oauth2/callback`
 
-CLI-backed tools (HEY, Basecamp, Google Workspace, 1Password, Home Assistant) call binaries. The Docker image ships them. A local `bin/dev` process uses whatever is on `PATH` (`HEY_BIN`, `BASECAMP_BIN`, `OP_BIN`, `HASS_CLI_BIN`, and `gws`). WhatsApp’s Go bridge is built from `servers/whatsapp/bridge` or baked into the image.
+CLI-backed tools (HEY, Basecamp, Google Workspace, 1Password, Home Assistant) call binaries. The Docker image ships them. A local `bin/dev` process uses whatever is on `PATH` (`HEY_BIN`, `BASECAMP_BIN`, `OP_BIN`, `HASS_CLI_BIN`, and `gws`). WhatsApp’s Go bridge is built from `servers/whatsapp/bridge` or baked into the image. Telegram’s MTProto bridge is built from `servers/telegram/bridge` the same way.
 
 ### Environment
 
@@ -106,7 +106,7 @@ The auth form prints that URL. Register that exact string with the provider.
 
 ## Integrations
 
-HEY (CLI 1.6.0), Basecamp (CLI 0.11.0), Fatture in Cloud (API v2), Google Workspace (`gws` 0.22.5), Toggl Track (API v9), Bluesky, Twitter/X (API v2), TeslaMate, Home Assistant (`hass-cli`), 1Password (CLI 2.39.0), WhatsApp (`whatsmeow` bridge), Microsoft Graph (SharePoint sites), Shopify (Admin API, one store per instance), Browser (Chrome extension relay), Context (hub that proxies other instances). Details are in each `servers/*/README.md`.
+HEY (CLI 1.6.0), Basecamp (CLI 0.11.0), Fatture in Cloud (API v2), Google Workspace (`gws` 0.22.5), Toggl Track (API v9), Bluesky, Twitter/X (API v2), TeslaMate, Home Assistant (`hass-cli`), 1Password (CLI 2.39.0), WhatsApp (`whatsmeow` bridge), Telegram (MTProto bridge), Microsoft Graph (SharePoint sites), Shopify (Admin API, one store per instance), Browser (Chrome extension relay), Context (hub that proxies other instances). Details are in each `servers/*/README.md`.
 
 ## Contexts
 
@@ -124,7 +124,7 @@ bin/rails test
 
 ## Deploy
 
-Kamal config is `config/deploy.yml`. The image downloads the CLI binaries and builds the WhatsApp bridge. Production secrets (`RAILS_MASTER_KEY`, Google OmniAuth) come from `.kamal/secrets`. Other runtime env can live in `/data/emcp/storage/.env` on the host volume, loaded at boot and not overriding values already set by Kamal.
+Kamal config is `config/deploy.yml`. The image downloads the CLI binaries and builds the WhatsApp and Telegram bridges. Production secrets (`RAILS_MASTER_KEY`, Google OmniAuth) come from `.kamal/secrets`. Other runtime env can live in `/data/emcp/storage/.env` on the host volume, loaded at boot and not overriding values already set by Kamal.
 
 The footer (`vX.Y.Z · abc1234`) is baked into `VERSION` at image build (`GIT_COMMIT` / `GIT_TAG` from the current git HEAD and the highest `v*` tag). The image does not include `.git`. A new version number needs a new tag (`git tag v1.2.1`); the short SHA updates on every deploy.
 

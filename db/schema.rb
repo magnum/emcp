@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_04_010000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_04_170000) do
   create_table "api_keys", force: :cascade do |t|
     t.bigint "bearer_id", null: false
     t.string "bearer_type", null: false
@@ -236,6 +236,42 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_04_010000) do
     t.index ["name"], name: "index_tags_on_name", unique: true
   end
 
+  create_table "telegram_hook_receipts", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "message_id", null: false
+    t.string "outcome", null: false
+    t.string "reason"
+    t.integer "telegram_hook_id", null: false
+    t.datetime "updated_at", null: false
+    t.integer "webhook_id"
+    t.index ["telegram_hook_id", "message_id"], name: "index_telegram_hook_receipts_on_hook_and_message", unique: true
+    t.index ["telegram_hook_id"], name: "index_telegram_hook_receipts_on_telegram_hook_id"
+    t.index ["webhook_id"], name: "index_telegram_hook_receipts_on_webhook_id"
+    t.check_constraint "outcome IN ('sent', 'filtered')", name: "telegram_hook_receipts_outcome"
+  end
+
+  create_table "telegram_hooks", force: :cascade do |t|
+    t.string "chat_ids", default: "", null: false
+    t.string "chat_types", default: "private", null: false
+    t.datetime "created_at", null: false
+    t.integer "debounce_minutes", default: 5, null: false
+    t.boolean "enabled", default: false, null: false
+    t.boolean "ignore_channels", default: true, null: false
+    t.boolean "ignore_muted", default: true, null: false
+    t.integer "mcp_server_id", null: false
+    t.boolean "mentions_only", default: false, null: false
+    t.string "owner_status", default: "active", null: false
+    t.string "respond_by_status", default: "every", null: false
+    t.text "secret", null: false
+    t.string "secret_header", default: "Authorization", null: false
+    t.datetime "updated_at", null: false
+    t.string "url", null: false
+    t.index ["mcp_server_id"], name: "index_telegram_hooks_on_mcp_server_id"
+    t.check_constraint "debounce_minutes >= 0 AND debounce_minutes <= 1440", name: "telegram_hooks_debounce_minutes"
+    t.check_constraint "owner_status IN ('active', 'away')", name: "telegram_hooks_owner_status"
+    t.check_constraint "respond_by_status IN ('every', 'active', 'away')", name: "telegram_hooks_respond_by_status"
+  end
+
   create_table "users", force: :cascade do |t|
     t.string "avatar_url"
     t.datetime "created_at", null: false
@@ -332,6 +368,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_04_010000) do
   add_foreign_key "plans", "plan_types"
   add_foreign_key "plans", "users"
   add_foreign_key "taggings", "tags"
+  add_foreign_key "telegram_hook_receipts", "telegram_hooks"
+  add_foreign_key "telegram_hook_receipts", "webhooks", on_delete: :nullify
+  add_foreign_key "telegram_hooks", "mcp_servers"
   add_foreign_key "whatsapp_hook_receipts", "webhooks", on_delete: :nullify
   add_foreign_key "whatsapp_hook_receipts", "whatsapp_hooks"
   add_foreign_key "whatsapp_hooks", "mcp_servers"

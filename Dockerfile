@@ -110,6 +110,14 @@ RUN GOPROXY=https://proxy.golang.org,direct \
 COPY servers/whatsapp/bridge/ ./
 RUN CGO_ENABLED=1 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/whatsapp-bridge .
 
+FROM docker.io/library/golang:1.27-bookworm AS telegram-bridge-build
+WORKDIR /src
+COPY servers/telegram/bridge/go.mod servers/telegram/bridge/go.sum ./
+RUN GOPROXY=https://proxy.golang.org,direct \
+    bash -c 'for i in 1 2 3 4 5; do go mod download && exit 0; echo "go mod download retry $i"; sleep $((i * 4)); done; exit 1'
+COPY servers/telegram/bridge/ ./
+RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/telegram-bridge .
+
 # Make sure RUBY_VERSION matches the Ruby version in .ruby-version
 FROM docker.io/library/ruby:${RUBY_VERSION}-slim AS base
 
@@ -197,6 +205,7 @@ COPY --from=hey-download /out/hey /usr/local/bin/hey
 COPY --from=gws-download /out/gws /usr/local/bin/gws
 COPY --from=op-download /out/op /usr/local/bin/op
 COPY --from=whatsapp-bridge-build /out/whatsapp-bridge /usr/local/bin/whatsapp-bridge
+COPY --from=telegram-bridge-build /out/telegram-bridge /usr/local/bin/telegram-bridge
 
 # Run and own only the runtime files as a non-root user for security
 RUN groupadd --system --gid 1000 rails && \

@@ -1,0 +1,82 @@
+<%# locals: (f:, input_class:, viewing: false) %>
+<% new_record = f.object.new_record? %>
+<% field_class = "#{input_class} disabled:bg-stone-100 disabled:text-stone-800 dark:disabled:bg-zinc-900 dark:disabled:text-zinc-200" %>
+<%= tag.fieldset disabled: viewing, class: "min-w-0 border-0 p-0" do %>
+<div class="space-y-4">
+  <div>
+    <%= f.label :url, "URL", class: "mb-2 block font-semibold" %>
+    <%= f.url_field :url, required: !viewing, placeholder: "https://assistant.example/hooks/telegram", class: field_class %>
+  </div>
+  <div>
+    <%= f.label :secret, "Secret", class: "mb-2 block font-semibold" %>
+    <% if viewing %>
+      <%= text_field_tag :secret_saved, "Saved", disabled: true, class: field_class, aria: { label: "Secret" } %>
+    <% else %>
+      <%= f.password_field :secret,
+            value: nil,
+            required: new_record,
+            autocomplete: "new-password",
+            placeholder: (new_record ? nil : "Leave blank to keep the current secret"),
+            class: field_class %>
+    <% end %>
+  </div>
+  <div>
+    <%= f.label :secret_header, "Secret header", class: "mb-2 block font-semibold" %>
+    <%= f.text_field :secret_header, required: !viewing, class: field_class %>
+  </div>
+  <label class="flex items-center gap-2 font-semibold">
+    <%= f.check_box :enabled, class: "h-4 w-4 rounded border-stone-300" %>
+    <span>Enabled</span>
+  </label>
+  <p class="text-stone-500 dark:text-zinc-400">Off until you tick this. A disabled webhook does not receive messages.</p>
+</div>
+
+<hr class="my-6 border-stone-300 dark:border-zinc-700">
+<h3 class="text-lg font-bold">Rules</h3>
+<div class="mt-4 space-y-4">
+  <div>
+    <%= f.label :chat_ids, "Chat ids", class: "mb-2 block font-semibold" %>
+    <%= f.text_field :chat_ids, class: field_class, placeholder: "12345, 67890" %>
+    <p class="mt-1 text-stone-500 dark:text-zinc-400">Optional whitelist. Leave blank to allow every chat that matches the types below.</p>
+  </div>
+  <fieldset>
+    <legend class="mb-2 block font-semibold">Chat types</legend>
+    <%= hidden_field_tag "telegram_hook[chat_types][]", "" %>
+    <div class="space-y-2">
+      <% Emcp::Servers::Telegram::Hook::CHAT_TYPES.each do |kind, label| %>
+        <% field_id = "telegram_hook_#{f.object.id || "new"}_chat_types_#{kind}" %>
+        <label class="flex items-center gap-2" for="<%= field_id %>">
+          <%= check_box_tag "telegram_hook[chat_types][]", kind, f.object.selected_chat_types.include?(kind),
+                id: field_id, class: "h-4 w-4 rounded border-stone-300" %>
+          <span><%= label %></span>
+        </label>
+      <% end %>
+    </div>
+  </fieldset>
+  <label class="flex items-center gap-2">
+    <%= f.check_box :mentions_only, class: "h-4 w-4 rounded border-stone-300" %>
+    <span>Groups and channels: only messages that mention this account</span>
+  </label>
+  <label class="flex items-center gap-2">
+    <%= f.check_box :ignore_muted, class: "h-4 w-4 rounded border-stone-300" %>
+    <span>Ignore muted chats</span>
+  </label>
+  <label class="flex items-center gap-2">
+    <%= f.check_box :ignore_channels, class: "h-4 w-4 rounded border-stone-300" %>
+    <span>Ignore channels</span>
+  </label>
+  <div>
+    <%= f.label :respond_by_status, "Owner status", class: "mb-2 block font-semibold" %>
+    <%= f.select :respond_by_status, [
+          [ "Always", "every" ],
+          [ "Only when owner is active", "active" ],
+          [ "Only when owner is away", "away" ],
+        ], {}, class: field_class %>
+  </div>
+  <div>
+    <%= f.label :debounce_minutes, "Aggregate every N minutes", class: "mb-2 block font-semibold" %>
+    <%= f.number_field :debounce_minutes, min: 0, max: 1440, step: 1, required: !viewing, class: field_class %>
+    <p class="mt-1 text-stone-500 dark:text-zinc-400">0 sends each message immediately. Otherwise one event per chat carries the messages collected in that window.</p>
+  </div>
+</div>
+<% end %>
