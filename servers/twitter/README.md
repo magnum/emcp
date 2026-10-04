@@ -64,13 +64,13 @@ TWITTER_OAUTH_SCOPES=tweet.read users.read offline.access
 | `TWITTER_CLIENT_SECRET` | OAuth 2.0 client secret |
 | `TWITTER_TOKEN` | User access token (managed / paste) |
 | `TWITTER_REFRESH_TOKEN` | Refresh token (managed) |
-| `TWITTER_OAUTH_SCOPES` | Space-separated scopes. Default: read scopes + `offline.access`; write scopes added when `TWITTER_ALLOW_WRITE=true`. Write scopes include `media.write` |
+| `TWITTER_OAUTH_SCOPES` | Space-separated scopes. Default: read scopes + `offline.access`; write scopes added when `TWITTER_ALLOW_WRITE=true`. Only scopes listed in the X console can be requested |
 | `TWITTER_ALLOW_WRITE` | Enable write tools **and** request write OAuth scopes (portal must be Read and write) |
 | `TWITTER_TIMEOUT` | HTTP timeout seconds (default `30`) |
 
 ## Media
 
-Uploads use the [X API v2 media endpoints](https://docs.x.com/x-api/media/introduction) with the same user token. `media.write` is part of the default write scopes. Re-authorize the instance (Retrieve OAuth token) after upgrading, or upload fails until the token includes that scope.
+Uploads use the [X API v2 media endpoints](https://docs.x.com/x-api/media/introduction) with the same user token. The API expects `media.write`, but the X console scope list for this app does not include it. EmCP does not request that scope, because X rejects the whole login when any requested scope is missing from the app. Upload stays unavailable until the console offers `media.write`.
 
 `twitter_media_upload` accepts an `https` `url`, or `data_base64` plus `mime_type`. Optional `media_category` is `tweet_image`, `tweet_gif`, or `tweet_video` (inferred from the MIME type). Optional `alt_text` is sent to `POST /2/media/metadata`.
 

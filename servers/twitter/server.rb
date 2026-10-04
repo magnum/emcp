@@ -34,7 +34,6 @@ module Emcp
           "follows.write",
           "like.write",
           "bookmark.write",
-          "media.write",
         ].freeze
 
         # Broad default used only when TWITTER_ALLOW_WRITE=true and TWITTER_OAUTH_SCOPES is unset.
@@ -47,7 +46,7 @@ module Emcp
           "Use Twitter/X tools to inspect and manage posts and social graph data via API v2. " \
             "User-context OAuth 2.0 is required for write tools. " \
             "Write tools remain disabled unless TWITTER_ALLOW_WRITE=true. " \
-            "twitter_media_upload needs the media.write scope; re-authorize the instance if an existing token lacks it. " \
+            "twitter_media_upload needs media.write, which this X app’s console scope list does not offer. " \
             "API access depends on your X developer tier."
         end
 
@@ -60,7 +59,7 @@ module Emcp
               "In the X Developer Portal, open your app → User authentication settings.",
               "Enable OAuth 2.0, App type = Web App / Automated App or Bot (confidential client).",
               "App permissions: Read for EmCP’s default scopes; Read and write only if you need writes " \
-                "(TWITTER_ALLOW_WRITE=true) or custom write scopes. Write scopes include media.write.",
+                "(TWITTER_ALLOW_WRITE=true) or custom write scopes.",
               "Callback URI / Redirect URL must be EXACTLY the URL shown below (copy-paste).",
               "Also set Website URL (e.g. your EmCP public URL) — X often rejects auth without it.",
               "Paste the OAuth 2.0 Client ID and Client Secret below (not the old API Key / Consumer Key).",
@@ -68,9 +67,8 @@ module Emcp
               "Optionally paste a token manually and Save credentials, or confirm the token after the OAuth callback.",
             ],
             commands: [],
-            note: "error=invalid_scope means portal App permissions do not cover the scopes EmCP requests " \
-                  "(see below). “Something went wrong” on X is usually the same mismatch, or a wrong callback URI. " \
-                  "media.write was added to the write scopes: re-authorize (Retrieve OAuth token) so uploads are allowed. " \
+            note: "error=invalid_scope, or “Something went wrong” on X before the consent screen, means a requested " \
+                  "scope is not in this app’s console list. media.write is not in that list, so EmCP does not request it. " \
                   "EmCP stores tokens under storage/mcp/instances/<id>/oauth_token.json.",
           }
         end
@@ -219,7 +217,6 @@ module Emcp
                      list.concat(DEFAULT_WRITE_SCOPES) if allow_write_methods?
                      list
                    end
-          scopes << "media.write" if allow_write_methods? && !scopes.include?("media.write")
           scopes.join(" ")
         end
 
@@ -561,7 +558,7 @@ module Emcp
                          "Pass an https url, or data_base64 with mime_type. " \
                          "Images up to 5 MB use POST /2/media/upload. " \
                          "Video and GIFs over 5 MB use chunked upload and wait until processing succeeds. " \
-                         "Requires the media.write scope; re-authorize this instance if the token was issued without it.",
+                         "Requires media.write. The X console scope list for this app does not include it, so upload fails until X offers that scope.",
             properties: {
               url: string_prop("https URL of the image or video"),
               data_base64: string_prop("Base64 file bytes. Requires mime_type"),
@@ -743,7 +740,7 @@ module Emcp
           scopes = granted_oauth_scopes
           return if scopes.empty? || scopes.include?("media.write")
 
-          raise "Twitter token is missing the media.write scope. Re-authorize this instance so the new scope is granted."
+          raise "Twitter token does not include media.write. The X developer console does not offer that scope for this app, so upload is not available."
         end
 
         def granted_oauth_scopes

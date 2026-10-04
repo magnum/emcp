@@ -217,7 +217,7 @@ class TwitterServerTest < ActiveSupport::TestCase
     assert_includes text, "retry-after=30"
   end
 
-  test "write authorization always requests media.write" do
+  test "authorization requests only the configured scopes" do
     with_env(
       "TWITTER_CLIENT_ID" => "client-id",
       "TWITTER_CLIENT_SECRET" => "client-secret",
@@ -225,8 +225,7 @@ class TwitterServerTest < ActiveSupport::TestCase
     ) do
       url = @server.oauth_call(callback_url: "https://emcp.example/callback", state: "state-1")[:authorization_url]
       scope = URI.decode_www_form(URI.parse(url).query).to_h.fetch("scope").split
-      assert_includes scope, "media.write"
-      assert_includes scope, "tweet.write"
+      assert_equal %w[tweet.read tweet.write offline.access], scope
     end
   end
 
