@@ -10,7 +10,7 @@ module McpServers
       if hook.save
         redirect_to @server, notice: "Webhook saved. The secret is stored encrypted and will not be shown again."
       else
-        redirect_to @server, alert: hook.errors.full_messages.to_sentence
+        redirect_to mcp_server_path(@server, new_webhook: 1), alert: hook.errors.full_messages.to_sentence
       end
     end
 
@@ -19,7 +19,7 @@ module McpServers
       if hook.update(hook_params)
         redirect_to @server, notice: "Webhook updated"
       else
-        redirect_to @server, alert: hook.errors.full_messages.to_sentence
+        redirect_to mcp_server_path(@server, edit: hook.id), alert: hook.errors.full_messages.to_sentence
       end
     end
 
