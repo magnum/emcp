@@ -1,7 +1,9 @@
 <%# locals: (server:, status:, status_url:) %>
 <section class="mb-8 rounded-lg border border-stone-300 p-4 dark:border-zinc-700"
+         <% unless status[:authenticated] %>
          data-controller="telegram-pairing"
-         data-telegram-pairing-url-value="<%= status_url %>">
+         data-telegram-pairing-url-value="<%= status_url %>"
+         <% end %>>
   <h2 class="text-xl font-bold">Linking</h2>
   <p class="mt-2 leading-7 text-stone-700 dark:text-zinc-300" data-telegram-pairing-target="hint">
     <% case status[:auth_step].to_s %>

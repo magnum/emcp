@@ -150,7 +150,7 @@
         <%= password_field_tag field[:name], nil,
               class: "w-full rounded-lg border border-stone-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-950",
               autocomplete: "new-password",
-              placeholder: (stored.present? ? "•••••••• saved — leave blank to keep" : "Paste token or use Retrieve OAuth token") %>
+              placeholder: (stored.present? ? "•••••••• saved — leave blank to keep" : field[:placeholder].presence || "Paste token or use Retrieve OAuth token") %>
         <% if stored.present? %>
           <p class="mt-1  text-emerald-800 dark:text-emerald-300">
             Saved in <code><%= field[:env] %></code> (<%= stored.length %> characters).

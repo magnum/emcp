@@ -84,6 +84,7 @@ module Emcp
               label: "2FA password",
               type: "password",
               required: false,
+              placeholder: "Only if Telegram asks for the cloud password",
               help: "Cloud password, only if Telegram asks for it. Not stored.",
             },
             {
