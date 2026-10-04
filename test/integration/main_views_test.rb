@@ -53,12 +53,20 @@ class MainViewsTest < ActionDispatch::IntegrationTest
       mcp_server_path(@context),
       edit_mcp_server_path(@context),
       mcp_server_path(@whatsapp),
+      new_mcp_server_webhook_path(@whatsapp),
+      mcp_server_edit_webhook_path(@whatsapp, @hook),
       users_path,
       user_path(@user),
       edit_user_path(@user),
     )
 
     get mcp_server_path(@whatsapp)
+    assert_response :success
+    assert_includes response.body, "https://example.com/hook"
+    refute_includes response.body, "supersecret"
+    refute_includes response.body, "Messages history"
+
+    get mcp_server_edit_webhook_path(@whatsapp, @hook)
     assert_response :success
     assert_includes response.body, "Messages history"
     refute_includes response.body, "supersecret"

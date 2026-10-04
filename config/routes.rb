@@ -49,11 +49,12 @@ Rails.application.routes.draw do
       post "auth/save_oauth_token", to: "mcp_servers/provider_oauth#save_token", as: :save_oauth_token
     end
     resources :context_memberships, module: :mcp_servers, only: %i[create update destroy]
-    resources :webhooks, module: :mcp_servers, only: %i[create update destroy] do
+    resources :webhooks, module: :mcp_servers, only: %i[new create update destroy] do
       member do
         post :test
       end
     end
+    get "webhooks/edit/:id", to: "mcp_servers/webhooks#edit", as: :edit_webhook
   end
 
   resources :contexts, only: %i[index new create]

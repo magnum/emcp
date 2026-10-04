@@ -29,12 +29,14 @@ class WhatsappInboundMessagesControllerTest < ActionDispatch::IntegrationTest
     get mcp_server_path(@server)
     assert_response :success
     refute_includes response.body, "supersecret"
-    assert_select "a", text: "Edit"
-    assert_select "input[type=submit][value='Save']", count: 0
-    assert_select "form[action='#{mcp_server_webhooks_path(@server)}']", count: 0
-    assert_select "form[action='#{mcp_server_webhook_path(@server, hook)}'] fieldset[disabled]" do
+    assert_select "a[href='#{mcp_server_edit_webhook_path(@server, hook)}']", text: "Edit"
+    assert_select "a[href='#{new_mcp_server_webhook_path(@server)}']", text: "Add webhook"
+    assert_select "input[name='whatsapp_hook[url]']", count: 0
+
+    get mcp_server_edit_webhook_path(@server, hook)
+    assert_response :success
+    assert_select "form[action='#{mcp_server_webhook_path(@server, hook)}']" do
       assert_select "input[name='whatsapp_hook[url]'][value='https://example.com/hook']"
-      assert_select "input[name='secret_saved'][value='Saved']"
       assert_select "select[name='whatsapp_hook[owner_status]']", count: 0
       assert_select "input[name='whatsapp_hook[chat_kinds][]'][value='direct'][checked]"
       assert_select "input[name='whatsapp_hook[chat_kinds][]'][value='group'][checked]"
@@ -45,14 +47,9 @@ class WhatsappInboundMessagesControllerTest < ActionDispatch::IntegrationTest
       assert_select "input[name='whatsapp_hook[consider_words]'][value='bot']"
       assert_select "input[name='whatsapp_hook[history_limit]'][value='100']"
       assert_select "input[name='whatsapp_hook[respond_numbers_filtered_in]']", count: 0
-    end
-
-    get mcp_server_path(@server, edit: hook.id)
-    assert_select "form[action='#{mcp_server_webhook_path(@server, hook)}']" do
-      assert_select "fieldset:not([disabled])"
-      assert_select "input[name='whatsapp_hook[url]']:not([disabled])"
       assert_select "input[type=submit][value='Save']"
     end
+    refute_includes response.body, "supersecret"
   end
 
   private

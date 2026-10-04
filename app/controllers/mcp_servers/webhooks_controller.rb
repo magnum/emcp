@@ -4,37 +4,43 @@ module McpServers
   class WebhooksController < ApplicationController
     before_action :require_authentication
     before_action :set_server
+    before_action :set_hook, only: %i[edit update destroy test]
+
+    def new
+      @hook = @server.whatsapp_hooks.new
+    end
 
     def create
-      hook = @server.whatsapp_hooks.new(hook_params)
-      if hook.save
+      @hook = @server.whatsapp_hooks.new(hook_params)
+      if @hook.save
         redirect_to @server, notice: "Webhook saved. The secret is stored encrypted and will not be shown again."
       else
-        redirect_to mcp_server_path(@server, new_webhook: 1), alert: hook.errors.full_messages.to_sentence
+        render :new, status: :unprocessable_entity
       end
     end
 
+    def edit
+    end
+
     def update
-      hook = @server.whatsapp_hooks.find(params[:id])
-      if hook.update(hook_params)
+      if @hook.update(hook_params)
         redirect_to @server, notice: "Webhook updated"
       else
-        redirect_to mcp_server_path(@server, edit: hook.id), alert: hook.errors.full_messages.to_sentence
+        render :edit, status: :unprocessable_entity
       end
     end
 
     def destroy
-      @server.whatsapp_hooks.find(params[:id]).destroy!
+      @hook.destroy!
       redirect_to @server, notice: "Webhook removed"
     end
 
     def test
-      hook = @server.whatsapp_hooks.find(params[:id])
-      record = hook.deliver_test!
-      redirect_to @server, notice: test_notice(record)
+      record = @hook.deliver_test!
+      redirect_to mcp_server_edit_webhook_path(@server, @hook), notice: test_notice(record)
     rescue StandardError => e
-      record = hook.webhooks.order(:id).last
-      redirect_to @server, alert: record ? test_notice(record) : e.message
+      record = @hook.webhooks.order(:id).last
+      redirect_to mcp_server_edit_webhook_path(@server, @hook), alert: record ? test_notice(record) : e.message
     end
 
     private
@@ -42,6 +48,10 @@ module McpServers
     def set_server
       @server = current_user.mcp_servers.find(params[:mcp_server_id])
       raise ActiveRecord::RecordNotFound unless @server.is_a?(Emcp::Servers::Whatsapp::Server)
+    end
+
+    def set_hook
+      @hook = @server.whatsapp_hooks.find(params[:id])
     end
 
     def hook_params

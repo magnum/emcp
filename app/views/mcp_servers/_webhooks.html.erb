@@ -1,87 +1,34 @@
 <%# locals: server %>
-<% input_class = "w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-stone-900 outline-none focus:border-stone-500 dark:border-zinc-600 dark:bg-zinc-950 dark:text-zinc-100" %>
 <% hooks = server.whatsapp_hooks.order(:id) %>
-<% editing_id = params[:edit].to_s %>
-<% adding = params[:new_webhook].present? || hooks.none? %>
+<% icon_button = "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-stone-700 hover:bg-stone-200 dark:text-zinc-200 dark:hover:bg-zinc-800" %>
 <section class="mt-10 border-t border-stone-300 pt-8 dark:border-zinc-700">
-  <div class="flex flex-wrap items-center justify-between gap-3">
-    <h2 class="text-2xl font-bold tracking-tight">Webhook</h2>
-    <% if hooks.one? && editing_id != hooks.first.id.to_s %>
-      <%= link_to "Edit", mcp_server_path(server, edit: hooks.first.id), class: "btn-emcp-outline h-10" %>
-    <% end %>
-  </div>
-  <p class="mt-2 leading-7 text-stone-700 dark:text-zinc-300">
-    Each hook has its own URL and rules. Status updates, channel posts, and broadcast lists stay off until you tick them.
-    <b>Never</b> skips the call. <b>Always</b> sends every message from the chats you tick.
-    <b>Mention</b> sends only when the message @mentions your WhatsApp account. <b>Word</b> sends only when the text contains one of the words.
+  <h2 class="text-2xl font-bold tracking-tight">Webhooks</h2>
+
+  <% if hooks.any? %>
+    <ul class="mt-6 divide-y divide-stone-300 border-y border-stone-300 dark:divide-zinc-700 dark:border-zinc-700">
+      <% hooks.each do |hook| %>
+        <li class="flex items-center gap-4 py-3">
+          <span class="shrink-0 font-mono text-sm text-stone-500 dark:text-zinc-400"><%= hook.id %></span>
+          <span class="min-w-0 flex-1 truncate font-mono text-sm" title="<%= hook.url %>"><%= hook.url %></span>
+          <span class="flex shrink-0 items-center gap-2">
+            <%= button_to mcp_server_webhook_path(server, hook),
+                  method: :delete,
+                  class: icon_button,
+                  title: "Remove",
+                  aria: { label: "Remove" },
+                  form: { data: { turbo_confirm: "Remove this webhook?" } } do %>
+              <%= heroicon "trash", variant: :outline, options: { class: "h-5 w-5" } %>
+            <% end %>
+            <%= link_to "Edit", mcp_server_edit_webhook_path(server, hook), class: "font-semibold underline" %>
+          </span>
+        </li>
+      <% end %>
+    </ul>
+  <% else %>
+    <p class="mt-4 text-stone-600 dark:text-zinc-400">No webhooks yet.</p>
+  <% end %>
+
+  <p class="mt-6">
+    <%= link_to "Add webhook", new_mcp_server_webhook_path(server), class: "font-semibold underline" %>
   </p>
-
-  <% hooks.each do |hook| %>
-    <% viewing = editing_id != hook.id.to_s %>
-    <article class="mt-8">
-      <% if hooks.many? && viewing %>
-        <div class="mb-4 flex justify-end">
-          <%= link_to "Edit", mcp_server_path(server, edit: hook.id), class: "btn-emcp-outline h-10" %>
-        </div>
-      <% end %>
-
-      <%= form_with model: hook, url: mcp_server_webhook_path(server, hook), method: :patch, class: "space-y-4" do |f| %>
-        <%= render "mcp_servers/webhook_fields", f: f, input_class: input_class, viewing: viewing %>
-        <% unless viewing %>
-          <div class="flex flex-wrap gap-2">
-            <%= f.submit "Save", class: "btn-emcp-solid h-10" %>
-            <%= link_to "Cancel", mcp_server_path(server), class: "btn-emcp-ghost h-10" %>
-          </div>
-        <% end %>
-      <% end %>
-
-      <% unless viewing %>
-        <div class="mt-3 flex flex-wrap gap-2">
-          <%= button_to "Send test", test_mcp_server_webhook_path(server, hook), method: :post, class: "btn-emcp-outline h-10" %>
-          <%= button_to "Remove", mcp_server_webhook_path(server, hook), method: :delete, class: "btn-emcp-ghost h-10",
-                form: { data: { turbo_confirm: "Remove this webhook?" } } %>
-        </div>
-      <% end %>
-
-      <% calls = hook.webhooks.order(id: :desc).limit(8) %>
-      <% filtered = hook.receipts.filtered.order(id: :desc).limit(8) %>
-      <% if calls.any? || filtered.any? %>
-        <ul class="mt-4 space-y-2 text-stone-700 dark:text-zinc-300">
-          <% calls.each do |call| %>
-            <li>
-              <%= call.created_at.utc.iso8601 %>
-              · <%= call.state %>
-              <% if call.response_code %> · HTTP <%= call.response_code %><% end %>
-              <% if call.error_message.present? && call.response_code.blank? %> · <%= call.error_message %><% end %>
-            </li>
-          <% end %>
-          <% filtered.each do |receipt| %>
-            <li>
-              <%= receipt.created_at.utc.iso8601 %>
-              · filtered
-              · <%= receipt.reason %>
-              · <%= receipt.message_id %>
-            </li>
-          <% end %>
-        </ul>
-      <% end %>
-    </article>
-  <% end %>
-
-  <% if adding %>
-    <h3 class="mt-10 text-xl font-bold"><%= hooks.any? ? "Add a webhook" : "New webhook" %></h3>
-    <%= form_with model: Emcp::Servers::Whatsapp::Hook.new, url: mcp_server_webhooks_path(server), class: "mt-4 space-y-4" do |f| %>
-      <%= render "mcp_servers/webhook_fields", f: f, input_class: input_class, viewing: false %>
-      <div class="flex flex-wrap gap-2">
-        <%= f.submit "Add webhook", class: "btn-emcp-solid h-10" %>
-        <% if hooks.any? %>
-          <%= link_to "Cancel", mcp_server_path(server), class: "btn-emcp-ghost h-10" %>
-        <% end %>
-      </div>
-    <% end %>
-  <% elsif hooks.any? %>
-    <p class="mt-8">
-      <%= link_to "Add a webhook", mcp_server_path(server, new_webhook: 1), class: "font-semibold underline" %>
-    </p>
-  <% end %>
 </section>

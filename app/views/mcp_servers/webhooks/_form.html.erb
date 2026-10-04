@@ -1,0 +1,10 @@
+<%# locals: (server:, hook:) %>
+<% input_class = "w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-stone-900 outline-none focus:border-stone-500 dark:border-zinc-600 dark:bg-zinc-950 dark:text-zinc-100" %>
+<%= render "shared/error_messages", object: hook %>
+<%= form_with model: hook, url: hook.new_record? ? mcp_server_webhooks_path(server) : mcp_server_webhook_path(server, hook), class: "mt-6 space-y-4" do |f| %>
+  <%= render "mcp_servers/webhook_fields", f: f, input_class: input_class %>
+  <div class="flex flex-wrap gap-2">
+    <%= f.submit hook.new_record? ? "Add webhook" : "Save", class: "btn-emcp-solid h-10" %>
+    <%= link_to "Cancel", mcp_server_path(server), class: "btn-emcp-ghost h-10" %>
+  </div>
+<% end %>

@@ -1,0 +1,9 @@
+<% content_for :title, "Add webhook" %>
+
+<div class="w-full max-w-4xl mx-auto">
+  <p class="mb-4">
+    <%= link_to "← #{@server.name}", mcp_server_path(@server), class: "font-semibold underline" %>
+  </p>
+  <h1 class="text-3xl font-bold tracking-tight">Add webhook</h1>
+  <%= render "form", server: @server, hook: @hook %>
+</div>

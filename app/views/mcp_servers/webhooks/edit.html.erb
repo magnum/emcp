@@ -1,0 +1,36 @@
+<% content_for :title, "Edit webhook" %>
+
+<div class="w-full max-w-4xl mx-auto">
+  <p class="mb-4">
+    <%= link_to "← #{@server.name}", mcp_server_path(@server), class: "font-semibold underline" %>
+  </p>
+  <h1 class="text-3xl font-bold tracking-tight">Edit webhook</h1>
+  <%= render "form", server: @server, hook: @hook %>
+
+  <div class="mt-3">
+    <%= button_to "Send test", test_mcp_server_webhook_path(@server, @hook), method: :post, class: "btn-emcp-outline h-10" %>
+  </div>
+
+  <% calls = @hook.webhooks.order(id: :desc).limit(8) %>
+  <% filtered = @hook.receipts.filtered.order(id: :desc).limit(8) %>
+  <% if calls.any? || filtered.any? %>
+    <ul class="mt-6 space-y-2 text-stone-700 dark:text-zinc-300">
+      <% calls.each do |call| %>
+        <li>
+          <%= call.created_at.utc.iso8601 %>
+          · <%= call.state %>
+          <% if call.response_code %> · HTTP <%= call.response_code %><% end %>
+          <% if call.error_message.present? && call.response_code.blank? %> · <%= call.error_message %><% end %>
+        </li>
+      <% end %>
+      <% filtered.each do |receipt| %>
+        <li>
+          <%= receipt.created_at.utc.iso8601 %>
+          · filtered
+          · <%= receipt.reason %>
+          · <%= receipt.message_id %>
+        </li>
+      <% end %>
+    </ul>
+  <% end %>
+</div>
