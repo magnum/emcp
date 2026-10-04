@@ -5,6 +5,7 @@ require "digest"
 require "fileutils"
 require "securerandom"
 require_relative "twitter_client"
+require_relative "media_upload"
 
 module Emcp
   module Servers
@@ -12,8 +13,8 @@ module Emcp
       class Server < ::McpServer
         server_id "twitter"
         display_name "Twitter / X"
-        description "Users, posts, timelines, search, likes, follows, and bookmarks through the X API v2."
-        version "0.1.0"
+        description "Users, posts, timelines, search, likes, follows, bookmarks, and media upload through the X API v2."
+        version "0.2.0"
         oauth_token_retrieval true
 
         def self.default_service_token_refresh_in_minutes = 90
@@ -33,6 +34,7 @@ module Emcp
           "follows.write",
           "like.write",
           "bookmark.write",
+          "media.write",
         ].freeze
 
         # Broad default used only when TWITTER_ALLOW_WRITE=true and TWITTER_OAUTH_SCOPES is unset.
@@ -45,6 +47,7 @@ module Emcp
           "Use Twitter/X tools to inspect and manage posts and social graph data via API v2. " \
             "User-context OAuth 2.0 is required for write tools. " \
             "Write tools remain disabled unless TWITTER_ALLOW_WRITE=true. " \
+            "twitter_media_upload needs the media.write scope; re-authorize the instance if an existing token lacks it. " \
             "API access depends on your X developer tier."
         end
 
@@ -57,7 +60,7 @@ module Emcp
               "In the X Developer Portal, open your app → User authentication settings.",
               "Enable OAuth 2.0, App type = Web App / Automated App or Bot (confidential client).",
               "App permissions: Read for EmCP’s default scopes; Read and write only if you need writes " \
-                "(TWITTER_ALLOW_WRITE=true) or custom write scopes.",
+                "(TWITTER_ALLOW_WRITE=true) or custom write scopes. Write scopes include media.write.",
               "Callback URI / Redirect URL must be EXACTLY the URL shown below (copy-paste).",
               "Also set Website URL (e.g. your EmCP public URL) — X often rejects auth without it.",
               "Paste the OAuth 2.0 Client ID and Client Secret below (not the old API Key / Consumer Key).",
@@ -67,6 +70,7 @@ module Emcp
             commands: [],
             note: "error=invalid_scope means portal App permissions do not cover the scopes EmCP requests " \
                   "(see below). “Something went wrong” on X is usually the same mismatch, or a wrong callback URI. " \
+                  "media.write was added to the write scopes: re-authorize (Retrieve OAuth token) so uploads are allowed. " \
                   "EmCP stores tokens under storage/mcp/instances/<id>/oauth_token.json.",
           }
         end
@@ -208,10 +212,14 @@ module Emcp
 
         def oauth_scopes
           custom = Emcp.sanitize_env_value(ENV["TWITTER_OAUTH_SCOPES"])
-          return custom if custom.present?
-
-          scopes = DEFAULT_READ_SCOPES.dup
-          scopes.concat(DEFAULT_WRITE_SCOPES) if allow_write_methods?
+          scopes = if custom.present?
+                     custom.split(/\s+/).reject(&:empty?)
+                   else
+                     list = DEFAULT_READ_SCOPES.dup
+                     list.concat(DEFAULT_WRITE_SCOPES) if allow_write_methods?
+                     list
+                   end
+          scopes << "media.write" if allow_write_methods? && !scopes.include?("media.write")
           scopes.join(" ")
         end
 
@@ -548,17 +556,56 @@ module Emcp
 
         def define_write_tools
           define_tool(
+            name: "twitter_media_upload",
+            description: "Upload an image or video and return its media_id. " \
+                         "Pass an https url, or data_base64 with mime_type. " \
+                         "Images up to 5 MB use POST /2/media/upload. " \
+                         "Video and GIFs over 5 MB use chunked upload and wait until processing succeeds. " \
+                         "Requires the media.write scope; re-authorize this instance if the token was issued without it.",
+            properties: {
+              url: string_prop("https URL of the image or video"),
+              data_base64: string_prop("Base64 file bytes. Requires mime_type"),
+              mime_type: string_prop("MIME type, such as image/png or video/mp4"),
+              media_category: string_prop("tweet_image, tweet_gif, or tweet_video. Inferred from the MIME type when omitted"),
+              alt_text: string_prop("Accessibility text, up to 1000 characters, sent to POST /2/media/metadata"),
+            },
+            write: true,
+          ) do |url: nil, data_base64: nil, mime_type: nil, media_category: nil, alt_text: nil|
+            api_response do
+              ensure_media_write_scope!
+              MediaUpload.new(@client).upload(
+                url: url,
+                data_base64: data_base64,
+                mime_type: mime_type,
+                media_category: media_category,
+                alt_text: alt_text,
+              )
+            end
+          end
+
+          define_tool(
             name: "twitter_tweet_create",
             description: "Create a tweet. Provide text and/or a raw JSON payload " \
-                         "(use reply.in_reply_to_tweet_id for replies).",
+                         "(use reply.in_reply_to_tweet_id for replies). " \
+                         "Optional media_ids (max 4) are sent as media.media_ids.",
             properties: {
               text: string_prop("Tweet text"),
               payload: object_prop("Optional raw JSON body merged over text"),
+              media_ids: array_prop("Up to 4 media ids from twitter_media_upload"),
             },
             write: true,
-          ) do |text: nil, payload: {}|
+          ) do |text: nil, payload: {}, media_ids: nil|
             body = stringify_keys(payload.is_a?(Hash) ? payload : {})
             body["text"] = text unless text.to_s.strip.empty?
+            ids = normalize_media_ids(media_ids)
+            if ids
+              media = body["media"]
+              raise "payload.media must be an object" if media && !media.is_a?(Hash)
+
+              media = stringify_keys(media || {})
+              media["media_ids"] = ids
+              body["media"] = media
+            end
             raise "text or payload.text is required" if body["text"].to_s.strip.empty?
 
             api_post("/tweets", body: body)
@@ -690,6 +737,31 @@ module Emcp
             uid = user_id_value(user_id)
             api_delete("/users/#{uid}/bookmarks/#{path_id(tweet_id, "tweet_id")}")
           end
+        end
+
+        def ensure_media_write_scope!
+          scopes = granted_oauth_scopes
+          return if scopes.empty? || scopes.include?("media.write")
+
+          raise "Twitter token is missing the media.write scope. Re-authorize this instance so the new scope is granted."
+        end
+
+        def granted_oauth_scopes
+          raw = oauth_token_hash.is_a?(Hash) ? oauth_token_hash["scope"] : nil
+          raw.to_s.split(/[\s,]+/).reject(&:empty?)
+        end
+
+        def normalize_media_ids(value)
+          return nil if value.nil?
+
+          ids = Array(value).map { |item| item.to_s.strip }.reject(&:empty?)
+          return nil if ids.empty?
+          raise "media_ids accepts at most 4 ids" if ids.size > 4
+
+          ids.each do |id|
+            raise "invalid media_id #{id.inspect}" unless id.match?(/\A[0-9]{1,19}\z/)
+          end
+          ids
         end
 
         def user_id_value(value = nil)

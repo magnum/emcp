@@ -10,7 +10,7 @@ class McpActivityLog
   SENSITIVE_KEYS = %w[
     authorization password token access_token refresh_token client_secret
     api_token credentials credentials_json op_service_account_token
-    text value expression
+    text value expression data_base64
   ].freeze
 
   class << self

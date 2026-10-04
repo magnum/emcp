@@ -64,19 +64,46 @@ TWITTER_OAUTH_SCOPES=tweet.read users.read offline.access
 | `TWITTER_CLIENT_SECRET` | OAuth 2.0 client secret |
 | `TWITTER_TOKEN` | User access token (managed / paste) |
 | `TWITTER_REFRESH_TOKEN` | Refresh token (managed) |
-| `TWITTER_OAUTH_SCOPES` | Space-separated scopes. Default: read scopes + `offline.access`; write scopes added when `TWITTER_ALLOW_WRITE=true` |
+| `TWITTER_OAUTH_SCOPES` | Space-separated scopes. Default: read scopes + `offline.access`; write scopes added when `TWITTER_ALLOW_WRITE=true`. Write scopes include `media.write` |
 | `TWITTER_ALLOW_WRITE` | Enable write tools **and** request write OAuth scopes (portal must be Read and write) |
 | `TWITTER_TIMEOUT` | HTTP timeout seconds (default `30`) |
+
+## Media
+
+Uploads use the [X API v2 media endpoints](https://docs.x.com/x-api/media/introduction) with the same user token. `media.write` is part of the default write scopes. Re-authorize the instance (Retrieve OAuth token) after upgrading, or upload fails until the token includes that scope.
+
+`twitter_media_upload` accepts an `https` `url`, or `data_base64` plus `mime_type`. Optional `media_category` is `tweet_image`, `tweet_gif`, or `tweet_video` (inferred from the MIME type). Optional `alt_text` is sent to `POST /2/media/metadata`.
+
+Images (jpg, png, webp, gif up to 5 MB) use simple `POST https://api.x.com/2/media/upload`. Video, and GIFs over 5 MB, use chunked upload: `POST /2/media/upload/initialize`, `POST /2/media/upload/{id}/append`, `POST /2/media/upload/{id}/finalize`, then `GET /2/media/upload?command=STATUS&media_id=` until `processing_info.state` is `succeeded`.
+
+```json
+{ "url": "https://cdn.example/photo.jpg", "alt_text": "Hill above the lake" }
+```
+
+The tool returns `media_id`. Attach up to four ids on the post:
+
+```json
+{ "text": "Morning light", "media_ids": ["1880028106020515840"] }
+```
+
+Reply in the same thread. `payload` is still merged; `media_ids` is sent as `media.media_ids`:
+
+```json
+{
+  "text": "Closer crop",
+  "media_ids": ["1880028106020515841"],
+  "payload": { "reply": { "in_reply_to_tweet_id": "1880028106020515999" } }
+}
+```
 
 ## Notes
 
 - API availability and rate limits depend on your X developer **tier**.
-- Media upload is out of scope (often needs OAuth 1.0a separately).
 - Replies use `twitter_tweet_create` with `payload.reply.in_reply_to_tweet_id`.
 
 ## Tools
 
-About **22** tools. Mutations are gated by `TWITTER_ALLOW_WRITE`.
+About **23** tools. Mutations are gated by `TWITTER_ALLOW_WRITE`.
 
 ## Files
 

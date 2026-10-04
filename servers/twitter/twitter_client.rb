@@ -10,6 +10,8 @@ module Emcp
     module Twitter
       class Client
         API_BASE = "https://api.twitter.com/2"
+        # Media upload v2 is documented on api.x.com, not the command=INIT form of POST /2/media/upload.
+        MEDIA_BASE = "https://api.x.com/2"
         TOKEN_URL = "https://api.twitter.com/2/oauth2/token"
         SAFE_RESPONSE_HEADERS = %w[
           content-type cache-control date x-rate-limit-limit x-rate-limit-remaining
@@ -31,17 +33,28 @@ module Emcp
           @on_token_refresh = on_token_refresh
         end
 
-        def get(path, query: {}, raise_on_error: true) = request(:get, path, query: query, raise_on_error: raise_on_error)
-        def post(path, body: nil, query: {}, raise_on_error: true) = request(:post, path, query: query, body: body, raise_on_error: raise_on_error)
-        def delete(path, query: {}, raise_on_error: true) = request(:delete, path, query: query, raise_on_error: raise_on_error)
-        def put(path, body: nil, query: {}, raise_on_error: true) = request(:put, path, query: query, body: body, raise_on_error: raise_on_error)
+        def get(path, query: {}, raise_on_error: true, api_base: API_BASE)
+          request(:get, path, query: query, raise_on_error: raise_on_error, api_base: api_base)
+        end
 
-        def request(method, path, query: {}, body: nil, headers: {}, raise_on_error: true, retrying: false)
+        def post(path, body: nil, query: {}, raise_on_error: true, api_base: API_BASE)
+          request(:post, path, query: query, body: body, raise_on_error: raise_on_error, api_base: api_base)
+        end
+
+        def delete(path, query: {}, raise_on_error: true, api_base: API_BASE)
+          request(:delete, path, query: query, raise_on_error: raise_on_error, api_base: api_base)
+        end
+
+        def put(path, body: nil, query: {}, raise_on_error: true, api_base: API_BASE)
+          request(:put, path, query: query, body: body, raise_on_error: raise_on_error, api_base: api_base)
+        end
+
+        def request(method, path, query: {}, body: nil, headers: {}, raise_on_error: true, retrying: false, api_base: API_BASE)
           token = access_token
           raise Error, "Twitter access token is not configured" if token.empty?
           raise Error, "request body must be a JSON object" if body && !body.is_a?(Hash)
 
-          uri = URI.join("#{API_BASE}/", path.to_s.sub(%r{\A/+}, ""))
+          uri = URI.join("#{api_base}/", path.to_s.sub(%r{\A/+}, ""))
           values = query.to_h.reject { |_, value| value.nil? || value == "" }
           uri.query = URI.encode_www_form(flatten_query(values)) unless values.empty?
           request_class = {
@@ -75,6 +88,7 @@ module Emcp
               headers: headers,
               raise_on_error: raise_on_error,
               retrying: true,
+              api_base: api_base,
             )
           end
 
