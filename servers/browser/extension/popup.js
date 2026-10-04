@@ -31,9 +31,21 @@ document.querySelector("#disconnect").addEventListener("click", async () => {
 });
 
 document.querySelector("#scan").addEventListener("click", scan);
+document.querySelector("#log").addEventListener("change", saveFlags);
+document.querySelector("#enabled").addEventListener("change", saveFlags);
 
 async function refresh() {
-  const status = await chrome.runtime.sendMessage({ kind: "status" });
+  paint(await chrome.runtime.sendMessage({ kind: "status" }));
+}
+
+function paint(status) {
+  document.querySelector("#log").checked = status?.log !== false;
+  document.querySelector("#enabled").checked = status?.enabled !== false;
+  if (status?.enabled === false) {
+    state.className = "offline";
+    state.textContent = "Disabled";
+    return;
+  }
   if (status?.superseded) {
     state.className = "offline";
     state.textContent = "Another Chrome window took this pairing";
@@ -49,6 +61,15 @@ async function refresh() {
     state.className = "offline";
     state.textContent = "Not paired";
   }
+}
+
+async function saveFlags() {
+  const status = await chrome.runtime.sendMessage({
+    kind: "flags",
+    log: document.querySelector("#log").checked,
+    enabled: document.querySelector("#enabled").checked,
+  });
+  paint(status);
 }
 
 async function requestOrigins(origins) {

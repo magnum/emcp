@@ -10,15 +10,24 @@ let stopped = false;
 let superseded = false;
 let online = false;
 let busyCount = 0;
+let flags = { log: true, enabled: true };
+
+const SKIPPED = "not executed because enabled is set to false";
 
 const TOOLBAR_ICONS = {
   offline: { 16: "icons/gray16.png", 48: "icons/gray48.png", 128: "icons/gray128.png" },
   online: { 16: "icons/green16.png", 48: "icons/green48.png", 128: "icons/green128.png" },
   busy: { 16: "icons/yellow16.png", 48: "icons/yellow48.png", 128: "icons/yellow128.png" },
+  disabled: { 16: "icons/purple16.png", 48: "icons/purple48.png", 128: "icons/purple128.png" },
 };
 
 chrome.runtime.onInstalled.addListener(restore);
 chrome.runtime.onStartup.addListener(restore);
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area !== "local" || !changes.emcpBrowserFlags) return;
+  applyFlags(changes.emcpBrowserFlags.newValue);
+  setPresence(online ? "online" : "offline");
+});
 restore();
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
@@ -44,6 +53,13 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     disconnect(true).then(() => sendResponse({ ok: true }));
     return true;
   }
+
+  if (message.kind === "flags") {
+    applyFlags(message);
+    chrome.storage.local.set({ emcpBrowserFlags: flags });
+    setPresence(online ? "online" : "offline");
+    sendResponse(publicStatus());
+  }
 });
 
 function publicStatus() {
@@ -52,23 +68,34 @@ function publicStatus() {
     paired: Boolean(config?.token),
     superseded,
     instanceId: config?.instance_id || null,
+    log: flags.log,
+    enabled: flags.enabled,
   };
 }
 
 async function restore() {
+  const stored = await chrome.storage.local.get(["emcpBrowser", "emcpBrowserFlags"]);
+  applyFlags(stored.emcpBrowserFlags);
   setPresence("offline");
-  const stored = await chrome.storage.local.get("emcpBrowser");
   config = stored.emcpBrowser || null;
   if (config?.token && config.ws && config.instance_id) connect();
 }
 
+function applyFlags(saved) {
+  flags = {
+    log: saved?.log !== false,
+    enabled: saved?.enabled !== false,
+  };
+}
+
 function setPresence(state) {
-  const name = busyCount > 0 ? "busy" : state;
+  const name = flags.enabled === false ? "disabled" : (busyCount > 0 ? "busy" : state);
   chrome.action.setIcon({ path: TOOLBAR_ICONS[name] || TOOLBAR_ICONS.offline });
   const titles = {
     offline: "eMCP Browser — offline",
     online: "eMCP Browser — online",
     busy: "eMCP Browser — working",
+    disabled: "eMCP Browser — disabled",
   };
   chrome.action.setTitle({ title: titles[name] || titles.offline });
 }
@@ -210,12 +237,41 @@ function clearTimers() {
 }
 
 async function runCommand(message) {
+  if (flags.enabled === false) {
+    await logCommand(message, SKIPPED);
+    throw new Error(SKIPPED);
+  }
+  await logCommand(message);
   beginWork();
   try {
     return await handleCommand(message);
   } finally {
     endWork();
   }
+}
+
+async function logCommand(message, extra) {
+  if (flags.log === false) return;
+  const line = extra ? `${commandLine(message)} — ${extra}` : commandLine(message);
+  console.log(line);
+  try {
+    const tabId = message.args?.tab_id;
+    const tab = tabId
+      ? await chrome.tabs.get(tabId)
+      : (await chrome.tabs.query({ active: true, lastFocusedWindow: true }))[0];
+    if (!tab?.id) return;
+    await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: (text) => console.log(text),
+      args: [line],
+    });
+  } catch (_error) {
+    // The service worker console already has the line.
+  }
+}
+
+function commandLine(message) {
+  return `emcp ${message.tool} ${JSON.stringify(message.args || {})}`;
 }
 
 async function handleCommand(message) {
