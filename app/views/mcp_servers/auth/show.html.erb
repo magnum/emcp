@@ -50,6 +50,13 @@
         status_url: auth_status_mcp_server_path(@server) %>
 <% end %>
 
+<% if @server.code.to_s == "browser" %>
+  <%= render "mcp_servers/auth/browser_pairing",
+        server: @server,
+        status: status,
+        status_url: auth_status_mcp_server_path(@server) %>
+<% end %>
+
 <% if @state.present? %>
   <div class="mb-8">
     <%= button_to "Continue to MCP client", auth_continue_mcp_server_path(@server),

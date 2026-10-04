@@ -1,0 +1,11 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require "fileutils"
+require_relative "../servers/browser/extension_zip"
+
+root = File.expand_path("..", __dir__)
+destination = File.join(root, "tmp", "emcp-browser-extension.zip")
+FileUtils.mkdir_p(File.dirname(destination))
+File.binwrite(destination, Emcp::Servers::Browser::ExtensionZip.build)
+puts destination

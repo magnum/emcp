@@ -42,6 +42,11 @@ CLI-backed tools (HEY, Basecamp, Google Workspace, 1Password, Home Assistant) ca
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Optional Google Sign-In |
 | `APP_HOST` | Optional. Used as the public URL when `EMCP_PUBLIC_URL` is unset |
 | `WEBHOOK_RETAIN` | Seconds to keep outbound webhook rows. Default `604800` (7 days). `PurgeWebhooksJob` runs daily |
+| `BROWSER_ALLOW_WRITE` | Enable Browser write tools (click, type, navigate). Default off |
+| `BROWSER_TIMEOUT` | Seconds to wait for the Chrome extension. Default `30` |
+| `BROWSER_ALLOWED_ORIGINS` | Browser allowlist when the instance field is empty. Default `https://*/*`. Comma-separated Chrome match patterns |
+| `BROWSER_ALLOW_EVAL` | Enable `browser_eval_readonly`. Default off |
+| `BROWSER_WS_HEARTBEAT` | Seconds between extension heartbeats. Default `15`. A silent socket is treated as offline after three intervals |
 
 Per-integration variables are in `.env.example` and `servers/<code>/README.md`. Prefer the auth form over putting provider tokens in `.env`.
 
@@ -101,7 +106,7 @@ The auth form prints that URL. Register that exact string with the provider.
 
 ## Integrations
 
-HEY (CLI 1.6.0), Basecamp (CLI 0.11.0), Fatture in Cloud (API v2), Google Workspace (`gws` 0.22.5), Toggl Track (API v9), Bluesky, Twitter/X (API v2), TeslaMate, Home Assistant (`hass-cli`), 1Password (CLI 2.39.0), WhatsApp (`whatsmeow` bridge), Microsoft Graph (SharePoint sites), Shopify (Admin API, one store per instance), Context (hub that proxies other instances). Details are in each `servers/*/README.md`.
+HEY (CLI 1.6.0), Basecamp (CLI 0.11.0), Fatture in Cloud (API v2), Google Workspace (`gws` 0.22.5), Toggl Track (API v9), Bluesky, Twitter/X (API v2), TeslaMate, Home Assistant (`hass-cli`), 1Password (CLI 2.39.0), WhatsApp (`whatsmeow` bridge), Microsoft Graph (SharePoint sites), Shopify (Admin API, one store per instance), Browser (Chrome extension relay), Context (hub that proxies other instances). Details are in each `servers/*/README.md`.
 
 ## Contexts
 

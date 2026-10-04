@@ -1,4 +1,5 @@
 Rails.application.routes.draw do
+  mount ActionCable.server => "/cable"
   mount MissionControl::Jobs::Engine, at: "/jobs"
 
   namespace :admin do
@@ -44,6 +45,7 @@ Rails.application.routes.draw do
       match "auth/logout", to: "mcp_servers/auth#logout", via: %i[get post], as: :auth_logout
       post "auth/clear_service", to: "mcp_servers/auth#clear_service", as: :auth_clear_service
       post "inbound_messages", to: "mcp_servers/whatsapp/inbound_messages#create", as: :inbound_messages
+      get "browser/extension.zip", to: "mcp_servers/browser/extensions#show", as: :browser_extension, format: false
 
       post "oauth", to: "mcp_servers/provider_oauth#create", as: :provider_oauth
       post "auth/save_oauth_token", to: "mcp_servers/provider_oauth#save_token", as: :save_oauth_token

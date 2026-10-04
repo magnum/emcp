@@ -74,6 +74,12 @@ servers:
     allow_write: false
     timeout: 30
     max_chars: 12000
+  browser:
+    allow_write: false
+    timeout: 30
+    max_chars: 12000
+    allow_eval: false
+    heartbeat: 15
   context:
     allow_write: true
     timeout: 60
