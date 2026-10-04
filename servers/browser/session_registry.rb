@@ -14,7 +14,13 @@ module Emcp
         class TimedOut < StandardError; end
 
         def self.heartbeat_seconds
-          raw = ENV["BROWSER_WS_HEARTBEAT"].presence || Emcp.server_setting("browser", "heartbeat", 15)
+          heartbeat_seconds_for(nil)
+        end
+
+        def self.heartbeat_seconds_for(server)
+          raw = server&.credentials_hash&.[]("BROWSER_WS_HEARTBEAT").presence ||
+            ENV["BROWSER_WS_HEARTBEAT"].presence ||
+            Emcp.server_setting("browser", "heartbeat", 15)
           seconds = raw.to_i
           seconds.positive? ? seconds : 15
         end
@@ -37,7 +43,7 @@ module Emcp
           @mutex = Mutex.new
         end
 
-        def attach(instance_id, connection = nil)
+        def attach(instance_id, connection = nil, stale_after: nil)
           generation = SecureRandom.hex(4)
           previous = nil
           @mutex.synchronize do
@@ -46,6 +52,7 @@ module Emcp
               generation: generation,
               last_seen: monotonic,
               connection: connection,
+              stale_after: stale_after || self.class.stale_after,
             }
           end
           close_quietly(previous[:connection]) if previous && connection && previous[:connection] && previous[:connection] != connection
@@ -69,7 +76,8 @@ module Emcp
         def connected?(instance_id)
           @mutex.synchronize do
             current = @connections[key(instance_id)]
-            current && (monotonic - current[:last_seen]) <= self.class.stale_after
+            limit = current&.[](:stale_after) || self.class.stale_after
+            current && (monotonic - current[:last_seen]) <= limit
           end
         end
 

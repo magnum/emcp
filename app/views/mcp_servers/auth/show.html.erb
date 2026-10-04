@@ -122,9 +122,18 @@
     <% stored = @server.auth_field_value(field) %>
     <% password = field[:type] == "password" %>
     <% textarea = field[:type] == "textarea" %>
+    <% checkbox = field[:type] == "checkbox" %>
     <div>
-      <%= label_tag field[:name], field[:label], class: "mb-2 block font-semibold" %>
-      <% if textarea %>
+      <% unless checkbox %>
+        <%= label_tag field[:name], field[:label], class: "mb-2 block font-semibold" %>
+      <% end %>
+      <% if checkbox %>
+        <label class="flex items-center gap-3 font-semibold">
+          <%= hidden_field_tag field[:name], "0" %>
+          <%= check_box_tag field[:name], "1", ActiveModel::Type::Boolean.new.cast(stored), class: "h-4 w-4" %>
+          <span><%= field[:label] %></span>
+        </label>
+      <% elsif textarea %>
         <%= text_area_tag field[:name], nil,
               rows: 8,
               class: "w-full rounded-lg border border-stone-300 px-3 py-2 font-mono  dark:border-zinc-700 dark:bg-zinc-950",
@@ -142,7 +151,7 @@
         <% end %>
       <% else %>
         <%= text_field_tag field[:name], stored,
-              type: "text",
+              type: (field[:type] == "number" ? "number" : "text"),
               class: "w-full rounded-lg border border-stone-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-950",
               autocomplete: "off" %>
       <% end %>

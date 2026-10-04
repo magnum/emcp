@@ -125,7 +125,7 @@ class BrowserServerTest < ActiveSupport::TestCase
     end
     assert_match(/BROWSER_ALLOW_EVAL/, error.message)
 
-    ENV["BROWSER_ALLOW_EVAL"] = "true"
+    @server.persist_credentials!("BROWSER_ALLOW_EVAL" => "true")
     registry = Emcp::Servers::Browser::SessionRegistry.current
     registry.define_singleton_method(:dispatch) do |_id, message, timeout:|
       raise "eval flag was not forwarded" unless message["allow_eval"]
@@ -133,6 +133,24 @@ class BrowserServerTest < ActiveSupport::TestCase
       { "ok" => true, "result" => { "url" => "https://edma.example.it/", "value" => "\"EDMA\"" } }
     end
     assert_equal "\"EDMA\"", client.call("browser_eval_readonly", { "expression" => "document.title" })["value"]
+  end
+
+  test "auth settings are stored on the instance" do
+    @server.update!(allow_write: false)
+    assert @server.apply_credentials(
+      "browser_allowed_origins" => "https://*/*",
+      "browser_allow_write" => "1",
+      "browser_allow_eval" => "1",
+      "browser_timeout" => "12",
+      "browser_ws_heartbeat" => "20",
+    )
+
+    assert @server.reload.allow_write?
+    assert_equal "true", @server.credentials_hash["BROWSER_ALLOW_EVAL"]
+    assert_equal "12", @server.credentials_hash["BROWSER_TIMEOUT"]
+    assert_equal "20", @server.credentials_hash["BROWSER_WS_HEARTBEAT"]
+    assert @server.browser_flag("BROWSER_ALLOW_EVAL")
+    assert_equal 12, @server.browser_number("BROWSER_TIMEOUT", "timeout", 30)
   end
 
   private

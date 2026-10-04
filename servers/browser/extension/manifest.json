@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "eMCP Browser",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Connect a signed-in Chrome window to a self-hosted eMCP server. No inbound port on this PC.",
   "permissions": ["tabs", "scripting", "activeTab", "storage"],
   "optional_host_permissions": ["http://*/*", "https://*/*"],
@@ -12,9 +12,9 @@
     "default_title": "eMCP Browser",
     "default_popup": "popup.html",
     "default_icon": {
-      "16": "icons/icon16.png",
-      "48": "icons/icon48.png",
-      "128": "icons/icon128.png"
+      "16": "icons/gray16.png",
+      "48": "icons/gray48.png",
+      "128": "icons/gray128.png"
     }
   },
   "icons": {

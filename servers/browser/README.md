@@ -48,7 +48,7 @@ also written to the Rails cache.
    reconnects reuse the saved token. The extension reconnects with backoff
    after a network drop and sends a heartbeat every `BROWSER_WS_HEARTBEAT`
    seconds (default 15).
-5. **Salva** updates the allowlist without rotating the token. **Re-authenticate
+5. **Salva** updates the allowlist, Allow write, Allow page JavaScript, timeout, and heartbeat without rotating the token. Allow page JavaScript is what enables `browser_eval_readonly`. **Re-authenticate
    service** revokes the token. A new connection replaces the previous one.
 
 The zip is generic. The instance URL and token are not baked into it.

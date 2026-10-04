@@ -17,6 +17,10 @@ class McpServers::Browser::ExtensionsControllerTest < ActionDispatch::Integratio
     assert_response :success
     assert_select "a[href='#{browser_extension_mcp_server_path(@server)}']", text: "Download extension (.zip)"
     assert_select "input[type=submit][value='Avvia pairing']"
+    assert_select "input[name='browser_allow_write']"
+    assert_select "input[name='browser_allow_eval']"
+    assert_select "input[name='browser_timeout']"
+    assert_select "input[name='browser_ws_heartbeat']"
     assert_match(/Click/, response.body)
 
     post auth_credentials_mcp_server_path(@server), params: {

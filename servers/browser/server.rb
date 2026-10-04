@@ -20,8 +20,8 @@ module Emcp
           "Browser tools act on the Chrome window paired with this instance and reuse the user's existing login. " \
             "Allowed origins defaults to https://*/* (every HTTPS page). " \
             "A comma-separated list of Chrome match patterns narrows that. " \
-            "Write tools (navigate, click, type, download) stay disabled unless BROWSER_ALLOW_WRITE=true. " \
-            "browser_eval_readonly stays disabled unless BROWSER_ALLOW_EVAL=true. " \
+            "Write tools (navigate, click, type, download) stay disabled unless Allow write is on for this instance. " \
+            "browser_eval_readonly stays disabled unless Allow page JavaScript is on for this instance. " \
             "Prefer CSS selectors returned by browser_query or browser_accessibility_snapshot. " \
             "Timeouts use BROWSER_TIMEOUT (default 30 seconds)."
         end
@@ -56,6 +56,37 @@ module Emcp
                   ENV["BROWSER_ALLOWED_ORIGINS"].presence ||
                   OriginPolicy::DEFAULT
               }
+            },
+            {
+              name: "browser_allow_write",
+              label: "Allow write",
+              type: "checkbox",
+              help: "Navigate, click, type, and download. Saved on this instance.",
+              value: -> { allow_write? ? "true" : "false" }
+            },
+            {
+              name: "browser_allow_eval",
+              label: "Allow page JavaScript",
+              type: "checkbox",
+              help: "Enables browser_eval_readonly. The expression runs in the page and can change it.",
+              env: "BROWSER_ALLOW_EVAL",
+              value: -> { browser_flag("BROWSER_ALLOW_EVAL") ? "true" : "false" }
+            },
+            {
+              name: "browser_timeout",
+              label: "Tool timeout (seconds)",
+              type: "number",
+              help: "How long a tool waits for the extension. Default 30.",
+              env: "BROWSER_TIMEOUT",
+              value: -> { browser_number("BROWSER_TIMEOUT", "timeout", 30).to_s }
+            },
+            {
+              name: "browser_ws_heartbeat",
+              label: "Heartbeat (seconds)",
+              type: "number",
+              help: "How often the extension checks in. Default 15. Reconnect the extension after changing it.",
+              env: "BROWSER_WS_HEARTBEAT",
+              value: -> { browser_number("BROWSER_WS_HEARTBEAT", "heartbeat", 15).to_s }
             }
           ]
         end
@@ -85,6 +116,18 @@ module Emcp
           origins = credential_hash["BROWSER_ALLOWED_ORIGINS"] if origins.blank? && params["browser_allowed_origins"].nil?
           origins = OriginPolicy::DEFAULT if origins.blank?
           updates = { "BROWSER_ALLOWED_ORIGINS" => origins }
+          if params.key?("browser_allow_write")
+            self.allow_write = ActiveModel::Type::Boolean.new.cast(params["browser_allow_write"])
+          end
+          if params.key?("browser_allow_eval")
+            updates["BROWSER_ALLOW_EVAL"] = flag_param(params["browser_allow_eval"])
+          end
+          if params.key?("browser_timeout")
+            updates["BROWSER_TIMEOUT"] = number_param(params["browser_timeout"], 30)
+          end
+          if params.key?("browser_ws_heartbeat")
+            updates["BROWSER_WS_HEARTBEAT"] = number_param(params["browser_ws_heartbeat"], 15)
+          end
           unless paired?
             updates["BROWSER_PAIRING_TOKEN"] = SecureRandom.hex(32)
             updates["BROWSER_PAIRED_AT"] = nil
@@ -117,10 +160,33 @@ module Emcp
         end
 
         def credential_env_keys
-          %w[BROWSER_ALLOWED_ORIGINS BROWSER_PAIRING_TOKEN BROWSER_PAIRED_AT]
+          %w[
+            BROWSER_ALLOWED_ORIGINS BROWSER_PAIRING_TOKEN BROWSER_PAIRED_AT
+            BROWSER_ALLOW_EVAL BROWSER_TIMEOUT BROWSER_WS_HEARTBEAT
+          ]
+        end
+
+        def browser_flag(key)
+          raw = credential_hash[key].presence || ENV[key].presence || Emcp.server_setting("browser", "allow_eval", false)
+          ActiveModel::Type::Boolean.new.cast(raw)
+        end
+
+        def browser_number(key, setting, default)
+          raw = credential_hash[key].presence || ENV[key].presence || Emcp.server_setting("browser", setting, default)
+          seconds = raw.to_i
+          seconds.positive? ? seconds : default
         end
 
         private
+
+        def flag_param(value)
+          ActiveModel::Type::Boolean.new.cast(value) ? "true" : "false"
+        end
+
+        def number_param(value, default)
+          seconds = Emcp.sanitize_env_value(value).to_i
+          (seconds.positive? ? seconds : default).to_s
+        end
 
         def pairing_token
           credential_hash["BROWSER_PAIRING_TOKEN"].to_s
@@ -209,7 +275,7 @@ module Emcp
 
           define_tool(
             name: "browser_eval_readonly",
-            description: "Evaluate a JavaScript expression in the page and return a JSON value. Disabled unless BROWSER_ALLOW_EVAL=true. The expression can still call page functions.",
+            description: "Evaluate a JavaScript expression in the page and return a JSON value. Disabled unless Allow page JavaScript is on for this instance. The expression can still call page functions.",
             properties: {
               expression: string_prop("JavaScript expression"),
               tab_id: integer_prop("Optional Chrome tab id"),

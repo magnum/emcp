@@ -61,19 +61,15 @@ module Emcp
 
         def ensure_eval!(tool)
           return unless tool == EVAL_TOOL
-          raise "browser_eval_readonly is disabled. Set BROWSER_ALLOW_EVAL=true" unless eval_allowed?
+          raise "browser_eval_readonly is disabled. Turn on Allow page JavaScript for this instance, or set BROWSER_ALLOW_EVAL=true" unless eval_allowed?
         end
 
         def eval_allowed?
-          ActiveModel::Type::Boolean.new.cast(
-            ENV.fetch("BROWSER_ALLOW_EVAL") { Emcp.server_setting("browser", "allow_eval", false) },
-          )
+          @server.browser_flag("BROWSER_ALLOW_EVAL")
         end
 
         def timeout
-          raw = ENV["BROWSER_TIMEOUT"].presence || Emcp.server_setting("browser", "timeout", 30)
-          seconds = raw.to_i
-          seconds.positive? ? seconds : 30
+          @server.browser_number("BROWSER_TIMEOUT", "timeout", 30)
         end
 
         def max_chars

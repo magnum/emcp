@@ -28,7 +28,7 @@ module Emcp
             "instance_id" => server.id,
             "token" => token,
             "origins" => OriginPolicy.parse(server.credentials_hash["BROWSER_ALLOWED_ORIGINS"]),
-            "heartbeat" => SessionRegistry.heartbeat_seconds,
+            "heartbeat" => SessionRegistry.heartbeat_seconds_for(server),
           }
         end
 

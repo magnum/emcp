@@ -9,6 +9,13 @@ let attempt = 0;
 let stopped = false;
 let superseded = false;
 let online = false;
+let busyCount = 0;
+
+const TOOLBAR_ICONS = {
+  offline: { 16: "icons/gray16.png", 48: "icons/gray48.png", 128: "icons/gray128.png" },
+  online: { 16: "icons/green16.png", 48: "icons/green48.png", 128: "icons/green128.png" },
+  busy: { 16: "icons/yellow16.png", 48: "icons/yellow48.png", 128: "icons/yellow128.png" },
+};
 
 chrome.runtime.onInstalled.addListener(restore);
 chrome.runtime.onStartup.addListener(restore);
@@ -49,9 +56,31 @@ function publicStatus() {
 }
 
 async function restore() {
+  setPresence("offline");
   const stored = await chrome.storage.local.get("emcpBrowser");
   config = stored.emcpBrowser || null;
   if (config?.token && config.ws && config.instance_id) connect();
+}
+
+function setPresence(state) {
+  const name = busyCount > 0 ? "busy" : state;
+  chrome.action.setIcon({ path: TOOLBAR_ICONS[name] || TOOLBAR_ICONS.offline });
+  const titles = {
+    offline: "eMCP Browser — offline",
+    online: "eMCP Browser — online",
+    busy: "eMCP Browser — working",
+  };
+  chrome.action.setTitle({ title: titles[name] || titles.offline });
+}
+
+function beginWork() {
+  busyCount += 1;
+  setPresence("busy");
+}
+
+function endWork() {
+  busyCount = Math.max(0, busyCount - 1);
+  setPresence(online ? "online" : "offline");
 }
 
 async function saveAndConnect(next) {
@@ -73,6 +102,8 @@ async function disconnect(clear) {
   if (socket) socket.close();
   socket = null;
   online = false;
+  busyCount = 0;
+  setPresence("offline");
   if (clear) {
     config = null;
     await chrome.storage.local.remove("emcpBrowser");
@@ -98,6 +129,7 @@ function connect() {
   socket.onclose = () => {
     online = false;
     clearTimers();
+    setPresence("offline");
     if (!stopped && !superseded) scheduleReconnect();
   };
   socket.onerror = () => socket?.close();
@@ -118,6 +150,7 @@ function onFrame(raw) {
   if (frame.type === "confirm_subscription") {
     online = true;
     startHeartbeat();
+    setPresence("online");
     return;
   }
   if (frame.type === "ping" || frame.type === "reject_subscription") return;
@@ -127,13 +160,15 @@ function onFrame(raw) {
   if (message.kind === "superseded") {
     superseded = true;
     stopped = true;
+    online = false;
     clearTimers();
+    setPresence("offline");
     socket?.close();
     return;
   }
   if (message.kind === "heartbeat" || !message.tool || !message.request_id) return;
 
-  handleCommand(message).then(
+  runCommand(message).then(
     (result) => reply(message.request_id, { ok: true, result }),
     (error) => reply(message.request_id, { ok: false, error: error.message || "browser command failed" }),
   );
@@ -172,6 +207,15 @@ function clearTimers() {
   clearTimeout(reconnectTimer);
   heartbeatTimer = null;
   reconnectTimer = null;
+}
+
+async function runCommand(message) {
+  beginWork();
+  try {
+    return await handleCommand(message);
+  } finally {
+    endWork();
+  }
 }
 
 async function handleCommand(message) {

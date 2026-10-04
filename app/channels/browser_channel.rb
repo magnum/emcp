@@ -7,7 +7,8 @@ class BrowserChannel < ApplicationCable::Channel
     reject unless server.is_a?(::Emcp::Servers::Browser::Server)
 
     registry.supersede(server.id)
-    @generation = registry.attach(server.id, connection)
+    stale_after = ::Emcp::Servers::Browser::SessionRegistry.heartbeat_seconds_for(server) * 3
+    @generation = registry.attach(server.id, connection, stale_after: stale_after)
     server.mark_paired!
     stream_from registry.stream_name(server.id)
   end
