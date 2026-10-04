@@ -196,6 +196,7 @@ module Emcp
       "homeassistant" => "HASS_CLI_BIN",
       "onepassword" => "OP_BIN",
       "whatsapp" => "WHATSAPP_BRIDGE_BIN",
+      "telegram" => "TELEGRAM_BRIDGE_BIN",
     }[code.to_s]
   end
 end

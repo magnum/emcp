@@ -62,6 +62,27 @@ class TelegramClientTest < ActiveSupport::TestCase
     assert_empty @sleeps
   end
 
+  test "a missing source path falls back to telegram-bridge on PATH" do
+    dir = Dir.mktmpdir("telegram-bin")
+    installed = File.join(dir, "telegram-bridge")
+    File.write(installed, "#!/bin/sh\n")
+    File.chmod(0o755, installed)
+    previous = ENV["PATH"]
+    ENV["PATH"] = "#{dir}#{File::PATH_SEPARATOR}#{previous}"
+    process = Emcp::Servers::Telegram::BridgeProcess.new(
+      store_dir: Dir.mktmpdir("telegram-store"),
+      binary: "/rails/servers/telegram/bridge/telegram-bridge",
+    )
+
+    resolved = process.resolved_binary
+    assert_equal installed, resolved unless File.executable?(Emcp::Servers::Telegram::BridgeProcess::DEFAULT_BINARY)
+    assert process.configured?
+    assert_equal "TELEGRAM_BRIDGE_BIN", Emcp.bin_env_for("telegram")
+  ensure
+    ENV["PATH"] = previous if previous
+    FileUtils.rm_rf(dir) if dir
+  end
+
   test "the bridge source never marks messages read" do
     source = Dir[Rails.root.join("servers/telegram/bridge/*.go")].map { |path| File.read(path) }.join
     refute_match(/ReadHistory|ReadMessageContents/, source)

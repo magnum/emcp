@@ -32,9 +32,11 @@ module Emcp
         end
 
         def resolved_binary
-          candidates = [ binary, DEFAULT_BINARY, "telegram-bridge" ]
-          candidates.find { |path| path.present? && path.include?("/") && File.executable?(path) } ||
-            find_on_path(binary.presence || "telegram-bridge")
+          [ binary, DEFAULT_BINARY ].each do |path|
+            return path if path.present? && path.include?("/") && File.executable?(path)
+          end
+
+          find_on_path(bare_binary_name) || find_on_path("telegram-bridge")
         end
 
         def running?
@@ -109,6 +111,11 @@ module Emcp
         def session_file = File.join(store_dir, "session.bin")
 
         private
+
+        def bare_binary_name
+          name = binary.presence || "telegram-bridge"
+          name.include?("/") ? File.basename(name) : name
+        end
 
         def find_on_path(name)
           return if name.blank? || name.include?(File::SEPARATOR)
