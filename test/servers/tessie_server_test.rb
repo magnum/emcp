@@ -55,6 +55,40 @@ class TessieServerTest < ActiveSupport::TestCase
     assert_equal 12.9, data.dig("navigation", "km_to_arrival")
     query = @transport.calls.last[2]
     assert_equal "true", query["use_cache"]
+    assert_equal 321.9, data["ideal_range_km"]
+  end
+
+  test "get_state ignores false and zero ranges without calling to_i" do
+    @transport.respond("/#{VIN}/state", asleep_state)
+
+    data = tool_data("tessie_get_state")
+
+    assert_equal({
+      "vin" => VIN,
+      "name" => "Red",
+      "state" => "asleep",
+      "range_km" => 422.0,
+      "ideal_range_km" => 422.0,
+      "charging" => false,
+      "climate_on" => false,
+      "locked" => false,
+      "windows_open" => false,
+      "frunk_open" => false,
+      "trunk_open" => false,
+      "sentry" => false,
+      "navigation" => { "active" => false },
+    }, data)
+
+    battery = Emcp::Servers::Tessie::StateSummary.battery(
+      "battery_level" => false,
+      "battery_range" => 262.2,
+      "est_battery_range" => 262.2,
+      "ideal_battery_range" => 0,
+      "rated_battery_range" => false,
+    )
+    assert_equal 422.0, battery["range_km"]
+    assert_equal 422.0, battery["ideal_range_km"]
+    refute battery.key?("battery_percent")
   end
 
   test "write tools stay disabled until allow_write is on" do
@@ -114,6 +148,41 @@ class TessieServerTest < ActiveSupport::TestCase
   def tool_data(name, arguments = {})
     result = @server.call_tool(name, arguments)
     result.structured_content["data"]
+  end
+
+  def asleep_state
+    {
+      "vin" => VIN,
+      "display_name" => "Red",
+      "state" => "asleep",
+      "charge_state" => {
+        "battery_level" => false,
+        "battery_range" => 0,
+        "est_battery_range" => 262.2,
+        "ideal_battery_range" => 0,
+        "rated_battery_range" => false,
+        "charging_state" => false,
+        "charge_limit_soc" => nil,
+      },
+      "climate_state" => { "is_climate_on" => false, "inside_temp" => false, "outside_temp" => nil },
+      "vehicle_state" => {
+        "locked" => false,
+        "fd_window" => false,
+        "fp_window" => 0,
+        "rd_window" => nil,
+        "rp_window" => false,
+        "ft" => false,
+        "rt" => 0,
+        "sentry_mode" => false,
+      },
+      "drive_state" => {
+        "latitude" => false,
+        "longitude" => nil,
+        "active_route_destination" => false,
+        "active_route_minutes_to_arrival" => false,
+        "active_route_miles_to_arrival" => 0,
+      },
+    }
   end
 
   def sample_state

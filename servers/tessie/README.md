@@ -23,6 +23,8 @@ Operator UI: `/servers/<id>/auth`
 
 Distances requested from Tessie are kilometers, temperatures Celsius, and tire pressure bar, on the endpoints that accept those units. `GET /{vin}/state` has no unit parameter, so range in the summary is converted from miles.
 
+`range_km` is the first positive value among `battery_range`, `est_battery_range`, and `rated_battery_range`. `ideal_range_km` uses `ideal_battery_range` when that value is positive. A cached asleep state often sends the ideal range as `0`, `nil`, or `false` while the estimated range is still present, so the summary then uses rated range, then `est_battery_range`, then `battery_range`. `nil`, `false`, `true`, and other non-numeric values are left out of the summary. Boolean fields such as locked, climate, and sentry stay `false` when Tessie says so.
+
 ## Read tools
 
 | Tool | API |

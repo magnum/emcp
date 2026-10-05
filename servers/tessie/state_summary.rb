@@ -15,16 +15,17 @@ module Emcp
           climate = hash_at(payload, "climate_state")
           vehicle = hash_at(payload, "vehicle_state")
           drive = hash_at(payload, "drive_state")
-          destination = first_present(drive["active_route_destination"], payload["active_route_destination"])
-          minutes = first_present(drive["active_route_minutes_to_arrival"], payload["active_route_minutes_to_arrival"])
-          miles = first_present(drive["active_route_miles_to_arrival"], payload["active_route_miles_to_arrival"])
+          destination = text_at(drive["active_route_destination"], payload["active_route_destination"])
+          minutes = number_at(drive, payload, "active_route_minutes_to_arrival")
+          miles = positive_number_at(drive, payload, "active_route_miles_to_arrival")
 
           {
-            "vin" => payload["vin"],
-            "name" => payload["display_name"],
-            "state" => payload["state"],
+            "vin" => text_at(payload["vin"]),
+            "name" => text_at(payload["display_name"]),
+            "state" => text_at(payload["state"]),
             "battery_percent" => number_at(charge, payload, "battery_level"),
-            "range_km" => miles_to_km(first_present(charge["battery_range"], payload["battery_range"])),
+            "range_km" => driving_range_km(charge, payload),
+            "ideal_range_km" => ideal_range_km(charge, payload),
             "charging" => charging?(first_present(charge["charging_state"], payload["charging_state"])),
             "charge_limit_percent" => number_at(charge, payload, "charge_limit_soc"),
             "climate_on" => truthy?(first_present(climate["is_climate_on"], payload["is_climate_on"])),
@@ -40,10 +41,10 @@ module Emcp
             "navigation" => {
               "active" => destination.present?,
               "destination" => destination,
-              "minutes_to_arrival" => minutes&.to_f,
+              "minutes_to_arrival" => minutes,
               "km_to_arrival" => miles_to_km(miles),
-            },
-          }
+            }.compact,
+          }.compact
         end
 
         def vehicles(payload)
@@ -66,14 +67,14 @@ module Emcp
         def battery(payload)
           row = payload.is_a?(Hash) ? payload : {}
           {
-            "battery_percent" => row["battery_level"],
-            "range_km" => miles_to_km(row["battery_range"]),
-            "ideal_range_km" => miles_to_km(row["ideal_battery_range"]),
-            "energy_remaining_kwh" => row["energy_remaining"],
-            "charging_amps" => row["charger_actual_current"] || row["pack_current"],
-            "module_temp_min_c" => row["module_temp_min"],
-            "module_temp_max_c" => row["module_temp_max"],
-          }
+            "battery_percent" => numeric(row["battery_level"]),
+            "range_km" => driving_range_km(row, {}),
+            "ideal_range_km" => ideal_range_km(row, {}),
+            "energy_remaining_kwh" => numeric(row["energy_remaining"]),
+            "charging_amps" => first_numeric(row["charger_actual_current"], row["pack_current"]),
+            "module_temp_min_c" => numeric(row["module_temp_min"]),
+            "module_temp_max_c" => numeric(row["module_temp_max"]),
+          }.compact
         end
 
         def drives(payload)
@@ -108,9 +109,22 @@ module Emcp
         end
 
         def miles_to_km(miles)
-          return if miles.nil? || miles == ""
+          number = numeric(miles)
+          return if number.nil?
 
-          (miles.to_f * MILES_TO_KM).round(1)
+          (number * MILES_TO_KM).round(1)
+        end
+
+        # Estimated range first. Ideal range on a cached asleep payload is often 0, nil, or false
+        # while battery_range / est_battery_range still holds the usable distance.
+        def driving_range_km(charge, payload)
+          miles_to_km(first_positive(charge, payload, "battery_range", "est_battery_range", "rated_battery_range"))
+        end
+
+        def ideal_range_km(charge, payload)
+          miles = first_positive(charge, payload, "ideal_battery_range")
+          miles ||= first_positive(charge, payload, "rated_battery_range", "est_battery_range", "battery_range")
+          miles_to_km(miles)
         end
 
         def compact_rows(payload)
@@ -123,28 +137,73 @@ module Emcp
         end
 
         def number_at(nested, payload, key)
-          value = first_present(nested[key], payload[key])
-          return if value.nil?
+          first_numeric(nested[key], payload[key])
+        end
 
-          value.to_f
+        def positive_number_at(nested, payload, key)
+          first_positive(nested, payload, key)
         end
 
         def first_present(*values)
           values.find { |value| !value.nil? && value != "" }
         end
 
+        def first_numeric(*values)
+          values.each do |value|
+            number = numeric(value)
+            return number unless number.nil?
+          end
+          nil
+        end
+
+        def first_positive(nested, payload, *keys)
+          keys.each do |key|
+            number = first_numeric(nested[key], payload[key])
+            return number if number&.positive?
+          end
+          nil
+        end
+
+        def numeric(value)
+          return value.to_f if value.is_a?(Numeric)
+          return if value.nil? || value == false || value == true
+
+          text = value.to_s.strip
+          return unless text.match?(/\A-?\d+(?:\.\d+)?\z/)
+
+          text.to_f
+        end
+
+        def text_at(*values)
+          values.each do |value|
+            next if value.nil? || value == false || value == true
+
+            text = value.to_s.strip
+            return text unless text.empty?
+          end
+          nil
+        end
+
         def charging?(state)
+          return false if state.nil? || state == false || state == true
+
           %w[Charging Starting].include?(state.to_s)
         end
 
         def truthy?(value)
-          value == true || value.to_s == "true" || value.to_i == 1
+          return true if value == true
+          return false if value.nil? || value == false
+          return true if value.to_s == "true"
+
+          numeric(value) == 1
         end
 
         def open?(value)
+          return true if value == true
           return false if value.nil? || value == false
 
-          value == true || value.to_f.positive?
+          number = numeric(value)
+          !number.nil? && number.positive?
         end
       end
     end
