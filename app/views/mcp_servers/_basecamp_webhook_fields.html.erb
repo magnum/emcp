@@ -1,0 +1,36 @@
+<%# locals: (f:, input_class:, viewing: false) %>
+<% new_record = f.object.new_record? %>
+<% field_class = "#{input_class} disabled:bg-stone-100 disabled:text-stone-800 dark:disabled:bg-zinc-900 dark:disabled:text-zinc-200" %>
+<%= tag.fieldset disabled: viewing, class: "min-w-0 border-0 p-0" do %>
+  <div class="space-y-4">
+    <div>
+      <%= f.label :url, "URL", class: "mb-2 block font-semibold" %>
+      <%= f.url_field :url, required: !viewing, placeholder: "https://assistant.example/hooks/basecamp", class: field_class %>
+      <p class="mt-1 text-stone-500 dark:text-zinc-400">EmCP posts Basecamp comments and messages here. The receiver handles mentions.</p>
+    </div>
+    <div>
+      <%= f.label :secret, "Secret", class: "mb-2 block font-semibold" %>
+      <% if viewing %>
+        <%= text_field_tag :secret_saved, "Saved", disabled: true, class: field_class, aria: { label: "Secret" } %>
+      <% else %>
+        <%= f.password_field :secret,
+              value: nil,
+              required: new_record,
+              autocomplete: "new-password",
+              placeholder: (new_record ? nil : "Leave blank to keep the current secret"),
+              class: field_class %>
+      <% end %>
+    </div>
+    <div>
+      <%= f.label :secret_header, "Secret header", class: "mb-2 block font-semibold" %>
+      <%= f.text_field :secret_header, required: !viewing, class: field_class %>
+      <p class="mt-1 text-stone-500 dark:text-zinc-400">Sent as Bearer &lt;secret&gt;. Default Authorization.</p>
+    </div>
+    <div>
+      <%= f.label :enabled, "Enabled", class: "inline-flex items-center gap-2 font-semibold" do %>
+        <%= f.check_box :enabled, disabled: viewing, class: "h-4 w-4" %>
+        Enabled
+      <% end %>
+    </div>
+  </div>
+<% end %>

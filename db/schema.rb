@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_04_170000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_05_010000) do
   create_table "api_keys", force: :cascade do |t|
     t.bigint "bearer_id", null: false
     t.string "bearer_type", null: false
@@ -23,6 +23,42 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_04_170000) do
     t.datetime "updated_at", null: false
     t.index ["bearer_type", "bearer_id"], name: "index_api_keys_on_bearer"
     t.index ["token_digest"], name: "index_api_keys_on_token_digest", unique: true
+  end
+
+  create_table "basecamp_hook_receipts", force: :cascade do |t|
+    t.integer "basecamp_hook_id", null: false
+    t.datetime "created_at", null: false
+    t.string "event_id", null: false
+    t.string "outcome", null: false
+    t.string "reason"
+    t.datetime "updated_at", null: false
+    t.integer "webhook_id"
+    t.index ["basecamp_hook_id", "event_id"], name: "index_basecamp_hook_receipts_on_hook_and_event", unique: true
+    t.index ["basecamp_hook_id"], name: "index_basecamp_hook_receipts_on_basecamp_hook_id"
+    t.index ["webhook_id"], name: "index_basecamp_hook_receipts_on_webhook_id"
+    t.check_constraint "outcome IN ('sent', 'filtered')", name: "basecamp_hook_receipts_outcome"
+  end
+
+  create_table "basecamp_hooks", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.boolean "enabled", default: true, null: false
+    t.integer "mcp_server_id", null: false
+    t.text "secret", null: false
+    t.string "secret_header", default: "Authorization", null: false
+    t.datetime "updated_at", null: false
+    t.string "url", null: false
+    t.index ["mcp_server_id"], name: "index_basecamp_hooks_on_mcp_server_id"
+  end
+
+  create_table "basecamp_projects", force: :cascade do |t|
+    t.string "basecamp_webhook_id", null: false
+    t.datetime "created_at", null: false
+    t.integer "mcp_server_id", null: false
+    t.string "name", null: false
+    t.string "project_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["mcp_server_id", "project_id"], name: "index_basecamp_projects_on_server_and_project", unique: true
+    t.index ["mcp_server_id"], name: "index_basecamp_projects_on_mcp_server_id"
   end
 
   create_table "context_memberships", force: :cascade do |t|
@@ -352,6 +388,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_04_170000) do
     t.check_constraint "respond_when IN ('never', 'always', 'mention', 'word')", name: "whatsapp_hooks_respond_when"
   end
 
+  add_foreign_key "basecamp_hook_receipts", "basecamp_hooks"
+  add_foreign_key "basecamp_hook_receipts", "webhooks", on_delete: :nullify
+  add_foreign_key "basecamp_hooks", "mcp_servers"
+  add_foreign_key "basecamp_projects", "mcp_servers"
   add_foreign_key "context_memberships", "mcp_servers"
   add_foreign_key "context_memberships", "mcp_servers", column: "context_id"
   add_foreign_key "mcp_oauth_access_tokens", "mcp_oauth_clients"

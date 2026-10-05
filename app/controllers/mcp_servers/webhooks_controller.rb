@@ -47,7 +47,9 @@ module McpServers
 
     def set_server
       @server = current_user.mcp_servers.find(params[:mcp_server_id])
-      return if @server.is_a?(Emcp::Servers::Whatsapp::Server) || @server.is_a?(Emcp::Servers::Telegram::Server)
+      return if @server.is_a?(Emcp::Servers::Whatsapp::Server) ||
+        @server.is_a?(Emcp::Servers::Telegram::Server) ||
+        @server.is_a?(Emcp::Servers::Basecamp::Server)
 
       raise ActiveRecord::RecordNotFound
     end
@@ -57,11 +59,18 @@ module McpServers
     end
 
     def hook_scope
-      @server.is_a?(Emcp::Servers::Telegram::Server) ? @server.telegram_hooks : @server.whatsapp_hooks
+      if @server.is_a?(Emcp::Servers::Telegram::Server)
+        @server.telegram_hooks
+      elsif @server.is_a?(Emcp::Servers::Basecamp::Server)
+        @server.basecamp_hooks
+      else
+        @server.whatsapp_hooks
+      end
     end
 
     def hook_params
       return telegram_hook_params if @server.is_a?(Emcp::Servers::Telegram::Server)
+      return basecamp_hook_params if @server.is_a?(Emcp::Servers::Basecamp::Server)
 
       permitted = params.expect(whatsapp_hook: [
         :url, :secret, :secret_header, :respond_when, :consider_words, :history_limit,
@@ -76,6 +85,12 @@ module McpServers
         number = raw&.to_i
         permitted[:history_limit] = (number.nil? || number == Emcp::Servers::Whatsapp::ChatHistory.limit) ? nil : number
       end
+      permitted
+    end
+
+    def basecamp_hook_params
+      permitted = params.expect(basecamp_hook: [ :url, :secret, :secret_header, :enabled ])
+      permitted.delete(:secret) if permitted[:secret].blank?
       permitted
     end
 

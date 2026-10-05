@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 require_relative "basecamp_client"
+require_relative "project"
+require_relative "hook"
 
 module Emcp
   module Servers
@@ -213,13 +215,117 @@ module Emcp
           File.file?(cli_credentials_path) && File.size(cli_credentials_path).positive?
         end
 
-        def credential_env_keys = %w[BASECAMP_TOKEN BASECAMP_ACCOUNT_ID]
+        def credential_env_keys = %w[BASECAMP_TOKEN BASECAMP_ACCOUNT_ID BASECAMP_INBOUND_TOKEN]
+
+        has_many :basecamp_projects, class_name: "Emcp::Servers::Basecamp::Project",
+                 foreign_key: :mcp_server_id, dependent: :destroy
+        has_many :basecamp_hooks, class_name: "Emcp::Servers::Basecamp::Hook",
+                 foreign_key: :mcp_server_id, dependent: :destroy
+
+        WEBHOOK_TYPES = "Comment,Message"
+
+        def remote_projects
+          rows = cli_data(run_cli!([ "projects", "list", "--json" ]))
+          Array(rows).filter_map { |row| project_row(row) }
+        end
+
+        def link_basecamp_project!(project_id:, name:)
+          project_id = project_id.to_s.strip
+          name = name.to_s.strip
+          raise "Project is required" if project_id.empty? || name.empty?
+
+          existing = basecamp_projects.find_by(project_id: project_id)
+          return existing if existing
+
+          url = basecamp_inbound_url
+          raw = run_cli!([
+            "webhooks", "create", url,
+            "--types", WEBHOOK_TYPES,
+            "--in", project_id,
+            "--json",
+          ])
+          created = cli_data(raw)
+          webhook_id = created.is_a?(Hash) ? created["id"].to_s.strip : ""
+          raise "Basecamp did not return a webhook id" if webhook_id.empty?
+
+          basecamp_projects.create!(
+            project_id: project_id,
+            name: name,
+            basecamp_webhook_id: webhook_id,
+          )
+        end
+
+        def accept_basecamp_event!(raw)
+          event = JSON.parse(raw.to_s)
+          return unless event.is_a?(Hash)
+
+          project_id = event.dig("recording", "bucket", "id").to_s
+          project = basecamp_projects.find_by(project_id: project_id)
+          return if project.nil?
+
+          basecamp_hooks.enabled.find_each { |hook| hook.deliver_event!(project, event) }
+        rescue JSON::ParserError
+          nil
+        end
+
+        def inbound_token_match?(presented)
+          stored = inbound_token
+          return false if presented.blank? || stored.blank?
+
+          Emcp.secure_equals(presented, stored)
+        end
+
+        def basecamp_inbound_url
+          "#{Emcp.public_url}/servers/#{id}/basecamp_events/#{inbound_token}"
+        end
+
+        def run_cli!(args)
+          load_credentials!
+          replace_client!
+          @client.run(args, truncate: false)
+        end
 
         private
+
+        def inbound_token
+          load_credentials!
+          token = Emcp.sanitize_env_value(credentials_hash["BASECAMP_INBOUND_TOKEN"])
+          return token if token.present?
+
+          token = SecureRandom.urlsafe_base64(32)
+          persist_credentials!("BASECAMP_INBOUND_TOKEN" => token)
+          token
+        end
+
+        def cli_data(raw)
+          parsed = JSON.parse(raw.to_s)
+          if parsed.is_a?(Hash)
+            raise Emcp::CliError, parsed["error"].to_s if parsed["ok"] == false
+
+            return parsed["data"] if parsed.key?("data")
+          end
+          parsed
+        rescue JSON::ParserError => e
+          raise Emcp::CliError, "Basecamp CLI returned invalid JSON: #{e.message}"
+        end
+
+        def project_row(row)
+          return unless row.is_a?(Hash)
+
+          id = row["id"].to_s.strip
+          name = row["name"].to_s.strip
+          return if id.empty? || name.empty?
+
+          status = row["status"].to_s
+          return if status.present? && status != "active"
+
+          { "id" => id, "name" => name }
+        end
 
         def cli_process_env
           env = {
             "BASECAMP_NO_KEYRING" => "1",
+            "BASECAMP_NONINTERACTIVE" => "1",
             "HOME" => cli_home,
             "XDG_CONFIG_HOME" => File.join(cli_home, ".config"),
             "BASECAMP_ACCOUNT_ID" => Emcp.sanitize_env_value(ENV["BASECAMP_ACCOUNT_ID"]),

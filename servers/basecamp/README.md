@@ -33,6 +33,25 @@ Importing `credentials.json` lets the Basecamp CLI refresh OAuth tokens on the s
 | `BASECAMP_TIMEOUT` | CLI timeout seconds (default `30`) |
 | `BASECAMP_NO_KEYRING` | Forced `1` for EmCP CLI invocations (file-backed credentials) |
 
+## Project webhooks
+
+On the server page, **Link a project** lists Basecamp projects. Linking one runs `basecamp webhooks create` with this instance’s URL (`/servers/<id>/basecamp_events/<token>`) for `Comment` and `Message`. Unlinking deletes that Basecamp webhook. Campfire and pings are not webhook types.
+
+**Webhooks** on the same page are the outbound URLs. EmCP forwards each accepted event as JSON:
+
+```json
+{
+  "event": "basecamp.event",
+  "instance": "basecamp-<id>",
+  "project_id": "2085958498",
+  "project_name": "The Leto Laptop",
+  "kind": "comment_created",
+  "basecamp": { }
+}
+```
+
+`basecamp` is the payload Basecamp posted. A mention is a `<bc-attachment sgid="…">` inside `basecamp.recording.content`; the sgid contains `gid://bc3/Person/<id>`. Basecamp does not filter by person, so the receiver decides. The secret is sent as `Bearer` on the configured header. Delivery is async and a repeated Basecamp event id is posted once per webhook.
+
 ## Tools
 
 About **38** tools (projects, todos, cards, messages, comments, chat, files, schedule, search, people, notifications, and more). Mutations are gated by `BASECAMP_ALLOW_WRITE`.

@@ -1,0 +1,39 @@
+<% content_for :title, "Link a Basecamp project" %>
+
+<div class="w-full max-w-4xl mx-auto">
+  <p class="mb-4">
+    <%= link_to "← #{@server.name}", mcp_server_path(@server), class: "font-semibold underline" %>
+  </p>
+  <h1 class="text-3xl font-bold tracking-tight">Projects</h1>
+  <p class="mt-3 text-stone-600 dark:text-zinc-400">
+    Linking registers this EmCP URL on that Basecamp project for comments and messages.
+    Chat is not part of Basecamp webhooks.
+  </p>
+
+  <% if @cli_error.present? %>
+    <p class="mt-6 rounded-lg border border-amber-700 bg-amber-50 px-4 py-3 text-amber-950 dark:bg-amber-950 dark:text-amber-100">
+      <%= @cli_error %>
+    </p>
+  <% elsif @projects.empty? %>
+    <p class="mt-6 text-stone-600 dark:text-zinc-400">No active projects.</p>
+  <% else %>
+    <ul class="mt-6 divide-y divide-stone-300 border-y border-stone-300 dark:divide-zinc-700 dark:border-zinc-700">
+      <% @projects.each do |project| %>
+        <% linked = @linked[project["id"]] %>
+        <li class="flex items-center gap-4 py-3">
+          <span class="min-w-0 flex-1 truncate">
+            <span class="font-semibold"><%= project["name"] %></span>
+            <span class="ml-2 font-mono text-sm text-stone-500 dark:text-zinc-400"><%= project["id"] %></span>
+          </span>
+          <% if linked %>
+            <span class="shrink-0 text-sm text-stone-500 dark:text-zinc-400">Linked</span>
+          <% else %>
+            <%= button_to "Link", mcp_server_basecamp_projects_path(@server),
+                  params: { basecamp_project: { project_id: project["id"], name: project["name"] } },
+                  class: "font-semibold underline" %>
+          <% end %>
+        </li>
+      <% end %>
+    </ul>
+  <% end %>
+</div>

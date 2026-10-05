@@ -1,6 +1,8 @@
 <%# locals: (f:, input_class:, viewing: false) %>
 <% if f.object.is_a?(Emcp::Servers::Telegram::Hook) %>
   <%= render "mcp_servers/telegram_webhook_fields", f: f, input_class: input_class, viewing: viewing %>
+<% elsif f.object.is_a?(Emcp::Servers::Basecamp::Hook) %>
+  <%= render "mcp_servers/basecamp_webhook_fields", f: f, input_class: input_class, viewing: viewing %>
 <% else %>
 <% new_record = f.object.new_record? %>
 <% history_value = f.object.history_limit.nil? ? Emcp::Servers::Whatsapp::ChatHistory.limit : f.object.history_limit %>

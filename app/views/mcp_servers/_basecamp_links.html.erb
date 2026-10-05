@@ -1,0 +1,77 @@
+<%# locals: server %>
+<% icon_button = "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-stone-700 hover:bg-stone-200 dark:text-zinc-200 dark:hover:bg-zinc-800" %>
+<section class="mt-10 border-t border-stone-300 pt-8 dark:border-zinc-700">
+  <h2 class="text-2xl font-bold tracking-tight">Projects</h2>
+  <p class="mt-3 text-stone-600 dark:text-zinc-400">
+    Linking a project registers EmCP as its Basecamp webhook for comments and messages.
+    Campfire chat is not included. EmCP forwards each event to the webhooks below.
+  </p>
+
+  <% projects = server.basecamp_projects.order(:name) %>
+  <% if projects.any? %>
+    <ul class="mt-6 divide-y divide-stone-300 border-y border-stone-300 dark:divide-zinc-700 dark:border-zinc-700">
+      <% projects.each do |project| %>
+        <li class="flex items-center gap-4 py-3">
+          <span class="min-w-0 flex-1 truncate">
+            <span class="font-semibold"><%= project.name %></span>
+            <span class="ml-2 font-mono text-sm text-stone-500 dark:text-zinc-400"><%= project.project_id %></span>
+          </span>
+          <%= button_to mcp_server_basecamp_project_path(server, project),
+                method: :delete,
+                class: icon_button,
+                title: "Unlink",
+                aria: { label: "Unlink #{project.name}" },
+                form: { data: { turbo_confirm: "Unlink #{project.name}? EmCP will remove its webhook from this Basecamp project." } } do %>
+            <%= heroicon "trash", variant: :outline, options: { class: "h-5 w-5" } %>
+          <% end %>
+        </li>
+      <% end %>
+    </ul>
+  <% else %>
+    <p class="mt-4 text-stone-600 dark:text-zinc-400">No projects linked yet.</p>
+  <% end %>
+
+  <p class="mt-6">
+    <%= link_to "Link a project", mcp_server_basecamp_projects_path(server), class: "font-semibold underline" %>
+  </p>
+</section>
+
+<section class="mt-10 border-t border-stone-300 pt-8 dark:border-zinc-700">
+  <h2 class="text-2xl font-bold tracking-tight">Webhooks</h2>
+  <p class="mt-3 text-stone-600 dark:text-zinc-400">
+    EmCP posts every comment and message from linked projects to these URLs.
+    The receiver decides what to do, including when a specific person is mentioned.
+  </p>
+
+  <% hooks = server.basecamp_hooks.order(:id) %>
+  <% if hooks.any? %>
+    <ul class="mt-6 divide-y divide-stone-300 border-y border-stone-300 dark:divide-zinc-700 dark:border-zinc-700">
+      <% hooks.each do |hook| %>
+        <li class="flex items-center gap-4 py-3">
+          <span class="shrink-0 font-mono text-sm text-stone-500 dark:text-zinc-400"><%= hook.id %></span>
+          <span class="min-w-0 flex-1 truncate font-mono text-sm" title="<%= hook.url %>"><%= hook.url %></span>
+          <% unless hook.enabled? %>
+            <span class="shrink-0 text-sm text-stone-500 dark:text-zinc-400">Paused</span>
+          <% end %>
+          <span class="flex shrink-0 items-center gap-2">
+            <%= button_to mcp_server_webhook_path(server, hook),
+                  method: :delete,
+                  class: icon_button,
+                  title: "Remove",
+                  aria: { label: "Remove" },
+                  form: { data: { turbo_confirm: "Remove this webhook?" } } do %>
+              <%= heroicon "trash", variant: :outline, options: { class: "h-5 w-5" } %>
+            <% end %>
+            <%= link_to "Edit", mcp_server_edit_webhook_path(server, hook), class: "font-semibold underline" %>
+          </span>
+        </li>
+      <% end %>
+    </ul>
+  <% else %>
+    <p class="mt-4 text-stone-600 dark:text-zinc-400">No webhooks yet. Linked projects are accepted, and nothing is forwarded.</p>
+  <% end %>
+
+  <p class="mt-6">
+    <%= link_to "Add webhook", new_mcp_server_webhook_path(server), class: "font-semibold underline" %>
+  </p>
+</section>
