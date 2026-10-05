@@ -106,7 +106,7 @@ The auth form prints that URL. Register that exact string with the provider.
 
 ## Integrations
 
-HEY (CLI 1.7.0), Basecamp (CLI 0.11.0), Fatture in Cloud (API v2), Google Workspace (`gws` 0.22.5), Toggl Track (API v9), Bluesky, Twitter/X (API v2), TeslaMate, Home Assistant (`hass-cli` 1.0.0), 1Password (CLI 2.40.0), WhatsApp (`whatsmeow` bridge), Telegram (MTProto bridge), Microsoft Graph (SharePoint sites), Shopify (Admin API, one store per instance), Browser (Chrome extension relay), Context (hub that proxies other instances). Details are in each `servers/*/README.md`.
+HEY (CLI 1.7.0), Basecamp (CLI 0.11.0), Fatture in Cloud (API v2), Google Workspace (`gws` 0.22.5), Toggl Track (API v9), Bluesky, Twitter/X (API v2), TeslaMate, Tessie (API), Home Assistant (`hass-cli` 1.0.0), 1Password (CLI 2.40.0), WhatsApp (`whatsmeow` bridge), Telegram (MTProto bridge), Microsoft Graph (SharePoint sites), Shopify (Admin API, one store per instance), Browser (Chrome extension relay), Context (hub that proxies other instances). Details are in each `servers/*/README.md`.
 
 ## Contexts
 

@@ -44,6 +44,10 @@ servers:
     allow_write: true
     timeout: 30
     max_chars: 12000
+  tessie:
+    allow_write: false
+    timeout: 45
+    max_chars: 12000
   teslamate:
     allow_write: false
     timeout: 30
