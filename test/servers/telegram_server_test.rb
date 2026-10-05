@@ -26,6 +26,7 @@ class TelegramServerTest < ActiveSupport::TestCase
     ].each do |name|
       assert_includes names, name
     end
+    assert_includes tool("telegram_list_messages")[:input_schema][:required], "chat_id"
     assert tool("telegram_send_message")[:write]
     assert tool("telegram_set_owner_status")[:write]
     %w[telegram_status telegram_list_chats telegram_list_messages telegram_list_unread].each do |name|

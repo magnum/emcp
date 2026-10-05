@@ -21,7 +21,8 @@ module Emcp
 
         def instructions
           "Use Telegram tools to search contacts, list chats, read messages, and send text. " \
-            "recipient is a @username, a phone number with country code and no +, or a numeric chat_id. " \
+            "chat_id is the id from telegram_list_chats, including the -<id> and -100<id> forms. " \
+            "Phone numbers are accepted only by telegram_send_message. " \
             "Reads never send read receipts. " \
             "Write tools stay disabled unless allow_write is on for this instance. " \
             "This links a personal Telegram account over MTProto, not the Bot API. " \
@@ -348,16 +349,16 @@ module Emcp
 
           define_tool(
             name: "telegram_get_chat",
-            description: "Get one Telegram chat by id. Does not mark it read.",
-            properties: { chat_id: string_prop("Numeric chat id") },
+            description: "Get one Telegram chat by id. Accepts the id from telegram_list_chats, including -<id> and -100<id>. Does not mark it read.",
+            properties: { chat_id: string_prop("Id from telegram_list_chats. Also accepts -<id> and -100<id>.") },
             required: [ "chat_id" ],
           ) { |chat_id:| api_response { @client.get_chat(chat_id: chat_id) } }
 
           define_tool(
             name: "telegram_list_messages",
-            description: "List messages. Timestamps are RFC3339 UTC. Does not send read receipts.",
+            description: "List messages in one chat. chat_id is required and is the id from telegram_list_chats, including -<id> and -100<id>. Timestamps are RFC3339 UTC. Does not send read receipts.",
             properties: {
-              chat_id: string_prop("Optional numeric chat id"),
+              chat_id: string_prop("Id from telegram_list_chats. Also accepts -<id> and -100<id>."),
               sender: string_prop("Optional sender id or @username"),
               query: string_prop("Optional text search"),
               after: string_prop("Only messages after this RFC3339 timestamp"),
@@ -365,6 +366,7 @@ module Emcp
               limit: integer_prop("Maximum messages (default 20)"),
               page: integer_prop("Page number, 0-based"),
             },
+            required: [ "chat_id" ],
           ) do |chat_id: nil, sender: nil, query: nil, after: nil, before: nil, limit: nil, page: nil|
             api_response do
               @client.list_messages(
@@ -377,7 +379,7 @@ module Emcp
             name: "telegram_get_message_context",
             description: "Return a message plus neighboring messages in the same chat. Does not mark them read.",
             properties: {
-              chat_id: string_prop("Numeric chat id"),
+              chat_id: string_prop("Id from telegram_list_chats. Also accepts -<id> and -100<id>."),
               message_id: string_prop("Message id"),
               before: integer_prop("Messages before the target (default 5)"),
               after: integer_prop("Messages after the target (default 5)"),
@@ -390,7 +392,7 @@ module Emcp
           define_tool(
             name: "telegram_get_last_interaction",
             description: "Return the most recent message with a peer. Does not mark it read.",
-            properties: { peer_id: string_prop("User id, chat id, or @username") },
+            properties: { peer_id: string_prop("Id from telegram_list_chats, including -<id> and -100<id>, or an @username. Not a phone number.") },
             required: [ "peer_id" ],
           ) { |peer_id:| api_response { @client.last_interaction(peer_id: peer_id) } }
 
@@ -404,9 +406,9 @@ module Emcp
         def define_write_tools
           define_tool(
             name: "telegram_send_message",
-            description: "Send a Telegram text message. recipient is a @username, phone number, or numeric chat_id.",
+            description: "Send a Telegram text message. recipient is an @username, a phone number, or a chat id from telegram_list_chats (including -<id> and -100<id>). Phone numbers are accepted only by this tool.",
             properties: {
-              recipient: string_prop("@username, phone with country code and no +, or numeric chat_id"),
+              recipient: string_prop("@username, phone with country code and no +, or a chat id from telegram_list_chats"),
               message: string_prop("Plain text to send"),
               reply_to_message_id: string_prop("Optional message id to reply to"),
             },

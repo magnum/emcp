@@ -84,7 +84,7 @@ func (a *app) getChat(w http.ResponseWriter, r *http.Request) {
 	}
 	id := strings.TrimSpace(r.URL.Query().Get("chat_id"))
 	for _, chat := range chats {
-		if chat.ID == id {
+		if chatMatchesID(chat, id) {
 			writeJSON(w, http.StatusOK, map[string]any{"chat": chat})
 			return
 		}
@@ -156,7 +156,7 @@ func (a *app) listMessages(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	peer, chat, err := a.resolve(r.Context(), api, r.URL.Query().Get("chat_id"))
+	peer, chat, err := a.resolve(r.Context(), api, r.URL.Query().Get("chat_id"), false)
 	if err != nil {
 		writeError(w, err)
 		return
@@ -200,7 +200,7 @@ func (a *app) messageContext(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	peer, chat, err := a.resolve(r.Context(), api, r.URL.Query().Get("chat_id"))
+	peer, chat, err := a.resolve(r.Context(), api, r.URL.Query().Get("chat_id"), false)
 	if err != nil {
 		writeError(w, err)
 		return
@@ -235,7 +235,7 @@ func (a *app) lastInteraction(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	peerID := r.URL.Query().Get("peer_id")
-	peer, chat, err := a.resolve(r.Context(), api, peerID)
+	peer, chat, err := a.resolve(r.Context(), api, peerID, false)
 	if err != nil {
 		writeError(w, err)
 		return
@@ -278,7 +278,7 @@ func (a *app) sendMessage(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusBadRequest, map[string]any{"error": "message is required"})
 		return
 	}
-	peer, chat, err := a.resolve(r.Context(), api, body.Recipient)
+	peer, chat, err := a.resolve(r.Context(), api, body.Recipient, true)
 	if err != nil {
 		writeError(w, err)
 		return
@@ -325,31 +325,101 @@ func (a *app) sendMessage(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *app) loadChats(ctx context.Context, api *tg.Client) ([]chatJSON, error) {
-	var dialogs tg.MessagesDialogsClass
-	err := a.call(ctx, func() error {
-		var err error
-		dialogs, err = api.MessagesGetDialogs(ctx, &tg.MessagesGetDialogsRequest{
-			OffsetPeer: &tg.InputPeerEmpty{},
-			Limit:      100,
-		})
-		return err
-	})
-	if err != nil {
-		return nil, err
+	if api == nil {
+		return nil, nil
 	}
-	return a.chatsFrom(dialogs), nil
+	const pageSize = 100
+	const maxDialogs = 1000
+	var (
+		all        []chatJSON
+		seen       = map[string]struct{}{}
+		offsetPeer tg.InputPeerClass = &tg.InputPeerEmpty{}
+		offsetID   int
+		offsetDate int
+	)
+	for len(all) < maxDialogs {
+		var dialogs tg.MessagesDialogsClass
+		err := a.call(ctx, func() error {
+			var err error
+			dialogs, err = api.MessagesGetDialogs(ctx, &tg.MessagesGetDialogsRequest{
+				OffsetDate: offsetDate,
+				OffsetID:   offsetID,
+				OffsetPeer: offsetPeer,
+				Limit:      pageSize,
+			})
+			return err
+		})
+		if err != nil {
+			return nil, err
+		}
+		added := 0
+		for _, chat := range a.chatsFrom(dialogs) {
+			if chat.ID == "" {
+				continue
+			}
+			if _, ok := seen[chat.ID]; ok {
+				continue
+			}
+			seen[chat.ID] = struct{}{}
+			all = append(all, chat)
+			added++
+			if len(all) >= maxDialogs {
+				break
+			}
+		}
+		rawDialogs, messages, _, _ := splitDialogs(dialogs)
+		_, sliced := dialogs.(*tg.MessagesDialogsSlice)
+		if !sliced || len(rawDialogs) < pageSize || added == 0 {
+			break
+		}
+		peer, id, date, ok := a.dialogOffset(rawDialogs, messages)
+		if !ok {
+			break
+		}
+		offsetPeer, offsetID, offsetDate = peer, id, date
+	}
+	return all, nil
+}
+
+func (a *app) dialogOffset(dialogs []tg.DialogClass, messages []tg.MessageClass) (tg.InputPeerClass, int, int, bool) {
+	for i := len(dialogs) - 1; i >= 0; i-- {
+		dialog, ok := dialogs[i].(*tg.Dialog)
+		if !ok {
+			continue
+		}
+		var id int64
+		switch peer := dialog.Peer.(type) {
+		case *tg.PeerUser:
+			id = peer.UserID
+		case *tg.PeerChat:
+			id = peer.ChatID
+		case *tg.PeerChannel:
+			id = peer.ChannelID
+		default:
+			continue
+		}
+		input, _, found := a.book.peer(id)
+		if !found {
+			continue
+		}
+		return input, dialog.TopMessage, messageDate(messages, dialog.TopMessage), true
+	}
+	return nil, 0, 0, false
 }
 
 func (a *app) chatsFrom(box tg.MessagesDialogsClass) []chatJSON {
 	dialogs, messages, users, chats := splitDialogs(box)
 	a.book.absorb(users, chats)
-	byID := map[int]messageJSON{}
+	byID := map[string]messageJSON{}
 	for _, raw := range messages {
-		msg, ok := raw.(*tg.Message)
-		if !ok {
-			continue
+		switch msg := raw.(type) {
+		case *tg.Message:
+			item := a.messageJSON(msg, chatJSON{})
+			byID[messageKey(item.ChatID, msg.ID)] = item
+		case *tg.MessageService:
+			item := a.serviceJSON(msg, chatJSON{})
+			byID[messageKey(item.ChatID, msg.ID)] = item
 		}
-		byID[msg.ID] = a.messageJSON(msg, chatJSON{})
 	}
 	out := make([]chatJSON, 0, len(dialogs))
 	for _, raw := range dialogs {
@@ -363,7 +433,7 @@ func (a *app) chatsFrom(box tg.MessagesDialogsClass) []chatJSON {
 		}
 		chat.UnreadCount = dialog.UnreadCount
 		chat.Muted = muted(dialog.NotifySettings)
-		if last, ok := byID[dialog.TopMessage]; ok {
+		if last, ok := byID[messageKey(chat.ID, dialog.TopMessage)]; ok {
 			last.ChatID = chat.ID
 			last.ChatTitle = chat.Title
 			last.ChatType = chat.Type
@@ -375,27 +445,65 @@ func (a *app) chatsFrom(box tg.MessagesDialogsClass) []chatJSON {
 	return out
 }
 
-func (a *app) resolve(ctx context.Context, api *tg.Client, recipient string) (tg.InputPeerClass, chatJSON, error) {
+// chatIDCandidates returns the raw MTProto ids a user-supplied chat id can refer to.
+func chatIDCandidates(value string) []int64 {
+	s := strings.TrimSpace(value)
+	neg := strings.HasPrefix(s, "-")
+	s = strings.TrimLeft(s, "+-")
+	if s == "" {
+		return nil
+	}
+	for _, r := range s {
+		if r < '0' || r > '9' {
+			return nil
+		}
+	}
+	out := []int64{}
+	if neg && strings.HasPrefix(s, "100") && len(s) > 3 {
+		if id, err := strconv.ParseInt(s[3:], 10, 64); err == nil {
+			out = append(out, id)
+		}
+	}
+	if id, err := strconv.ParseInt(s, 10, 64); err == nil {
+		out = append(out, id)
+	}
+	return out
+}
+
+func (a *app) resolve(ctx context.Context, api *tg.Client, recipient string, allowPhone bool) (tg.InputPeerClass, chatJSON, error) {
 	value := strings.TrimSpace(recipient)
 	if value == "" {
-		return nil, chatJSON{}, errString("recipient is required")
+		return nil, chatJSON{}, errString("chat_id is required")
 	}
-	if id, err := strconv.ParseInt(strings.TrimPrefix(value, "+"), 10, 64); err == nil && !strings.HasPrefix(value, "@") && !looksLikePhone(value) {
-		if peer, chat, ok := a.book.peer(id); ok {
-			return peer, chat, nil
-		}
-		if _, err := a.loadChats(ctx, api); err != nil {
-			return nil, chatJSON{}, err
-		}
-		if peer, chat, ok := a.book.peer(id); ok {
-			return peer, chat, nil
-		}
-		return nil, chatJSON{}, errString("chat not found")
+	if strings.HasPrefix(value, "@") {
+		return a.resolveUsername(ctx, api, strings.TrimPrefix(value, "@"))
 	}
-	if looksLikePhone(value) {
+	candidates := chatIDCandidates(value)
+	if len(candidates) == 0 {
+		return a.resolveUsername(ctx, api, value)
+	}
+	if peer, chat, ok := a.peerFromCandidates(candidates); ok {
+		return peer, chat, nil
+	}
+	if _, err := a.loadChats(ctx, api); err != nil {
+		return nil, chatJSON{}, err
+	}
+	if peer, chat, ok := a.peerFromCandidates(candidates); ok {
+		return peer, chat, nil
+	}
+	if allowPhone && !strings.HasPrefix(value, "-") && looksLikePhone(value) {
 		return a.importPhone(ctx, api, digits(value))
 	}
-	return a.resolveUsername(ctx, api, strings.TrimPrefix(value, "@"))
+	return nil, chatJSON{}, errString("chat not found (usa l'id restituito da telegram_list_chats)")
+}
+
+func (a *app) peerFromCandidates(ids []int64) (tg.InputPeerClass, chatJSON, bool) {
+	for _, id := range ids {
+		if peer, chat, ok := a.book.peer(id); ok {
+			return peer, chat, true
+		}
+	}
+	return nil, chatJSON{}, false
 }
 
 func looksLikePhone(value string) bool {
@@ -478,11 +586,15 @@ func (a *app) importPhone(ctx context.Context, api *tg.Client, phone string) (tg
 func (a *app) decorate(messages []tg.MessageClass, chat chatJSON, sender, after, before string) []messageJSON {
 	out := make([]messageJSON, 0, len(messages))
 	for _, raw := range messages {
-		msg, ok := raw.(*tg.Message)
-		if !ok {
+		var item messageJSON
+		switch msg := raw.(type) {
+		case *tg.Message:
+			item = a.messageJSON(msg, chat)
+		case *tg.MessageService:
+			item = a.serviceJSON(msg, chat)
+		default:
 			continue
 		}
-		item := a.messageJSON(msg, chat)
 		if sender != "" && item.SenderID != sender && !strings.EqualFold(item.SenderName, sender) {
 			continue
 		}
@@ -522,6 +634,60 @@ func (a *app) messageJSON(msg *tg.Message, chat chatJSON) messageJSON {
 		item.ChatID = a.book.chatID(msg.PeerID)
 	}
 	return item
+}
+
+func (a *app) serviceJSON(msg *tg.MessageService, chat chatJSON) messageJSON {
+	action := "unknown"
+	if msg.Action != nil && msg.Action.TypeName() != "" {
+		action = strings.TrimPrefix(msg.Action.TypeName(), "messageAction")
+	}
+	item := messageJSON{
+		MessageID:   strconv.Itoa(msg.ID),
+		ChatID:      chat.ID,
+		ChatTitle:   chat.Title,
+		ChatType:    chat.Type,
+		Text:        "[service: " + action + "]",
+		Timestamp:   rfc3339(msg.Date),
+		FromMe:      msg.Out,
+		Muted:       chat.Muted,
+		SkipWebhook: msg.Out,
+	}
+	if item.ChatID == "" {
+		item.ChatID = a.book.chatID(msg.PeerID)
+	}
+	return item
+}
+
+func messageKey(chatID string, messageID int) string {
+	return chatID + ":" + strconv.Itoa(messageID)
+}
+
+func messageDate(messages []tg.MessageClass, id int) int {
+	for _, raw := range messages {
+		switch msg := raw.(type) {
+		case *tg.Message:
+			if msg.ID == id {
+				return msg.Date
+			}
+		case *tg.MessageService:
+			if msg.ID == id {
+				return msg.Date
+			}
+		}
+	}
+	return 0
+}
+
+func chatMatchesID(chat chatJSON, id string) bool {
+	if chat.ID == id {
+		return true
+	}
+	for _, candidate := range chatIDCandidates(id) {
+		if strconv.FormatInt(candidate, 10) == chat.ID {
+			return true
+		}
+	}
+	return false
 }
 
 func (a *app) onUpdate(_ context.Context, updates tg.UpdatesClass) error {
