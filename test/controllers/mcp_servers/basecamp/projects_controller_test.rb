@@ -40,6 +40,28 @@ class BasecampProjectLinksControllerTest < ActionDispatch::IntegrationTest
     assert_select "input[name='whatsapp_hook[url]']", count: 0
   end
 
+  test "project index filters by name or id in the page" do
+    original = Emcp::Servers::Basecamp::Server.instance_method(:remote_projects)
+    Emcp::Servers::Basecamp::Server.define_method(:remote_projects) do
+      [
+        { "id" => "2085", "name" => "Leto" },
+        { "id" => "99", "name" => "Arrakis" },
+      ]
+    end
+
+    post sign_in_path, params: { email: @user.email, password: "password123" }
+    get mcp_server_basecamp_projects_path(@server)
+
+    assert_response :success
+    assert_select "label[for='project-filter']", text: "Filter"
+    assert_select "input[type='search'][data-action='input->list-filter#filter']"
+    assert_select "li[data-filter-text='Leto 2085']"
+    assert_select "li[data-filter-text='Arrakis 99']"
+    assert_select "p", text: "No projects match this filter."
+  ensure
+    Emcp::Servers::Basecamp::Server.define_method(:remote_projects, original)
+  end
+
   test "project index reports a CLI failure" do
     previous = ENV["BASECAMP_BIN"]
     ENV["BASECAMP_BIN"] = "/usr/bin/false"
@@ -48,6 +70,7 @@ class BasecampProjectLinksControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "h1", text: "Projects"
+    assert_select "input#project-filter", count: 0
     assert_match(/exited 1/, response.body)
   ensure
     if previous

@@ -17,23 +17,32 @@
   <% elsif @projects.empty? %>
     <p class="mt-6 text-stone-600 dark:text-zinc-400">No active projects.</p>
   <% else %>
-    <ul class="mt-6 divide-y divide-stone-300 border-y border-stone-300 dark:divide-zinc-700 dark:border-zinc-700">
-      <% @projects.each do |project| %>
-        <% linked = @linked[project["id"]] %>
-        <li class="flex items-center gap-4 py-3">
-          <span class="min-w-0 flex-1 truncate">
-            <span class="font-semibold"><%= project["name"] %></span>
-            <span class="ml-2 font-mono text-sm text-stone-500 dark:text-zinc-400"><%= project["id"] %></span>
-          </span>
-          <% if linked %>
-            <span class="shrink-0 text-sm text-stone-500 dark:text-zinc-400">Linked</span>
-          <% else %>
-            <%= button_to "Link", mcp_server_basecamp_projects_path(@server),
-                  params: { basecamp_project: { project_id: project["id"], name: project["name"] } },
-                  class: "font-semibold underline" %>
-          <% end %>
-        </li>
-      <% end %>
-    </ul>
+    <div class="mt-6" data-controller="list-filter">
+      <label for="project-filter" class="mb-2 block font-semibold text-stone-500 dark:text-zinc-400">Filter</label>
+      <input type="search" id="project-filter" placeholder="Name or id"
+             autocomplete="off"
+             data-list-filter-target="query"
+             data-action="input->list-filter#filter"
+             class="w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-stone-900 outline-none focus:border-stone-500 dark:border-zinc-600 dark:bg-zinc-950 dark:text-zinc-100">
+      <p data-list-filter-target="empty" class="mt-6 hidden text-stone-600 dark:text-zinc-400">No projects match this filter.</p>
+      <ul data-list-filter-target="list" class="mt-4 divide-y divide-stone-300 border-y border-stone-300 dark:divide-zinc-700 dark:border-zinc-700">
+        <% @projects.each do |project| %>
+          <% linked = @linked[project["id"]] %>
+          <li class="flex items-center gap-4 py-3" data-list-filter-target="item" data-filter-text="<%= "#{project["name"]} #{project["id"]}" %>">
+            <span class="min-w-0 flex-1 truncate">
+              <span class="font-semibold"><%= project["name"] %></span>
+              <span class="ml-2 font-mono text-sm text-stone-500 dark:text-zinc-400"><%= project["id"] %></span>
+            </span>
+            <% if linked %>
+              <span class="shrink-0 text-sm text-stone-500 dark:text-zinc-400">Linked</span>
+            <% else %>
+              <%= button_to "Link", mcp_server_basecamp_projects_path(@server),
+                    params: { basecamp_project: { project_id: project["id"], name: project["name"] } },
+                    class: "font-semibold underline" %>
+            <% end %>
+          </li>
+        <% end %>
+      </ul>
+    </div>
   <% end %>
 </div>
