@@ -112,7 +112,7 @@ argument-hint: "[command] [args...]"
 
 ## EmCP MCP tools
 
-This skill documents the official `hey` CLI (v1.6.0). In EmCP, call the matching
+This skill documents the official `hey` CLI (v1.7.0). In EmCP, call the matching
 `hey_*` tools instead of shelling out. Command families map 1:1:
 
 | CLI | MCP tools |

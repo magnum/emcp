@@ -13,7 +13,7 @@ module Emcp
           )
         end
 
-        # Only pass listing flags the command actually accepts (hey-cli v1.6.0 .surface).
+        # Only pass listing flags the command actually accepts (hey-cli v1.7.0 .surface).
         # --limit is not universal: workflow view, search, screener, and contact list reject it.
         def command(*parts, limit: nil, fetch_all: false, page: nil, account: nil, options: {}, flags: [])
           args = []

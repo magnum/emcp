@@ -10,9 +10,9 @@
 # Global build args must be declared before the first FROM (used by later FROM lines).
 ARG RUBY_VERSION=4.0.5
 ARG GWS_VERSION=0.22.5
-ARG HEY_VERSION=1.6.0
+ARG HEY_VERSION=1.7.0
 ARG BASECAMP_VERSION=0.11.0
-ARG OP_VERSION=2.39.0
+ARG OP_VERSION=2.40.0
 
 # --- MCP CLI binaries (hey, basecamp, gws, op) ---
 # Download official release tarballs. Do not git clone: GitHub prompts for a
@@ -130,7 +130,7 @@ RUN apt-get update -qq && \
       python3 python3-pip python3-venv && \
     ln -s /usr/lib/$(uname -m)-linux-gnu/libjemalloc.so.2 /usr/local/lib/libjemalloc.so && \
     python3 -m venv /opt/hass-cli && \
-    /opt/hass-cli/bin/pip install --no-cache-dir homeassistant-cli && \
+    /opt/hass-cli/bin/pip install --no-cache-dir 'homeassistant-cli==1.0.0' && \
     ln -sf /opt/hass-cli/bin/hass-cli /usr/local/bin/hass-cli && \
     printf '%s\n' \
       '# Prefer IPv4. Docker DNS often returns AAAA for Google APIs while the' \

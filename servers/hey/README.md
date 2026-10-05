@@ -2,7 +2,7 @@
 
 ← [Back to project](https://github.com/magnum/emcp)
 
-EmCP integration for [HEY](https://hey.com) email and related tools, backed by the official [`basecamp/hey-cli`](https://github.com/basecamp/hey-cli) **v1.6.0**. Also exposes the `hey://skill` resource (official CLI agent skill plus EmCP tool mapping).
+EmCP integration for [HEY](https://hey.com) email and related tools, backed by the official [`basecamp/hey-cli`](https://github.com/basecamp/hey-cli) **v1.7.0**. Also exposes the `hey://skill` resource (official CLI agent skill plus EmCP tool mapping).
 
 ## MCP endpoint
 

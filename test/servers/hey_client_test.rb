@@ -64,7 +64,7 @@ class HeyClientTest < ActiveSupport::TestCase
     assert_equal %w[forward 99 --to a@b.com --message-html <p>FYI</p> --json], @client.forward("99", to: "a@b.com", message_html: "<p>FYI</p>")
   end
 
-  test "does not pass --limit on commands hey-cli 1.6.0 rejects" do
+  test "does not pass --limit on commands hey-cli 1.7.0 rejects" do
     assert_equal %w[workflow view 654 --json], @client.workflow("654")
     refute_includes @client.screener_history(page: "cursor"), "--limit"
     assert_equal %w[screener history --page cursor --json], @client.screener_history(page: "cursor")
@@ -77,7 +77,7 @@ class HeyClientTest < ActiveSupport::TestCase
     refute_includes @client.contacts(fetch_all: true), "--limit"
   end
 
-  test "account senders, draft from, and occurrence edits use 1.6.0 flags" do
+  test "account senders, draft from, and occurrence edits use 1.7.0 flags" do
     assert_equal %w[account senders --json], @client.account_senders
     assert_equal %w[--account 99 account senders --json], @client.account_senders(account: "99")
     assert_equal(
