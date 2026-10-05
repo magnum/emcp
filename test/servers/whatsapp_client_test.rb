@@ -12,6 +12,7 @@ class WhatsappClientTest < ActiveSupport::TestCase
       when "/health" then { "ok" => true }
       when "/api/status" then { "connected" => true, "logged_in" => true }
       when "/api/send" then { "success" => true, "message" => "sent" }
+      when "/api/poll" then { "success" => true, "message_id" => "POLL1" }
       when "/api/chats" then [ { "jid" => "1@s.whatsapp.net", "name" => "Ada" } ]
       else {}
       end
@@ -40,6 +41,15 @@ class WhatsappClientTest < ActiveSupport::TestCase
     assert_equal :get, call[:method]
     assert_equal "/api/chats", call[:path]
     assert_equal({ "query" => "ada", "limit" => 10 }, call[:query])
+  end
+
+  test "send_poll posts the question and options" do
+    result = @client.send_poll(recipient: "39333", question: "Lunch?", options: [ "yes", "no" ], multiple: false)
+    call = @calls.last
+    assert_equal :post, call[:method]
+    assert_equal "/api/poll", call[:path]
+    assert_equal({ recipient: "39333", question: "Lunch?", options: [ "yes", "no" ], multiple: false }, call[:body])
+    assert result["success"]
   end
 
   test "send_message posts recipient and body" do

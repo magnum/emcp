@@ -46,7 +46,7 @@ bridge URL. The HTTP API is a superset of the original lharries send endpoint
 | `WHATSAPP_BRIDGE_TOKEN` | Shared secret (`X-Bridge-Token`). Auto-generated for the bundled bridge |
 | `WHATSAPP_BRIDGE_BIN` | Path to the Go binary (default `whatsapp-bridge` on `PATH`, or `servers/whatsapp/bridge/whatsapp-bridge`) |
 | `WHATSAPP_TIMEOUT` | HTTP timeout seconds (default `30`) |
-| `WHATSAPP_ALLOW_WRITE` | Enable `whatsapp_send_message` and `whatsapp_set_owner_status` |
+| `WHATSAPP_ALLOW_WRITE` | Enable `whatsapp_send_message`, `whatsapp_send_poll`, and `whatsapp_set_owner_status` |
 | `WHATSAPP_WEBHOOK_CHAT_HISTORY` | Default number of recent messages sent in `history`. Default `100`. The cache keeps up to 1000 per chat. A hook’s Messages history value replaces this |
 
 ## Incoming webhooks
@@ -115,7 +115,7 @@ Payload:
 
 Read: status, search contacts, list/get chats, list messages, message context,
 last interaction.  
-Write (gated): send text message, set owner status for webhooks.
+Write (gated): send text message, send a poll (`whatsapp_send_poll`: question plus 2–12 options, `multiple` for more than one answer), set owner status for webhooks.
 
 Media send/download from the upstream Python MCP are not exposed yet; text
 history still records when a message had media.

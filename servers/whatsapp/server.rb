@@ -14,11 +14,11 @@ module Emcp
       class Server < ::McpServer
         server_id "whatsapp"
         display_name "WhatsApp"
-        description "Search chats and contacts, read message history, and send WhatsApp messages via a linked personal account."
+        description "Search chats and contacts, read message history, and send WhatsApp messages and polls via a linked personal account."
         version "0.1.0"
 
         def instructions
-          "Use WhatsApp tools to search contacts, list chats, read messages, and send text. " \
+          "Use WhatsApp tools to search contacts, list chats, read messages, send text, and send polls. " \
             "Recipients are a phone number with country code and no +, or a JID " \
             "(example: 393331234567 or 393331234567@s.whatsapp.net, groups end with @g.us). " \
             "Write tools stay disabled unless WHATSAPP_ALLOW_WRITE=true. " \
@@ -338,6 +338,37 @@ module Emcp
             required: %w[recipient message],
             write: true,
           ) { |recipient:, message:| api_response { @client.send_message(recipient: recipient, message: message) } }
+
+          define_tool(
+            name: "whatsapp_send_poll",
+            description: "Send a WhatsApp poll to a phone number or chat JID (write). " \
+                         "2 to 12 options. multiple false allows one answer; true allows every option.",
+            properties: {
+              recipient: string_prop("Phone number with country code and no +, or a JID"),
+              question: string_prop("Poll question, at most 255 characters"),
+              options: array_prop("2 to 12 choices. Each choice is at most 100 characters"),
+              multiple: boolean_prop("Allow more than one answer. Default false")
+            },
+            required: %w[recipient question options],
+            write: true,
+          ) do |recipient:, question:, options:, multiple: false|
+            api_response do
+              choices = Array(options).map { |item| item.to_s.strip }.reject(&:blank?)
+              raise "a poll needs 2 to 12 options" unless (2..12).cover?(choices.size)
+              raise "question is required" if question.to_s.strip.empty?
+              raise "question must be at most 255 characters" if question.to_s.strip.length > 255
+              raise "duplicate poll option" if choices.uniq.size != choices.size
+              long = choices.find { |choice| choice.length > 100 }
+              raise "option #{long.inspect} must be at most 100 characters" if long
+
+              @client.send_poll(
+                recipient: recipient,
+                question: question.to_s.strip,
+                options: choices,
+                multiple: multiple == true || multiple.to_s == "true",
+              )
+            end
+          end
 
           define_tool(
             name: "whatsapp_set_owner_status",

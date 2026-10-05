@@ -227,13 +227,75 @@ func (s *Session) Send(recipient, message string) error {
 	if err != nil {
 		return err
 	}
-	s.recordOutbound(client, jid, message, string(resp.ID))
+	s.recordOutbound(client, jid, message, string(resp.ID), "text")
 	return nil
+}
+
+// SendPoll sends a WhatsApp poll. multiple false allows one answer; true allows every option.
+// whatsmeow builds it with Client.BuildPollCreation (selectable count 1 or 0).
+func (s *Session) SendPoll(recipient, question string, options []string, multiple bool) (string, string, []string, error) {
+	s.mu.RLock()
+	client := s.client
+	s.mu.RUnlock()
+	if client == nil || !client.IsConnected() {
+		return "", "", nil, fmt.Errorf("not connected to WhatsApp")
+	}
+	if strings.TrimSpace(recipient) == "" {
+		return "", "", nil, fmt.Errorf("recipient is required")
+	}
+	question, options, selectable, err := normalizePoll(question, options, multiple)
+	if err != nil {
+		return "", "", nil, err
+	}
+	jid, err := parseRecipient(recipient)
+	if err != nil {
+		return "", "", nil, err
+	}
+	resp, err := client.SendMessage(context.Background(), jid, client.BuildPollCreation(question, options, selectable))
+	if err != nil {
+		return "", "", nil, err
+	}
+	s.recordOutbound(client, jid, question, string(resp.ID), "poll")
+	return string(resp.ID), question, options, nil
+}
+
+func normalizePoll(question string, options []string, multiple bool) (string, []string, int, error) {
+	question = strings.TrimSpace(question)
+	if question == "" {
+		return "", nil, 0, fmt.Errorf("question is required")
+	}
+	if len([]rune(question)) > 255 {
+		return "", nil, 0, fmt.Errorf("question must be at most 255 characters")
+	}
+	cleaned := make([]string, 0, len(options))
+	seen := map[string]struct{}{}
+	for _, option := range options {
+		option = strings.TrimSpace(option)
+		if option == "" {
+			continue
+		}
+		if len([]rune(option)) > 100 {
+			return "", nil, 0, fmt.Errorf("option %q must be at most 100 characters", option)
+		}
+		if _, ok := seen[option]; ok {
+			return "", nil, 0, fmt.Errorf("duplicate option %q", option)
+		}
+		seen[option] = struct{}{}
+		cleaned = append(cleaned, option)
+	}
+	if len(cleaned) < 2 || len(cleaned) > 12 {
+		return "", nil, 0, fmt.Errorf("a poll needs 2 to 12 options")
+	}
+	selectable := 1
+	if multiple {
+		selectable = 0
+	}
+	return question, cleaned, selectable, nil
 }
 
 // recordOutbound keeps an API send in the local archive and in the Rails chat
 // history. skip_webhook stops that echo from firing the operator webhook.
-func (s *Session) recordOutbound(client *whatsmeow.Client, jid types.JID, text, messageID string) {
+func (s *Session) recordOutbound(client *whatsmeow.Client, jid types.JID, text, messageID, kind string) {
 	if messageID == "" {
 		return
 	}
@@ -257,7 +319,7 @@ func (s *Session) recordOutbound(client *whatsmeow.Client, jid types.JID, text, 
 		SenderPhone: sender,
 		IsFromMe:    true,
 		SkipWebhook: true,
-		Type:        "text",
+		Type:        kind,
 		Text:        text,
 	}
 	s.persistAndMaybeNotify(payload, sender, now, false)

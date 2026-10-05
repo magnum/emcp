@@ -81,6 +81,38 @@ func main() {
 		}
 		writeJSON(w, http.StatusOK, map[string]any{"success": true, "message": "Message sent to " + req.Recipient})
 	})))
+	mux.Handle("/api/poll", requireToken(token, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		var req struct {
+			Recipient string   `json:"recipient"`
+			Question  string   `json:"question"`
+			Options   []string `json:"options"`
+			Multiple  bool     `json:"multiple"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, "invalid request", http.StatusBadRequest)
+			return
+		}
+		session := live.require(w)
+		if session == nil {
+			return
+		}
+		messageID, question, options, err := session.SendPoll(req.Recipient, req.Question, req.Options, req.Multiple)
+		if err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]any{"success": false, "message": err.Error()})
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{
+			"success":    true,
+			"message_id": messageID,
+			"question":   question,
+			"options":    options,
+			"multiple":   req.Multiple,
+		})
+	})))
 	mux.Handle("/api/chats", requireToken(token, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		limit, offset := pageParams(r, 20)
 		chats, err := messages.ListChats(r.URL.Query().Get("query"), limit, offset, r.URL.Query().Get("sort_by"))

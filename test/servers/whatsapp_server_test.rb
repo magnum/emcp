@@ -31,6 +31,7 @@ class WhatsappServerTest < ActiveSupport::TestCase
       whatsapp_get_contact_chats whatsapp_list_messages
       whatsapp_get_message_context whatsapp_get_last_interaction
       whatsapp_send_message
+      whatsapp_send_poll
       whatsapp_set_owner_status
     ].each do |name|
       assert_includes names, name
@@ -39,6 +40,7 @@ class WhatsappServerTest < ActiveSupport::TestCase
 
   test "send is a write tool and reads are not" do
     assert tool("whatsapp_send_message")[:write]
+    assert tool("whatsapp_send_poll")[:write]
     assert tool("whatsapp_set_owner_status")[:write]
     %w[whatsapp_status whatsapp_list_chats whatsapp_list_messages].each do |name|
       refute tool(name)[:write], "#{name} must be read-only"

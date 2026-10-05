@@ -135,6 +135,15 @@ module Emcp
           post("/api/send", body: { recipient: recipient, message: message })
         end
 
+        def send_poll(recipient:, question:, options:, multiple: false)
+          post("/api/poll", body: {
+            recipient: recipient,
+            question: question,
+            options: options,
+            multiple: multiple == true,
+          })
+        end
+
         def search_contacts(query:)
           get("/api/contacts", query: { query: query })
         end
