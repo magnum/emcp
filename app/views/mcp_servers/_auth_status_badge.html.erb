@@ -1,16 +1,19 @@
 <%# locals: server, status %>
+<% if status[:authenticated] %>
+  <% color = "text-emerald-700 dark:text-emerald-400" %>
+  <% label = "Authenticated" %>
+  <% tip = "Authenticated. A live sign-in check succeeded. Click to open Auth." %>
+<% else %>
+  <% color = "text-amber-600 dark:text-amber-400" %>
+  <% label = "Not authenticated" %>
+  <% tip = "Not authenticated. A live sign-in check failed. Click to open Auth." %>
+<% end %>
 <%= turbo_frame_tag dom_id(server, :auth_status) do %>
-  <% if status[:authenticated] %>
-    <span class="group relative inline-flex h-8 w-8 items-center justify-center text-emerald-700 dark:text-emerald-400"
-          aria-label="Authenticated">
-      <%= heroicon "lock-closed", variant: :outline, options: { class: "h-6 w-6" } %>
-      <span role="tooltip" class="pointer-events-none absolute bottom-full left-0 z-20 mb-1 hidden w-max max-w-xs rounded bg-stone-600 px-3 py-1.5 text-left text-sm font-normal whitespace-normal text-white group-hover:block">Authenticated. A live sign-in check succeeded.</span>
-    </span>
-  <% else %>
-    <span class="group relative inline-flex h-8 w-8 items-center justify-center text-amber-600 dark:text-amber-400"
-          aria-label="Not authenticated">
-      <%= heroicon "lock-closed", variant: :outline, options: { class: "h-6 w-6" } %>
-      <span role="tooltip" class="pointer-events-none absolute bottom-full left-0 z-20 mb-1 hidden w-max max-w-xs rounded bg-stone-600 px-3 py-1.5 text-left text-sm font-normal whitespace-normal text-white group-hover:block">Not authenticated. A live sign-in check failed.</span>
-    </span>
+  <%= link_to auth_mcp_server_path(server),
+        class: "group relative inline-flex h-8 w-8 items-center justify-center rounded-lg hover:bg-stone-200 dark:hover:bg-zinc-800 #{color}",
+        data: { turbo_frame: "_top" },
+        aria: { label: label } do %>
+    <%= heroicon "lock-closed", variant: :outline, options: { class: "h-6 w-6" } %>
+    <span role="tooltip" class="pointer-events-none absolute bottom-full left-0 z-20 mb-1 hidden w-max max-w-xs rounded bg-stone-600 px-3 py-1.5 text-left text-sm font-normal whitespace-normal text-white group-hover:block"><%= tip %></span>
   <% end %>
 <% end %>

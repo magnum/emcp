@@ -20,8 +20,11 @@ class McpServersControllerTest < ActionDispatch::IntegrationTest
     assert_equal "/servers", mcp_servers_path
     assert_response :success
     assert_match(/teslamate/i, response.body)
+    server = mcp_server_for("hey")
     assert_select "a[href=?]", mcp_servers_path, text: "Servers"
     assert_select "a[href=?]", contexts_path, text: "Contexts"
+    assert_select "a[href=?][aria-label=?]", auth_mcp_server_path(server), "Checking authentication"
+    assert_select "a[aria-label=Auth]", count: 0
     assert_select "a.underline", text: "Servers"
     assert_select "option", text: "Context", count: 0
     assert_select "a", text: "Reset", count: 0

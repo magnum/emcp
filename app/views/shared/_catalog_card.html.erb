@@ -16,10 +16,13 @@
       <%= turbo_frame_tag dom_id(server, :auth_status),
             src: auth_status_mcp_server_path(server),
             loading: :lazy do %>
-        <span class="group relative inline-flex h-8 w-8 items-center justify-center text-stone-400 dark:text-zinc-500" aria-label="Checking authentication">
+        <%= link_to auth_mcp_server_path(server),
+              class: "group relative inline-flex h-8 w-8 items-center justify-center rounded-lg text-stone-400 hover:bg-stone-200 dark:text-zinc-500 dark:hover:bg-zinc-800",
+              data: { turbo_frame: "_top" },
+              aria: { label: "Checking authentication" } do %>
           <%= heroicon "lock-closed", variant: :outline, options: { class: "h-6 w-6" } %>
-          <span role="tooltip" class="pointer-events-none absolute bottom-full left-0 z-20 mb-1 hidden w-max max-w-xs rounded bg-stone-600 px-3 py-1.5 text-left text-sm font-normal whitespace-normal text-white group-hover:block">Checking authentication. A live sign-in check is in progress.</span>
-        </span>
+          <span role="tooltip" class="pointer-events-none absolute bottom-full left-0 z-20 mb-1 hidden w-max max-w-xs rounded bg-stone-600 px-3 py-1.5 text-left text-sm font-normal whitespace-normal text-white group-hover:block">Checking authentication. Click to open Auth.</span>
+        <% end %>
       <% end %>
 
       <% if server.allow_write? %>
@@ -34,13 +37,6 @@
           <%= heroicon "bolt-slash", variant: :outline, options: { class: "h-6 w-6" } %>
           <span role="tooltip" class="pointer-events-none absolute bottom-full left-0 z-20 mb-1 hidden w-max rounded bg-stone-600 px-3 py-1.5 text-left text-sm font-normal whitespace-nowrap text-white group-hover:block">read only</span>
         </span>
-      <% end %>
-
-      <%= link_to auth_mcp_server_path(server),
-            class: "#{icon_button} group relative",
-            aria: { label: "Auth" } do %>
-        <%= heroicon "user", variant: :outline, options: { class: "h-6 w-6" } %>
-        <span role="tooltip" class="pointer-events-none absolute bottom-full left-0 z-20 mb-1 hidden w-max max-w-xs rounded bg-stone-600 px-3 py-1.5 text-left text-sm font-normal whitespace-normal text-white group-hover:block">Auth. Open this page to connect the server or update its credentials.</span>
       <% end %>
 
       <%= link_to tools_mcp_server_path(server),
