@@ -1,13 +1,22 @@
 <%# locals: server %>
+<% icon, color, tip = case server.service_state
+  when "connected"
+    [ "check-circle", "text-emerald-700 dark:text-emerald-400", "Connected. The last live check reached this server. Click to check again." ]
+  when "disconnected"
+    [ "exclamation-circle", "text-red-600 dark:text-red-400", "Disconnected. The last live check did not reach this server. Click to check again." ]
+  else
+    [ "information-circle", "text-stone-400 dark:text-zinc-500", "Created. Not checked yet. Click to update the status." ]
+  end %>
 <%= turbo_frame_tag dom_id(server, :service_state) do %>
-  <%= button_to service_state_mcp_server_path(server),
-        method: :post,
-        form_class: "inline-block",
-        form: { data: { turbo_stream: true } },
-        class: "cursor-pointer border-0 whitespace-nowrap rounded-md #{state_bg_color(server.service_state)} px-2 py-1 text-md font-medium #{state_text_color(server.service_state)} hover:opacity-80",
-        title: "Run service check",
-        aria: { label: "Run service check" },
-        data: { turbo_submits_with: "Checking" } do %>
-    <%= server.service_state.to_s.humanize %>
-  <% end %>
+  <span class="group relative inline-flex">
+    <%= button_to service_state_mcp_server_path(server),
+          method: :post,
+          form_class: "inline-flex",
+          form: { data: { turbo_stream: true } },
+          class: "inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border-0 bg-transparent p-0 #{color} hover:bg-stone-200 dark:hover:bg-zinc-800",
+          aria: { label: "Run service check" } do %>
+      <%= heroicon icon, variant: :outline, options: { class: "h-6 w-6" } %>
+    <% end %>
+    <span role="tooltip" class="pointer-events-none absolute top-full right-0 z-30 mt-1 hidden w-max max-w-xs rounded bg-stone-600 px-3 py-1.5 text-left text-sm font-normal whitespace-normal text-white group-hover:block"><%= tip %></span>
+  </span>
 <% end %>

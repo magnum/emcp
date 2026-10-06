@@ -102,7 +102,18 @@ class McpServersControllerTest < ActionDispatch::IntegrationTest
     assert_select "a.underline", text: "Servers"
   end
 
-  test "show places the service state next to the name and prints service info" do
+  test "created service state tooltip asks to click instead of showing json" do
+    post sign_in_path, params: { email: @user.email, password: "password123" }
+    server = mcp_server_for("hey")
+    assert server.created?
+
+    get mcp_server_path(server)
+
+    assert_response :success
+    assert_select "[role=tooltip]", text: "Created. Not checked yet. Click to update the status."
+  end
+
+  test "show places the service state icon under the type and prints service info" do
     post sign_in_path, params: { email: @user.email, password: "password123" }
     server = mcp_server_for("hey")
     server.update!(service_info: { "connected" => false, "detail" => { "error" => "session rejected" } })
@@ -112,9 +123,8 @@ class McpServersControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "h1", text: server.name
-    assert_select "form[action=?]", service_state_mcp_server_path(server) do
-      assert_select "button", text: "Disconnected"
-    end
+    assert_select "form[action=?] button[aria-label=?]", service_state_mcp_server_path(server), "Run service check"
+    assert_select "[role=tooltip]", text: /Disconnected/
     assert_match(/session rejected/, response.body)
     assert_match(/MCP endpoint/, response.body)
   end
@@ -128,7 +138,7 @@ class McpServersControllerTest < ActionDispatch::IntegrationTest
     post service_state_mcp_server_path(server), as: :turbo_stream
 
     assert_response :success
-    assert_match(/Connected/, response.body)
+    assert_match(/connected/, response.body)
     assert_match(/turbo-stream/, response.body)
     assert server.reload.connected?
     assert_equal true, server.service_info["connected"]

@@ -1,16 +1,16 @@
 <%# locals: server, status %>
 <%= turbo_frame_tag dom_id(server, :auth_status) do %>
   <% if status[:authenticated] %>
-    <span class="inline-flex h-8 w-8 items-center justify-center text-emerald-700 dark:text-emerald-400"
-          title="Authenticated"
+    <span class="group relative inline-flex h-8 w-8 items-center justify-center text-emerald-700 dark:text-emerald-400"
           aria-label="Authenticated">
-      <%= heroicon "lock-closed", variant: :outline, options: { class: "h-5 w-5" } %>
+      <%= heroicon "lock-closed", variant: :outline, options: { class: "h-6 w-6" } %>
+      <span role="tooltip" class="pointer-events-none absolute bottom-full left-0 z-20 mb-1 hidden w-max max-w-xs rounded bg-stone-600 px-3 py-1.5 text-left text-sm font-normal whitespace-normal text-white group-hover:block">Authenticated. A live sign-in check succeeded.</span>
     </span>
   <% else %>
-    <span class="inline-flex h-8 w-8 items-center justify-center text-amber-600 dark:text-amber-400"
-          title="Not authenticated"
+    <span class="group relative inline-flex h-8 w-8 items-center justify-center text-amber-600 dark:text-amber-400"
           aria-label="Not authenticated">
-      <%= heroicon "lock-closed", variant: :outline, options: { class: "h-5 w-5" } %>
+      <%= heroicon "lock-closed", variant: :outline, options: { class: "h-6 w-6" } %>
+      <span role="tooltip" class="pointer-events-none absolute bottom-full left-0 z-20 mb-1 hidden w-max max-w-xs rounded bg-stone-600 px-3 py-1.5 text-left text-sm font-normal whitespace-normal text-white group-hover:block">Not authenticated. A live sign-in check failed.</span>
     </span>
   <% end %>
 <% end %>
