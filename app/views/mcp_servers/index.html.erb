@@ -27,18 +27,30 @@
           <% @user_tags.each do |tag| %>
             <% selected = @active_search_tags.include?(tag) %>
             <li>
-              <%= link_to tag, mcp_servers_path(q: "tag:#{tag}", mcp_server_type_id: params[:mcp_server_type_id].presence),
+              <%= link_to tag, mcp_servers_path(q: "tag:#{tag}", mcp_server_type_id: params[:mcp_server_type_id].presence, service_state: params[:service_state].presence),
                     class: "inline-block rounded-sm px-2.5 py-0.5 text-white #{selected ? "bg-stone-800 dark:bg-zinc-300 dark:text-zinc-950" : "bg-stone-500 hover:bg-stone-600"}" %>
             </li>
           <% end %>
         </ul>
       <% end %>
     </div>
-    <div class="sm:w-64">
+    <div class="sm:w-40">
+      <label for="service_state" class="hidden mb-1 block  font-semibold text-stone-500 dark:text-zinc-400">Service State</label>
+      <select name="service_state" id="service_state"
+              class="w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-stone-900 outline-none focus:border-stone-500 dark:border-zinc-600 dark:bg-zinc-950 dark:text-zinc-100">
+        <option value="">All States</option>
+        <% McpServer.aasm.states.each do |state| %>
+          <option value="<%= state.name %>" <%= "selected" if params[:service_state] == state.name.to_s %>>
+            <%= state.name.to_s.humanize %>
+          </option>
+        <% end %>
+      </select>
+    </div>
+    <div class="sm:w-48">
       <label for="mcp_server_type_id" class="hidden mb-1 block  font-semibold text-stone-500 dark:text-zinc-400">Server type</label>
       <select name="mcp_server_type_id" id="mcp_server_type_id"
               class="w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-stone-900 outline-none focus:border-stone-500 dark:border-zinc-600 dark:bg-zinc-950 dark:text-zinc-100">
-        <option value="">All Server Types</option>
+        <option value="">All Types</option>
         <% @server_types.each do |server_type| %>
           <option value="<%= server_type.id %>" <%= "selected" if params[:mcp_server_type_id].to_s == server_type.id.to_s %>>
             <%= server_type.name %>
@@ -50,7 +62,7 @@
       <button type="submit" class="btn-emcp-outline h-10">
         Filter
       </button>
-      <% if params[:q].present? || params[:mcp_server_type_id].present? %>
+      <% if params[:q].present? || params[:mcp_server_type_id].present? || params[:service_state].present? %>
         <%= link_to "Reset", mcp_servers_path, class: "font-semibold underline" %>
       <% end %>
     </div>

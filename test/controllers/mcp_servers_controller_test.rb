@@ -47,6 +47,23 @@ class McpServersControllerTest < ActionDispatch::IntegrationTest
     assert_match(/No servers match/, response.body)
   end
 
+  test "index filters by service state" do
+    post sign_in_path, params: { email: @user.email, password: "password123" }
+    connected = mcp_server_for("hey")
+    connected.connect!
+    created = mcp_server_for("teslamate")
+
+    get mcp_servers_path, params: { service_state: "connected" }
+
+    assert_response :success
+    assert_select "select#service_state option[value=connected][selected]"
+    assert_select "option[value=created]", text: "Created"
+    assert_select "option[value=disconnected]", text: "Disconnected"
+    assert_select "h2", text: connected.name
+    assert_select "h2", text: created.name, count: 0
+    assert_select "a[href=?]", mcp_servers_path, text: "Reset"
+  end
+
   test "index ANDs text search with tag: filters" do
     post sign_in_path, params: { email: @user.email, password: "password123" }
     hey = mcp_server_for("hey")
