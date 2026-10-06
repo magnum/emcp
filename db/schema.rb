@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_05_010000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_06_120000) do
   create_table "api_keys", force: :cascade do |t|
     t.bigint "bearer_id", null: false
     t.string "bearer_type", null: false
@@ -197,6 +197,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_05_010000) do
     t.integer "mcp_server_type_id", null: false
     t.string "name", null: false
     t.text "oauth_token_payload"
+    t.json "service_info"
+    t.string "service_state", default: "created", null: false
     t.integer "service_token_refresh_in_minutes"
     t.integer "token_refresh_in_minutes"
     t.string "type", null: false
@@ -205,6 +207,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_05_010000) do
     t.index ["mcp_server_type_id"], name: "index_mcp_servers_on_mcp_server_type_id"
     t.index ["type"], name: "index_mcp_servers_on_type"
     t.index ["user_id"], name: "index_mcp_servers_on_user_id"
+    t.check_constraint "service_state IN ('created', 'connected', 'disconnected')", name: "mcp_servers_service_state"
   end
 
   create_table "plan_types", force: :cascade do |t|

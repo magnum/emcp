@@ -3,7 +3,7 @@
 class McpServersController < ApplicationController
   before_action :require_authentication
   before_action :load_catalog
-  before_action :set_server, only: %i[show edit update destroy]
+  before_action :set_server, only: %i[show edit update destroy service_state]
 
   def index
     @servers = current_user.mcp_servers.proxyable.includes(:mcp_server_type).order(:name)
@@ -46,6 +46,22 @@ class McpServersController < ApplicationController
     @server.destroy!
     redirect_to(@server.context? ? contexts_path : mcp_servers_path,
                 notice: @server.context? ? "Context deleted" : "Server deleted")
+  end
+
+  def service_state
+    @server.record_service_probe!
+    render turbo_stream: [
+      turbo_stream.replace(
+        helpers.dom_id(@server, :service_state),
+        partial: "mcp_servers/service_state_badge",
+        locals: { server: @server },
+      ),
+      turbo_stream.replace(
+        helpers.dom_id(@server, :service_info),
+        partial: "mcp_servers/service_info",
+        locals: { server: @server },
+      ),
+    ]
   end
 
   def tags

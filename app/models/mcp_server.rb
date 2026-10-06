@@ -10,6 +10,7 @@ class McpServer < ApplicationRecord
   include McpServer::Credentials
   include McpServer::AuthStatus
   include McpServer::ServiceTokenRefresh
+  include AASM
 
   acts_as_taggable_on :tags
   acts_as_taggable_tenant :user_id
@@ -45,6 +46,22 @@ class McpServer < ApplicationRecord
 
   after_initialize :prepare_runtime
   after_find :prepare_runtime
+  after_create_commit :ensure_status_check, if: :context?
+  after_destroy_commit :clear_status_signature, if: :context?
+
+  aasm column: :service_state do
+    state :created, initial: true
+    state :connected
+    state :disconnected
+
+    event :connect do
+      transitions from: %i[created connected disconnected], to: :connected
+    end
+
+    event :disconnect do
+      transitions from: %i[created connected disconnected], to: :disconnected
+    end
+  end
 
   delegate :code, :version, :oauth_token_retrieval, :oauth_token_retrieval?,
            :class_name, to: :mcp_server_type, allow_nil: true
@@ -268,11 +285,45 @@ class McpServer < ApplicationRecord
   def configure_tools = raise(NotImplementedError)
   def apply_credentials(_params) = raise(NotImplementedError)
   def clear_credentials! = raise(NotImplementedError)
+  def emcp_service_info = raise(NotImplementedError)
   def fetch_auth_status = raise(NotImplementedError)
   def replace_client! = raise(NotImplementedError)
   def credential_env_keys = raise(NotImplementedError)
 
   # Required only for OAuth-provider servers (Twitter, Fatture in Cloud, …).
+  def service_info_report
+    raw = emcp_service_info
+    raw = {} unless raw.is_a?(Hash)
+    detail = raw.symbolize_keys
+    connected = detail.key?(:connected) ? detail[:connected] == true : detail[:authenticated] == true
+    {
+      "connected" => connected,
+      "server" => {
+        "id" => id,
+        "code" => code,
+        "instance" => activity_log_code,
+        "name" => name,
+        "type" => mcp_server_type&.name,
+      },
+      "emcp" => {
+        "public_url" => Emcp.public_url,
+        "version" => Emcp.release_tag.presence || Emcp::VERSION,
+        "commit" => Emcp.release_commit,
+      },
+      "detail" => detail.except(:connected).as_json,
+    }
+  end
+
+  def record_service_probe!
+    report = service_info_report
+    apply_service_report!(report)
+    report["connected"] == true ? nil : service_probe_failure(report)
+  rescue StandardError => e
+    report = { "connected" => false, "detail" => { "error" => e.message } }
+    apply_service_report!(report)
+    service_probe_failure(report)
+  end
+
   def oauth_call(callback_url:, state:) = raise(NotImplementedError)
   def oauth_exchange(callback_url:, params:, state_data: nil) = raise(NotImplementedError)
 
@@ -319,6 +370,33 @@ class McpServer < ApplicationRecord
   end
 
   private
+
+  def apply_service_report!(report)
+    self.service_info = report
+    if report["connected"] == true
+      connect if may_connect?
+    else
+      disconnect if may_disconnect?
+    end
+    save!
+  end
+
+  def service_probe_failure(report)
+    {
+      id: id,
+      name: name,
+      instance: activity_log_code,
+      error: report.dig("detail", "error") || report["error"],
+    }
+  end
+
+  def ensure_status_check
+    CheckStatusJob.ensure_running!(self)
+  end
+
+  def clear_status_signature
+    CheckStatusJob.clear_signature!(id)
+  end
 
   def apply_type_defaults
     return unless mcp_server_type

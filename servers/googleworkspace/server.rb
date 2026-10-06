@@ -102,6 +102,10 @@ module Emcp
           ]
         end
 
+        def emcp_service_info
+          fetch_auth_status
+        end
+
         def fetch_auth_status
           raw = @client.auth_status
           parsed = parse_gws_json(raw)

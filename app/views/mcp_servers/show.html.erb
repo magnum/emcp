@@ -16,7 +16,10 @@
         </ul>
       <% end %>
     </div>
-    <h1 class="mt-2 <%= catalog_heading_class %>"><%= @server.name %></h1>
+    <div class="mt-2 flex flex-wrap items-center gap-3">
+      <h1 class="<%= catalog_heading_class %>"><%= @server.name %></h1>
+      <%= render "mcp_servers/service_state_badge", server: @server %>
+    </div>
     <% if @server.description.present? %>
       <p class="mt-3 text-base leading-7 text-stone-700 dark:text-zinc-300"><%= @server.description %></p>
     <% end %>
@@ -29,6 +32,8 @@
   </header>
 
   <%= render "mcp_servers/mcp_endpoint", url: @server.mcp_url %>
+
+  <%= render "mcp_servers/service_info", server: @server %>
 
   <% unless @server.active? %>
     <p class="mt-6 rounded-lg border border-amber-700 bg-amber-50 px-4 py-3 text-amber-950 dark:bg-amber-950 dark:text-amber-100">

@@ -76,6 +76,10 @@ module Emcp
         # Prefer workspace probe (plan quota) over /me (30 req/hour user quota).
         def auth_status_cache_ttl = 600
 
+        def emcp_service_info
+          fetch_auth_status
+        end
+
         def fetch_auth_status
           load_credentials!
           organization_id = Emcp.sanitize_env_value(ENV["TOGGLTRACK_ORGANIZATION_ID"])

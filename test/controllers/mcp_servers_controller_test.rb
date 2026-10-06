@@ -102,6 +102,40 @@ class McpServersControllerTest < ActionDispatch::IntegrationTest
     assert_select "a.underline", text: "Servers"
   end
 
+  test "show places the service state next to the name and prints service info" do
+    post sign_in_path, params: { email: @user.email, password: "password123" }
+    server = mcp_server_for("hey")
+    server.update!(service_info: { "connected" => false, "detail" => { "error" => "session rejected" } })
+    server.disconnect!
+
+    get mcp_server_path(server)
+
+    assert_response :success
+    assert_select "h1", text: server.name
+    assert_select "form[action=?]", service_state_mcp_server_path(server) do
+      assert_select "button", text: "Disconnected"
+    end
+    assert_match(/session rejected/, response.body)
+    assert_match(/MCP endpoint/, response.body)
+  end
+
+  test "clicking the service state badge runs the probe and replaces the badge" do
+    post sign_in_path, params: { email: @user.email, password: "password123" }
+    server = mcp_server_for("hey")
+    original = Emcp::Servers::Hey::Server.instance_method(:emcp_service_info)
+    Emcp::Servers::Hey::Server.define_method(:emcp_service_info) { { connected: true, accounts: 1 } }
+
+    post service_state_mcp_server_path(server), as: :turbo_stream
+
+    assert_response :success
+    assert_match(/Connected/, response.body)
+    assert_match(/turbo-stream/, response.body)
+    assert server.reload.connected?
+    assert_equal true, server.service_info["connected"]
+  ensure
+    Emcp::Servers::Hey::Server.define_method(:emcp_service_info, original) if original
+  end
+
   test "destroying a context returns to contexts" do
     post sign_in_path, params: { email: @user.email, password: "password123" }
     context = create_context!(name: "House")

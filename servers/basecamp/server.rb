@@ -82,6 +82,10 @@ module Emcp
           ]
         end
 
+        def emcp_service_info
+          fetch_auth_status
+        end
+
         def fetch_auth_status
           raw = @client.run(@client.auth_status, truncate: false)
           data = JSON.parse(raw)

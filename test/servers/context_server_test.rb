@@ -24,9 +24,21 @@ class ContextServerTest < ActiveSupport::TestCase
     assert_match %r{/context/#{@context.id}/mcp\z}, @context.oauth_protected_resource_metadata_url
   end
 
-  test "catalog is the four proxy tools" do
+  test "catalog is the proxy tools plus emcp_service_info" do
     names = @context.tool_catalog.map { |tool| tool[:name] }
-    assert_equal %w[context_list_servers context_get_server context_list_tools context_call_tool], names
+    assert_equal %w[context_list_servers context_get_server context_list_tools context_call_tool emcp_service_info], names
+  end
+
+  test "emcp_service_info reports this context and a live connected flag" do
+    result = @context.call_tool("emcp_service_info", {})
+    payload = JSON.parse(result.content.first[:text])
+
+    assert_equal true, payload["connected"]
+    assert_equal @context.id, payload.dig("server", "id")
+    assert_equal "context", payload.dig("server", "code")
+    assert_equal @context.activity_log_code, payload.dig("server", "instance")
+    assert_equal Emcp.public_url, payload.dig("emcp", "public_url")
+    assert_equal true, payload.dig("detail", "active")
   end
 
   test "list_servers reports auth and active flags" do

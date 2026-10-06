@@ -37,6 +37,10 @@ module Emcp
           "#{Emcp.public_url}/context/#{id}"
         end
 
+        def emcp_service_info
+          fetch_auth_status
+        end
+
         def fetch_auth_status
           {
             authenticated: true,

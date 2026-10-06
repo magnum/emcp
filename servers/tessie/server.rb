@@ -87,6 +87,10 @@ module Emcp
 
         def auth_status_cache_ttl = 30
 
+        def emcp_service_info
+          fetch_auth_status
+        end
+
         def fetch_auth_status
           load_credentials!
           if Emcp.sanitize_env_value(ENV["TESSIE_API_TOKEN"]).empty?

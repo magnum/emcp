@@ -76,6 +76,20 @@ module Emcp
           { authenticated: false, error: e.message }
         end
 
+
+        def emcp_service_info
+          raw = @client.run(@client.accounts, truncate: false)
+          parsed = JSON.parse(raw)
+          if parsed.is_a?(Hash) && parsed["ok"] == false
+            return { connected: false, error: parsed["error"].to_s.presence || "HEY rejected the session" }
+          end
+
+          accounts = parsed.is_a?(Hash) && parsed.key?("data") ? parsed["data"] : parsed
+          { connected: true, accounts: accounts.is_a?(Array) ? accounts.size : nil }.compact
+        rescue StandardError => e
+          { connected: false, error: e.message }
+        end
+
         def apply_credentials(params)
           token = params["hey_token"].to_s.strip
           @client.run(@client.auth_login(token), truncate: false) unless token.empty?

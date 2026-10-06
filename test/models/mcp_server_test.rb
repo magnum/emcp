@@ -133,6 +133,7 @@ class McpServerTest < ActiveSupport::TestCase
     assert_raises(NotImplementedError) { server.configure_tools }
     assert_raises(NotImplementedError) { server.apply_credentials({}) }
     assert_raises(NotImplementedError) { server.clear_credentials! }
+    assert_raises(NotImplementedError) { server.emcp_service_info }
     assert_raises(NotImplementedError) { server.fetch_auth_status }
     assert_raises(NotImplementedError) { server.replace_client! }
     assert_raises(NotImplementedError) { server.credential_env_keys }

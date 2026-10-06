@@ -60,9 +60,14 @@ env:
     - RAILS_MASTER_KEY
     - GOOGLE_CLIENT_ID
     - GOOGLE_CLIENT_SECRET
+    - SMTP_PASSWORD
   clear:
     APP_HOST: https://emcp.m6i.it
     EMCP_PUBLIC_URL: https://emcp.m6i.it
+    EMCP_STATUS_INTERVAL: 30
+    SMTP_HOST: smtp-relay.brevo.com
+    SMTP_PORT: 587
+    SMTP_USERNAME: ac624b001@smtp-brevo.com
 
     # Architecture A: Solid Queue runs only in emcp-worker. Must be the strings
     # 1/true/yes/on to enable — the literal "false" used to be truthy in Puma.

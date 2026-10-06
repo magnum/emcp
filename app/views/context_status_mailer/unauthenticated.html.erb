@@ -1,0 +1,11 @@
+<p><strong><%= @context.name %></strong> (context <%= @context.id %>) has servers whose live check reported connected: false:</p>
+<ul>
+  <% @servers.each do |server| %>
+    <li>
+      <%= server[:name] %> (<%= server[:instance] %>)
+      <% if server[:paused] %>— paused<% end %>
+      <% if server[:error].present? %>: <%= server[:error] %><% end %>
+    </li>
+  <% end %>
+</ul>
+<p>Open that context in EmCP and sign those servers in again.</p>

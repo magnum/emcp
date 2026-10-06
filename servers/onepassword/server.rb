@@ -68,6 +68,10 @@ module Emcp
 
         def auth_status_cache_ttl = 120
 
+        def emcp_service_info
+          fetch_auth_status
+        end
+
         def fetch_auth_status
           load_credentials!
           unless @client.configured?

@@ -141,7 +141,17 @@ module McpServer::Tools
     return if @configured
 
     configure_tools
+    define_service_info_tool
     @configured = true
+  end
+
+  def define_service_info_tool
+    return if tools.any? { |tool| tool.name == "emcp_service_info" }
+
+    define_tool(
+      name: "emcp_service_info",
+      description: "EmCP info for this instance. connected is true only after a live read-only call to the upstream service.",
+    ) { api_response(service_info_report) }
   end
 
   def invoke_logged_tool(definition, arguments)

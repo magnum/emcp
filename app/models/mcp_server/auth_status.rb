@@ -10,7 +10,7 @@ module McpServer::AuthStatus
       return cached if cached
     end
 
-    # Live provider/CLI check. Each server must implement fetch_auth_status.
+    # Previous per-server probe. The operational state is emcp_service_info.
     status = fetch_auth_status
     write_auth_status_cache(status, ttl)
     status

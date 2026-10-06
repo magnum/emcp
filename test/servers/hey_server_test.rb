@@ -8,6 +8,36 @@ class HeyServerTest < ActiveSupport::TestCase
     @server.update!(allow_write: true)
   end
 
+  test "fetch_auth_status uses the local HEY auth status" do
+    client = @server.instance_variable_get(:@client)
+    client.define_singleton_method(:run) { |*_, **_| '{"authenticated":true,"source":"keyring"}' }
+
+    status = @server.fetch_auth_status
+
+    assert_equal true, status[:authenticated]
+    assert_equal "keyring", status[:source]
+  end
+
+  test "emcp_service_info treats a live account list as connected" do
+    client = @server.instance_variable_get(:@client)
+    client.define_singleton_method(:run) { |*_, **_| '[{"id":1},{"id":2}]' }
+
+    info = @server.emcp_service_info
+
+    assert_equal true, info[:connected]
+    assert_equal 2, info[:accounts]
+  end
+
+  test "emcp_service_info is not connected when the account list fails" do
+    client = @server.instance_variable_get(:@client)
+    client.define_singleton_method(:run) { |*_, **_| raise "not authenticated" }
+
+    info = @server.emcp_service_info
+
+    assert_equal false, info[:connected]
+    assert_includes info[:error], "not authenticated"
+  end
+
   test "catalog covers hey-cli v1.7.0 families" do
     names = @server.tool_catalog.map { |tool| tool[:name] }
 

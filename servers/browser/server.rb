@@ -95,6 +95,10 @@ module Emcp
           paired? ? "Salva" : "Avvia pairing"
         end
 
+        def emcp_service_info
+          fetch_auth_status
+        end
+
         def fetch_auth_status
           load_credentials!
           connected = persisted? && id.present? && SessionRegistry.current.connected?(id)

@@ -40,6 +40,7 @@ Rails.application.routes.draw do
 
       get "auth", to: "mcp_servers/auth#show", as: :auth
       get "auth/status", to: "mcp_servers/auth#status", as: :auth_status
+      post "service_state", to: "mcp_servers#service_state", as: :service_state
       post "auth/credentials", to: "mcp_servers/auth#credentials", as: :auth_credentials
       post "auth/continue", to: "mcp_servers/auth#continue", as: :auth_continue
       match "auth/logout", to: "mcp_servers/auth#logout", via: %i[get post], as: :auth_logout

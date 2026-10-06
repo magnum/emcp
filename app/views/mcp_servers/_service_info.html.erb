@@ -1,0 +1,9 @@
+<%# locals: server %>
+<section id="<%= dom_id(server, :service_info) %>" class="mt-6">
+  <h2 class="font-semibold text-stone-500 dark:text-zinc-400">Service info</h2>
+  <% if server.service_info.present? %>
+    <pre class="mt-2 overflow-x-auto rounded-lg border border-stone-300 bg-stone-50 p-4 font-mono text-sm text-stone-900 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"><%= JSON.pretty_generate(server.service_info) %></pre>
+  <% else %>
+    <p class="mt-2 text-stone-600 dark:text-zinc-400">No live service info yet.</p>
+  <% end %>
+</section>

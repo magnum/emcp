@@ -41,6 +41,14 @@ module Emcp
     ENV.fetch("EMCP_PUBLIC_URL") { ENV.fetch("APP_HOST", "http://localhost:3000") }.to_s.sub(%r{/\z}, "")
   end
 
+  # Seconds between context authentication checks. EMCP_STATUS_INTERVAL, default 30 minutes.
+  def status_interval
+    seconds = Integer(ENV.fetch("EMCP_STATUS_INTERVAL", "1800"))
+    seconds.positive? ? seconds : 1800
+  rescue ArgumentError, TypeError
+    1800
+  end
+
   RELEASE_TAG_PATTERN = /\Av\d+\.\d+(?:\.\d+)?\z/
 
   def release_info
@@ -220,6 +228,9 @@ Rails.application.config.after_initialize do
   next unless ActiveRecord::Base.connection.data_source_exists?("mcp_servers")
 
   McpServer.purge_legacy_storage!
+  next if ENV["SECRET_KEY_BASE_DUMMY"].present?
+
+  CheckStatusJob.sync_all!
 rescue ActiveRecord::NoDatabaseError, ActiveRecord::ConnectionNotEstablished, ActiveRecord::StatementInvalid
   # db:create / first boot / sqlite not ready yet
 end
