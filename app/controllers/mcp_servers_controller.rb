@@ -62,6 +62,11 @@ class McpServersController < ApplicationController
         partial: "mcp_servers/service_info",
         locals: { server: @server },
       ),
+      turbo_stream.replace(
+        helpers.dom_id(@server, :catalog_card),
+        partial: "shared/catalog_card",
+        locals: { server: @server },
+      ),
     ]
   end
 

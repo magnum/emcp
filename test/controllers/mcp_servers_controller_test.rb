@@ -62,6 +62,12 @@ class McpServersControllerTest < ActionDispatch::IntegrationTest
     assert_select "h2", text: connected.name
     assert_select "h2", text: created.name, count: 0
     assert_select "a[href=?]", mcp_servers_path, text: "Reset"
+
+    created.disconnect!
+    get mcp_servers_path, params: { service_state: "disconnected" }
+    assert_select "article.border-red-300.bg-red-50" do
+      assert_select "h2", text: created.name
+    end
   end
 
   test "index ANDs text search with tag: filters" do
