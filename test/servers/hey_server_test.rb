@@ -38,7 +38,7 @@ class HeyServerTest < ActiveSupport::TestCase
     assert_includes info[:error], "not authenticated"
   end
 
-  test "catalog covers hey-cli v1.7.0 families" do
+  test "catalog covers hey-cli v1.8.1 families" do
     names = @server.tool_catalog.map { |tool| tool[:name] }
 
     %w[
@@ -72,7 +72,7 @@ class HeyServerTest < ActiveSupport::TestCase
     refute properties.key?(:limit)
   end
 
-  test "tools omit --limit where hey-cli 1.7.0 rejects it" do
+  test "tools omit --limit where hey-cli 1.8.1 rejects it" do
     %w[hey_workflow hey_screener hey_screener_history hey_search hey_contacts].each do |name|
       properties = tool(name)[:input_schema][:properties]
       refute properties.key?(:limit), "#{name} must not advertise limit"
@@ -141,7 +141,7 @@ class HeyServerTest < ActiveSupport::TestCase
     assert_includes text, "hey search"
     assert_includes text, "hey account senders"
     assert_includes text, "EmCP MCP tools"
-    assert_includes text, "v1.7.0"
+    assert_includes text, "v1.8.1"
     refute_includes text, "hey threads <topic_id>"
   end
 
