@@ -30,7 +30,7 @@ bin/dev
 - Instance auth: `/servers/<id>/auth` (numeric instance id, from the servers or contexts list)
 - Google Sign-In is optional. It appears only when `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are set. Redirect: `${APP_HOST}/auth/google_oauth2/callback`
 
-CLI-backed tools (HEY, Basecamp, Google Workspace, 1Password, Home Assistant) call binaries. The Docker image ships them. A local `bin/dev` process uses whatever is on `PATH` (`HEY_BIN`, `BASECAMP_BIN`, `OP_BIN`, `HASS_CLI_BIN`, and `gws`). WhatsApp’s Go bridge is built from `servers/whatsapp/bridge` or baked into the image. Telegram’s MTProto bridge is built from `servers/telegram/bridge` the same way.
+CLI-backed tools (HEY, Basecamp, Google Workspace, 1Password, Home Assistant) call binaries. The Docker image ships them. A local `bin/dev` process uses whatever is on `PATH` (`HEY_BIN`, `BASECAMP_BIN`, `OP_BIN`, `HASS_CLI_BIN`, and `gws`). WhatsApp’s Go bridge is built from `servers/whatsapp/bridge` or baked into the image. Telegram’s MTProto bridge is built from `servers/telegram/bridge` the same way. Apple Reminders uses iCloud CalDAV from the Linux host. An app-specific password is the credential. Lists upgraded to the current Reminders format are not visible on that API.
 
 ### Environment
 
@@ -106,7 +106,7 @@ The auth form prints that URL. Register that exact string with the provider.
 
 ## Integrations
 
-HEY (CLI 1.8.1), Basecamp (CLI 0.13.0), Fatture in Cloud (API v2), Google Workspace (`gws` 0.22.5), Toggl Track (API v9), Bluesky, Twitter/X (API v2), TeslaMate, Tessie (API), Home Assistant (`hass-cli` 1.0.0), 1Password (CLI 2.40.0), WhatsApp (`whatsmeow` bridge), Telegram (MTProto bridge), Microsoft Graph (SharePoint sites), Shopify (Admin API, one store per instance), Browser (Chrome extension relay), Context (hub that proxies other instances). Details are in each `servers/*/README.md`.
+HEY (CLI 1.8.1), Basecamp (CLI 0.13.0), Fatture in Cloud (API v2), Google Workspace (`gws` 0.22.5), Toggl Track (API v9), Bluesky, Twitter/X (API v2), TeslaMate, Tessie (API), Home Assistant (`hass-cli` 1.0.0), 1Password (CLI 2.40.0), WhatsApp (`whatsmeow` bridge), Telegram (MTProto bridge), Microsoft Graph (SharePoint sites), Shopify (Admin API, one store per instance), Browser (Chrome extension relay), Apple Reminders (iCloud CalDAV), Context (hub that proxies other instances). Details are in each `servers/*/README.md`.
 
 ## Contexts
 

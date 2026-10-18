@@ -89,6 +89,10 @@ servers:
     max_chars: 12000
     allow_eval: false
     heartbeat: 15
+  reminders:
+    allow_write: false
+    timeout: 60
+    max_chars: 12000
   context:
     allow_write: true
     timeout: 60
