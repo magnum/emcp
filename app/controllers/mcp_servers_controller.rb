@@ -81,7 +81,13 @@ class McpServersController < ApplicationController
 
   def load_catalog
     McpServerType.discover!
-    @server_types = McpServerType.where.not(code: "context").order(:name)
+    @server_types = McpServerType.where.not(code: "context").sort_by { |type| [ catalog_type_ord(type), type.name.to_s.downcase ] }
+  end
+
+  def catalog_type_ord(type)
+    type.integration_class.ord
+  rescue NameError
+    0
   end
 
   def set_server

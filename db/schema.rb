@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_06_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_18_190000) do
   create_table "api_keys", force: :cascade do |t|
     t.bigint "bearer_id", null: false
     t.string "bearer_type", null: false
@@ -27,12 +27,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_06_120000) do
 
   create_table "basecamp_hook_receipts", force: :cascade do |t|
     t.integer "basecamp_hook_id", null: false
-    t.datetime "created_at", null: false
     t.string "event_id", null: false
     t.string "outcome", null: false
     t.string "reason"
-    t.datetime "updated_at", null: false
     t.integer "webhook_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
     t.index ["basecamp_hook_id", "event_id"], name: "index_basecamp_hook_receipts_on_hook_and_event", unique: true
     t.index ["basecamp_hook_id"], name: "index_basecamp_hook_receipts_on_basecamp_hook_id"
     t.index ["webhook_id"], name: "index_basecamp_hook_receipts_on_webhook_id"
@@ -40,32 +40,32 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_06_120000) do
   end
 
   create_table "basecamp_hooks", force: :cascade do |t|
-    t.datetime "created_at", null: false
-    t.boolean "enabled", default: true, null: false
     t.integer "mcp_server_id", null: false
+    t.string "url", null: false
     t.text "secret", null: false
     t.string "secret_header", default: "Authorization", null: false
+    t.boolean "enabled", default: true, null: false
+    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.string "url", null: false
     t.index ["mcp_server_id"], name: "index_basecamp_hooks_on_mcp_server_id"
   end
 
   create_table "basecamp_projects", force: :cascade do |t|
+    t.integer "mcp_server_id", null: false
+    t.string "project_id", null: false
+    t.string "name", null: false
     t.string "basecamp_webhook_id", null: false
     t.datetime "created_at", null: false
-    t.integer "mcp_server_id", null: false
-    t.string "name", null: false
-    t.string "project_id", null: false
     t.datetime "updated_at", null: false
     t.index ["mcp_server_id", "project_id"], name: "index_basecamp_projects_on_server_and_project", unique: true
     t.index ["mcp_server_id"], name: "index_basecamp_projects_on_mcp_server_id"
   end
 
   create_table "context_memberships", force: :cascade do |t|
-    t.boolean "active", default: true, null: false
     t.integer "context_id", null: false
-    t.datetime "created_at", null: false
     t.integer "mcp_server_id", null: false
+    t.boolean "active", default: true, null: false
+    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["context_id", "mcp_server_id"], name: "index_context_memberships_on_context_id_and_mcp_server_id", unique: true
     t.index ["context_id"], name: "index_context_memberships_on_context_id"
@@ -173,37 +173,38 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_06_120000) do
   end
 
   create_table "mcp_server_types", force: :cascade do |t|
-    t.boolean "allow_write", default: false, null: false
-    t.string "class_name", null: false
     t.string "code", null: false
-    t.datetime "created_at", null: false
-    t.text "description", default: "", null: false
+    t.string "class_name", null: false
     t.string "name", null: false
-    t.boolean "oauth_token_retrieval", default: false, null: false
-    t.integer "service_token_refresh_in_minutes"
-    t.integer "token_refresh_in_minutes"
-    t.datetime "updated_at", null: false
+    t.text "description", default: "", null: false
     t.string "version", default: "0.1.0", null: false
+    t.boolean "allow_write", default: false, null: false
+    t.boolean "oauth_token_retrieval", default: false, null: false
+    t.integer "token_refresh_in_minutes"
+    t.integer "service_token_refresh_in_minutes"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
     t.index ["class_name"], name: "index_mcp_server_types_on_class_name", unique: true
     t.index ["code"], name: "index_mcp_server_types_on_code", unique: true
   end
 
   create_table "mcp_servers", force: :cascade do |t|
-    t.boolean "active", default: true, null: false
     t.boolean "allow_write", default: false, null: false
     t.datetime "created_at", null: false
     t.text "credentials"
     t.text "description", default: "", null: false
-    t.integer "mcp_server_type_id", null: false
     t.string "name", null: false
     t.text "oauth_token_payload"
-    t.json "service_info"
-    t.string "service_state", default: "created", null: false
-    t.integer "service_token_refresh_in_minutes"
     t.integer "token_refresh_in_minutes"
     t.string "type", null: false
     t.datetime "updated_at", null: false
+    t.integer "service_token_refresh_in_minutes"
+    t.integer "mcp_server_type_id", null: false
     t.integer "user_id", null: false
+    t.boolean "active", default: true, null: false
+    t.string "service_state", default: "created", null: false
+    t.json "service_info"
+    t.integer "ord", default: 0, null: false
     t.index ["mcp_server_type_id"], name: "index_mcp_servers_on_mcp_server_type_id"
     t.index ["type"], name: "index_mcp_servers_on_type"
     t.index ["user_id"], name: "index_mcp_servers_on_user_id"
@@ -245,13 +246,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_06_120000) do
   end
 
   create_table "taggings", force: :cascade do |t|
+    t.integer "tag_id"
+    t.string "taggable_type"
+    t.integer "taggable_id"
+    t.string "tagger_type"
+    t.integer "tagger_id"
     t.string "context", limit: 128
     t.datetime "created_at"
-    t.integer "tag_id"
-    t.integer "taggable_id"
-    t.string "taggable_type"
-    t.integer "tagger_id"
-    t.string "tagger_type"
     t.string "tenant", limit: 128
     t.index ["context"], name: "index_taggings_on_context"
     t.index ["tag_id", "taggable_id", "taggable_type", "context", "tagger_id", "tagger_type"], name: "taggings_idx", unique: true
@@ -268,21 +269,21 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_06_120000) do
   end
 
   create_table "tags", force: :cascade do |t|
-    t.datetime "created_at", null: false
     t.string "name"
-    t.integer "taggings_count", default: 0
+    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "taggings_count", default: 0
     t.index ["name"], name: "index_tags_on_name", unique: true
   end
 
   create_table "telegram_hook_receipts", force: :cascade do |t|
-    t.datetime "created_at", null: false
+    t.integer "telegram_hook_id", null: false
     t.string "message_id", null: false
     t.string "outcome", null: false
     t.string "reason"
-    t.integer "telegram_hook_id", null: false
-    t.datetime "updated_at", null: false
     t.integer "webhook_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
     t.index ["telegram_hook_id", "message_id"], name: "index_telegram_hook_receipts_on_hook_and_message", unique: true
     t.index ["telegram_hook_id"], name: "index_telegram_hook_receipts_on_telegram_hook_id"
     t.index ["webhook_id"], name: "index_telegram_hook_receipts_on_webhook_id"
@@ -290,21 +291,21 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_06_120000) do
   end
 
   create_table "telegram_hooks", force: :cascade do |t|
-    t.string "chat_ids", default: "", null: false
-    t.string "chat_types", default: "private", null: false
-    t.datetime "created_at", null: false
-    t.integer "debounce_minutes", default: 5, null: false
-    t.boolean "enabled", default: false, null: false
-    t.boolean "ignore_channels", default: true, null: false
-    t.boolean "ignore_muted", default: true, null: false
     t.integer "mcp_server_id", null: false
-    t.boolean "mentions_only", default: false, null: false
-    t.string "owner_status", default: "active", null: false
-    t.string "respond_by_status", default: "every", null: false
+    t.string "url", null: false
     t.text "secret", null: false
     t.string "secret_header", default: "Authorization", null: false
+    t.boolean "enabled", default: false, null: false
+    t.string "owner_status", default: "active", null: false
+    t.string "respond_by_status", default: "every", null: false
+    t.string "chat_ids", default: "", null: false
+    t.string "chat_types", default: "private", null: false
+    t.boolean "mentions_only", default: false, null: false
+    t.boolean "ignore_muted", default: true, null: false
+    t.boolean "ignore_channels", default: true, null: false
+    t.integer "debounce_minutes", default: 5, null: false
+    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.string "url", null: false
     t.index ["mcp_server_id"], name: "index_telegram_hooks_on_mcp_server_id"
     t.check_constraint "debounce_minutes >= 0 AND debounce_minutes <= 1440", name: "telegram_hooks_debounce_minutes"
     t.check_constraint "owner_status IN ('active', 'away')", name: "telegram_hooks_owner_status"
@@ -334,33 +335,33 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_06_120000) do
   end
 
   create_table "webhooks", force: :cascade do |t|
-    t.boolean "async", default: false
-    t.text "body"
-    t.datetime "created_at", null: false
-    t.text "error_backtrace"
-    t.string "error_message"
-    t.json "headers"
-    t.string "method"
-    t.text "response_body"
-    t.integer "response_code"
-    t.json "response_headers"
     t.string "state", default: "created"
-    t.datetime "updated_at", null: false
-    t.string "url"
-    t.integer "webhookable_id"
     t.string "webhookable_type"
+    t.integer "webhookable_id"
+    t.boolean "async", default: false
+    t.string "url"
+    t.string "method"
+    t.json "headers"
+    t.text "body"
+    t.integer "response_code"
+    t.text "response_body"
+    t.json "response_headers"
+    t.string "error_message"
+    t.text "error_backtrace"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
     t.index ["created_at"], name: "index_webhooks_on_created_at"
     t.index ["webhookable_type", "webhookable_id"], name: "index_webhooks_on_webhookable"
   end
 
   create_table "whatsapp_hook_receipts", force: :cascade do |t|
-    t.datetime "created_at", null: false
+    t.integer "whatsapp_hook_id", null: false
     t.string "message_id", null: false
     t.string "outcome", null: false
     t.string "reason"
-    t.datetime "updated_at", null: false
     t.integer "webhook_id"
-    t.integer "whatsapp_hook_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
     t.index ["webhook_id"], name: "index_whatsapp_hook_receipts_on_webhook_id"
     t.index ["whatsapp_hook_id", "message_id"], name: "index_whatsapp_hook_receipts_on_hook_and_message", unique: true
     t.index ["whatsapp_hook_id"], name: "index_whatsapp_hook_receipts_on_whatsapp_hook_id"
@@ -368,23 +369,23 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_06_120000) do
   end
 
   create_table "whatsapp_hooks", force: :cascade do |t|
-    t.string "chat_kinds", default: "direct,group", null: false
-    t.boolean "consider_all_messages", default: false, null: false
-    t.boolean "consider_mentions", default: true, null: false
-    t.string "consider_words", default: "bot", null: false
-    t.datetime "created_at", null: false
-    t.boolean "enabled", default: true, null: false
-    t.integer "history_limit"
     t.integer "mcp_server_id", null: false
+    t.string "url", null: false
+    t.text "secret", null: false
+    t.string "secret_header", default: "Authorization", null: false
+    t.boolean "enabled", default: true, null: false
     t.string "owner_status", default: "active", null: false
+    t.boolean "consider_mentions", default: true, null: false
+    t.boolean "consider_all_messages", default: false, null: false
+    t.string "consider_words", default: "bot", null: false
     t.string "respond_by_status", default: "every", null: false
     t.string "respond_numbers_filtered_in", default: "", null: false
     t.string "respond_numbers_filtered_out", default: "", null: false
-    t.string "respond_when", default: "mention", null: false
-    t.text "secret", null: false
-    t.string "secret_header", default: "Authorization", null: false
+    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.string "url", null: false
+    t.string "respond_when", default: "mention", null: false
+    t.integer "history_limit"
+    t.string "chat_kinds", default: "direct,group", null: false
     t.index ["mcp_server_id"], name: "index_whatsapp_hooks_on_mcp_server_id"
     t.check_constraint "owner_status IN ('active', 'away')", name: "whatsapp_hooks_owner_status"
     t.check_constraint "respond_by_status IN ('every', 'active', 'away')", name: "whatsapp_hooks_respond_by_status"

@@ -130,11 +130,17 @@
     <% password = field[:type] == "password" %>
     <% textarea = field[:type] == "textarea" %>
     <% checkbox = field[:type] == "checkbox" %>
+    <% select_field = field[:type] == "select" %>
     <div>
       <% unless checkbox %>
         <%= label_tag field[:name], field[:label], class: "mb-2 block font-semibold" %>
       <% end %>
-      <% if checkbox %>
+      <% if select_field %>
+        <%= select_tag field[:name],
+              options_for_select(field[:options], stored.presence || field[:default]),
+              class: "w-full rounded-lg border border-stone-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-950",
+              required: field[:required] %>
+      <% elsif checkbox %>
         <label class="flex items-center gap-3 font-semibold">
           <%= hidden_field_tag field[:name], "0" %>
           <%= check_box_tag field[:name], "1", ActiveModel::Type::Boolean.new.cast(stored), class: "h-4 w-4" %>

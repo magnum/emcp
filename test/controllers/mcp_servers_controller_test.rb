@@ -103,6 +103,15 @@ class McpServersControllerTest < ActionDispatch::IntegrationTest
     assert_select "a[href=?]", mcp_servers_path(q: "tag:home", mcp_server_type_id: McpServerType.fetch!("hey").id)
   end
 
+  test "new server form lists Generic before the other types" do
+    post sign_in_path, params: { email: @user.email, password: "password123" }
+
+    get new_mcp_server_path
+
+    assert_response :success
+    assert_select "select#mcp_server_mcp_server_type_id option:nth-of-type(2)", text: "Generic"
+  end
+
   test "create builds an instance for the current user" do
     post sign_in_path, params: { email: @user.email, password: "password123" }
     type = McpServerType.fetch!("hey")

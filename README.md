@@ -106,13 +106,13 @@ The auth form prints that URL. Register that exact string with the provider.
 
 ## Integrations
 
-HEY (CLI 1.8.1), Basecamp (CLI 0.13.0), Fatture in Cloud (API v2), Google Workspace (`gws` 0.22.5), Toggl Track (API v9), Bluesky, Twitter/X (API v2), TeslaMate, Tessie (API), Home Assistant (`hass-cli` 1.0.0), 1Password (CLI 2.40.0), WhatsApp (`whatsmeow` bridge), Telegram (MTProto bridge), Microsoft Graph (SharePoint sites), Shopify (Admin API, one store per instance), Browser (Chrome extension relay), Apple Reminders (iCloud CalDAV), Context (hub that proxies other instances). Details are in each `servers/*/README.md`.
+HEY (CLI 1.8.1), Basecamp (CLI 0.13.0), Fatture in Cloud (API v2), Google Workspace (`gws` 0.22.5), Toggl Track (API v9), Bluesky, Twitter/X (API v2), TeslaMate, Tessie (API), Home Assistant (`hass-cli` 1.0.0), 1Password (CLI 2.40.0), WhatsApp (`whatsmeow` bridge), Telegram (MTProto bridge), Microsoft Graph (SharePoint sites), Shopify (Admin API, one store per instance), Browser (Chrome extension relay), Apple Reminders (iCloud CalDAV), Generic (remote MCP proxy, token in a header or query string), Context (hub that proxies other instances). Details are in each `servers/*/README.md`.
 
 ## Contexts
 
 The operator UI splits **Servers** (`/servers`) and **Contexts** (`/contexts`). The active tab is underlined.
 
-Create a context, open it, attach the servers it should proxy. Pause a membership to keep it listed without exposing tools. Turn the context itself inactive to refuse proxied calls while MCP clients can still connect.
+Create a context, open it, attach the servers it should proxy. A Generic server can stand in for a remote MCP such as `https://wrks.it/mcp`. Pause a membership to keep it listed without exposing tools. Turn the context itself inactive to refuse proxied calls while MCP clients can still connect.
 
 The hub does not flatten child catalogs. Clients call `context_list_servers`, then `context_get_server` / `context_list_tools`, then `context_call_tool` with the child tool name and arguments. Identify a proxied server by numeric id, instance id (`hey-12`), or type code when it is unique in that context. See `servers/context/README.md`.
 

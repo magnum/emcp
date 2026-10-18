@@ -12,6 +12,13 @@ class ContextServerTest < ActiveSupport::TestCase
     @context.update!(allow_write: true)
   end
 
+  test "available servers list Generic first" do
+    generic = mcp_server_for("generic")
+
+    assert_equal(-1, generic.ord)
+    assert_equal generic.id, @context.available_proxied_servers.first.id
+  end
+
   test "is discovered and not provisioned as a default instance" do
     assert_includes McpServerType.order(:code).pluck(:code), "context"
     refute @user.mcp_servers.joins(:mcp_server_type).where.not(id: @context.id)

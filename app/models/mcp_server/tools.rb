@@ -64,13 +64,19 @@ module McpServer::Tools
 
   protected
 
-  def define_tool(name:, description:, properties: {}, required: [], write: false, output_schema: nil, &handler)
-    schema = {
-      type: "object",
-      properties: properties,
-      additionalProperties: false,
-    }
-    schema[:required] = required if required.present?
+  def define_tool(name:, description:, properties: {}, required: [], write: false, output_schema: nil, input_schema: nil, &handler)
+    schema = if input_schema
+      input_schema.deep_symbolize_keys
+    else
+      built = {
+        type: "object",
+        properties: properties,
+        additionalProperties: false,
+      }
+      built[:required] = required if required.present?
+      built
+    end
+    schema[:type] ||= "object"
 
     tools << Emcp::ToolDefinition.new(
       name: name,

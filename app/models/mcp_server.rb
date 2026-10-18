@@ -33,6 +33,7 @@ class McpServer < ApplicationRecord
 
   validates :name, presence: true
   validates :type, presence: true
+  validates :ord, numericality: { only_integer: true }
   validates :token_refresh_in_minutes,
             numericality: { only_integer: true, greater_than: 0 },
             allow_nil: true
@@ -128,6 +129,11 @@ class McpServer < ApplicationRecord
     def version(value = nil)
       @version_value = value if value
       @version_value || "1.0.0"
+    end
+
+    def ord(value = nil)
+      @ord_value = Integer(value) unless value.nil?
+      @ord_value.nil? ? 0 : @ord_value
     end
 
     def oauth_token_retrieval(value = nil)
@@ -404,6 +410,7 @@ class McpServer < ApplicationRecord
     self.type = mcp_server_type.class_name if type.blank? || instance_of?(McpServer)
     self.name = mcp_server_type.name if name.blank?
     self.allow_write = mcp_server_type.allow_write unless allow_write_changed?
+    self.ord = mcp_server_type.integration_class.ord if has_attribute?(:ord)
     self.service_token_refresh_in_minutes ||= mcp_server_type.service_token_refresh_in_minutes
     self.token_refresh_in_minutes ||= mcp_server_type.token_refresh_in_minutes
   end

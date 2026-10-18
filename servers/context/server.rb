@@ -59,7 +59,7 @@ module Emcp
         def credential_env_keys = []
 
         def available_proxied_servers
-          user.mcp_servers.proxyable.where.not(id: proxied_server_ids).includes(:mcp_server_type).order(:name)
+          user.mcp_servers.proxyable.where.not(id: proxied_server_ids).includes(:mcp_server_type).order(:ord, :name)
         end
 
         def configure_tools
