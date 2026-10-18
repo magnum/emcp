@@ -62,8 +62,8 @@ env:
     - GOOGLE_CLIENT_SECRET
     - SMTP_PASSWORD
   clear:
-    APP_HOST: https://emcp.m6i.it
-    EMCP_PUBLIC_URL: https://emcp.m6i.it
+    APP_HOST: https://emcp.it
+    EMCP_PUBLIC_URL: https://emcp.it
     EMCP_STATUS_INTERVAL: 30
     SMTP_HOST: smtp-relay.brevo.com
     SMTP_PORT: 587
