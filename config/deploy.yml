@@ -35,7 +35,7 @@ drain_timeout: 30
 
 proxy:
   ssl: false
-  host: emcp.m6i.it
+  host: emcp.it
   forward_headers: true
   healthcheck:
     path: /up
