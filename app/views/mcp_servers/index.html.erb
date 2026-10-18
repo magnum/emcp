@@ -27,12 +27,24 @@
           <% @user_tags.each do |tag| %>
             <% selected = @active_search_tags.include?(tag) %>
             <li>
-              <%= link_to tag, mcp_servers_path(q: "tag:#{tag}", mcp_server_type_id: params[:mcp_server_type_id].presence, service_state: params[:service_state].presence),
+              <%= link_to tag, mcp_servers_path(q: "tag:#{tag}", mcp_server_type_id: params[:mcp_server_type_id].presence, service_state: params[:service_state].presence, context_id: params[:context_id].presence),
                     class: "inline-block rounded-sm px-2.5 py-0.5 text-white #{selected ? "bg-stone-800 dark:bg-zinc-300 dark:text-zinc-950" : "bg-stone-500 hover:bg-stone-600"}" %>
             </li>
           <% end %>
         </ul>
       <% end %>
+    </div>
+    <div class="sm:w-48">
+      <label for="context_id" class="hidden mb-1 block  font-semibold text-stone-500 dark:text-zinc-400">Context</label>
+      <select name="context_id" id="context_id"
+              class="w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-stone-900 outline-none focus:border-stone-500 dark:border-zinc-600 dark:bg-zinc-950 dark:text-zinc-100">
+        <option value="">All Contexts</option>
+        <% @contexts.each do |context| %>
+          <option value="<%= context.id %>" <%= "selected" if params[:context_id].to_s == context.id.to_s %>>
+            <%= context.name %>
+          </option>
+        <% end %>
+      </select>
     </div>
     <div class="sm:w-40">
       <label for="service_state" class="hidden mb-1 block  font-semibold text-stone-500 dark:text-zinc-400">Service State</label>
@@ -62,7 +74,7 @@
       <button type="submit" class="btn-emcp-outline h-10">
         Filter
       </button>
-      <% if params[:q].present? || params[:mcp_server_type_id].present? || params[:service_state].present? %>
+      <% if params[:q].present? || params[:mcp_server_type_id].present? || params[:service_state].present? || params[:context_id].present? %>
         <%= link_to "Reset", mcp_servers_path, class: "font-semibold underline" %>
       <% end %>
     </div>

@@ -47,6 +47,33 @@ class McpServersControllerTest < ActionDispatch::IntegrationTest
     assert_match(/No servers match/, response.body)
   end
 
+  test "index filters by context" do
+    post sign_in_path, params: { email: @user.email, password: "password123" }
+    hey = mcp_server_for("hey")
+    teslamate = mcp_server_for("teslamate")
+    house = create_context!(name: "House", servers: [ hey ])
+    create_context!(name: "Office", servers: [ teslamate ])
+
+    get mcp_servers_path
+
+    assert_response :success
+    assert_select "select#context_id option:first-child", text: "All Contexts"
+    assert_select "select#context_id option", text: "House"
+    assert_select "select#context_id option", text: "Office"
+
+    get mcp_servers_path, params: { context_id: house.id }
+
+    assert_response :success
+    assert_select "select#context_id option[value=?][selected]", house.id.to_s
+    assert_select "h2", text: hey.name
+    assert_select "h2", text: teslamate.name, count: 0
+    assert_select "a[href=?]", mcp_servers_path, text: "Reset"
+
+    get mcp_servers_path, params: { context_id: mcp_server_for("context", user: users(:two)).id }
+    assert_select "h2", text: hey.name
+    assert_select "select#context_id option[selected]", count: 0
+  end
+
   test "index filters by service state" do
     post sign_in_path, params: { email: @user.email, password: "password123" }
     connected = mcp_server_for("hey")
@@ -133,7 +160,8 @@ class McpServersControllerTest < ActionDispatch::IntegrationTest
 
     get mcp_servers_path
     assert_response :success
-    refute_match(/House/, response.body)
+    assert_select "select#context_id option", text: "House"
+    assert_select "h2", text: "House", count: 0
     assert_select "a.underline", text: "Servers"
   end
 

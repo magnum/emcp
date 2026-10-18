@@ -6,9 +6,11 @@ class McpServersController < ApplicationController
   before_action :set_server, only: %i[show edit update destroy service_state]
 
   def index
+    @contexts = current_user.mcp_servers.contexts.order(:name)
     @servers = current_user.mcp_servers.proxyable.includes(:mcp_server_type).order(:name)
     @servers = @servers.where(mcp_server_type_id: params[:mcp_server_type_id]) if params[:mcp_server_type_id].present?
     @servers = @servers.where(service_state: params[:service_state]) if McpServer.aasm.states.map { |state| state.name.to_s }.include?(params[:service_state])
+    @servers = @servers.where(id: selected_context.proxied_servers.select(:id)) if selected_context
     @servers = @servers.search(params[:q])
     @user_tags = McpServer.tag_names_for(current_user)
     @active_search_tags = McpServer.parse_search_query(params[:q])[:tags]
@@ -78,6 +80,12 @@ class McpServersController < ApplicationController
   end
 
   private
+
+  def selected_context
+    return if params[:context_id].blank?
+
+    @contexts.find_by(id: params[:context_id])
+  end
 
   def load_catalog
     McpServerType.discover!
