@@ -15,6 +15,7 @@
 #   DB_SYNC_PRIMARY_ONLY=1 bin/rails db:remote_pull
 #   REMOTE_DB_SSH=deploy@example.com bin/rails db:remote_pull
 
+require "erb"
 require "shellwords"
 require "fileutils"
 require "yaml"
@@ -26,11 +27,8 @@ module DbRemoteSync
     path = Rails.root.join("config/deploy.yml")
     return nil unless path.exist?
 
-    if YAML.respond_to?(:safe_load_file)
-      YAML.safe_load_file(path, permitted_classes: [Symbol], aliases: true)
-    else
-      YAML.safe_load(File.read(path), permitted_classes: [Symbol], aliases: true)
-    end
+    rendered = ERB.new(File.read(path)).result
+    YAML.safe_load(rendered, permitted_classes: [Symbol], aliases: true)
   end
 
   def remote_db_ssh_default_from_deploy
