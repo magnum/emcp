@@ -16,7 +16,7 @@
   </header>
 
   <%= form_with url: mcp_servers_path, method: :get, local: true,
-        class: "mb-8 flex flex-col gap-3 sm:flex-row sm:items-start" do %>
+        class: "mb-8 flex flex-col gap-3 md:flex-row md:items-start" do %>
     <div class="min-w-0 flex-1">
       <label for="q" class="hidden mb-1 block  font-semibold text-stone-500 dark:text-zinc-400">Search</label>
       <input type="search" name="q" id="q" value="<%= params[:q] %>"
@@ -34,7 +34,7 @@
         </ul>
       <% end %>
     </div>
-    <div class="sm:w-48">
+    <div class="md:w-48">
       <label for="context_id" class="hidden mb-1 block  font-semibold text-stone-500 dark:text-zinc-400">Context</label>
       <select name="context_id" id="context_id"
               class="w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-stone-900 outline-none focus:border-stone-500 dark:border-zinc-600 dark:bg-zinc-950 dark:text-zinc-100">
@@ -46,7 +46,7 @@
         <% end %>
       </select>
     </div>
-    <div class="sm:w-40">
+    <div class="md:w-40">
       <label for="service_state" class="hidden mb-1 block  font-semibold text-stone-500 dark:text-zinc-400">Service State</label>
       <select name="service_state" id="service_state"
               class="w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-stone-900 outline-none focus:border-stone-500 dark:border-zinc-600 dark:bg-zinc-950 dark:text-zinc-100">
@@ -58,7 +58,7 @@
         <% end %>
       </select>
     </div>
-    <div class="sm:w-48">
+    <div class="md:w-48">
       <label for="mcp_server_type_id" class="hidden mb-1 block  font-semibold text-stone-500 dark:text-zinc-400">Server type</label>
       <select name="mcp_server_type_id" id="mcp_server_type_id"
               class="w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-stone-900 outline-none focus:border-stone-500 dark:border-zinc-600 dark:bg-zinc-950 dark:text-zinc-100">
