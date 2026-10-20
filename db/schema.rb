@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_18_190000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_20_100000) do
   create_table "api_keys", force: :cascade do |t|
     t.bigint "bearer_id", null: false
     t.string "bearer_type", null: false
@@ -389,7 +389,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_18_190000) do
     t.index ["mcp_server_id"], name: "index_whatsapp_hooks_on_mcp_server_id"
     t.check_constraint "owner_status IN ('active', 'away')", name: "whatsapp_hooks_owner_status"
     t.check_constraint "respond_by_status IN ('every', 'active', 'away')", name: "whatsapp_hooks_respond_by_status"
-    t.check_constraint "respond_when IN ('never', 'always', 'mention', 'word')", name: "whatsapp_hooks_respond_when"
   end
 
   add_foreign_key "basecamp_hook_receipts", "basecamp_hooks"

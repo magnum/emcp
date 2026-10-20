@@ -8,7 +8,7 @@ module Emcp
           super(
             bin: ENV.fetch("HASS_CLI_BIN", "hass-cli"),
             timeout: ENV.fetch("HASS_TIMEOUT", "30").to_i,
-            max_chars: ENV.fetch("EMCP_MAX_CHARS", "100000").to_i,
+            max_bytes: Emcp.max_response_bytes("homeassistant"),
             env: {
               "HASS_SERVER" => ENV.fetch("HASS_SERVER", ""),
               "HASS_TOKEN" => ENV.fetch("HASS_TOKEN", ""),

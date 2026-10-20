@@ -51,16 +51,21 @@
     </div>
     <p class="mt-1 text-stone-500 dark:text-zinc-400">Direct chats and groups start a webhook. Status, channels, and broadcast lists do not, until you tick them.</p>
   </fieldset>
-  <div>
-    <%= f.label :respond_when, "When", class: "mb-2 block font-semibold" %>
-    <%= f.select :respond_when, [
-          [ "Never", "never" ],
-          [ "Always (autoresponder)", "always" ],
-          [ "Mention", "mention" ],
-          [ "Word", "word" ],
-        ], {}, class: field_class %>
-    <p class="mt-1 text-stone-500 dark:text-zinc-400">Never skips the call. Always sends every message from the chats ticked above. Mention sends only when the message @mentions your WhatsApp account. Word sends only when a word below matches.</p>
-  </div>
+  <fieldset>
+    <legend class="mb-2 block font-semibold">When</legend>
+    <%= hidden_field_tag "whatsapp_hook[respond_when][]", "" %>
+    <div class="space-y-2">
+      <% Emcp::Servers::Whatsapp::Hook::WHEN_OPTIONS.each do |value, label| %>
+        <% field_id = "whatsapp_hook_#{f.object.id || "new"}_respond_when_#{value}" %>
+        <label class="flex items-center gap-2" for="<%= field_id %>">
+          <%= check_box_tag "whatsapp_hook[respond_when][]", value, f.object.selected_respond_whens.include?(value),
+                id: field_id, class: "h-4 w-4 rounded border-stone-300" %>
+          <span><%= label %></span>
+        </label>
+      <% end %>
+    </div>
+    <p class="mt-1 text-stone-500 dark:text-zinc-400">Leave every box unticked and the call is skipped. Always sends every message from the chats ticked above. Mention sends when the message @mentions your WhatsApp account. Word sends when a word below matches. More than one box sends the message when any of them matches.</p>
+  </fieldset>
   <div>
     <%= f.label :consider_words, "Words", class: "mb-2 block font-semibold" %>
     <%= f.text_field :consider_words, class: field_class %>

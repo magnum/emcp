@@ -133,6 +133,30 @@ module Emcp
     defaults.merge(specific)
   end
 
+  DEFAULT_MAX_RESPONSE_BYTES = 1_048_576
+
+  def max_response_bytes(code = nil)
+    if code
+      prefixed = ENV["#{code.to_s.upcase}_MAX_RESPONSE_BYTES"]
+      return prefixed.to_i if positive_setting?(prefixed)
+
+      specific = settings_hash(try_setting(Settings.try(:servers), code))
+      per_server = specific["max_response_bytes"]
+      return per_server.to_i if positive_setting?(per_server)
+    end
+
+    global = ENV["EMCP_MAX_RESPONSE_BYTES"]
+    return global.to_i if positive_setting?(global)
+
+    configured = server_setting("defaults", "max_response_bytes", DEFAULT_MAX_RESPONSE_BYTES)
+    number = configured.to_i
+    number.positive? ? number : DEFAULT_MAX_RESPONSE_BYTES
+  end
+
+  def positive_setting?(value)
+    !value.nil? && value.to_s.strip != "" && value.to_i.positive?
+  end
+
   def server_setting(code, key, default = nil)
     value = server_config(code)[key.to_s]
     value.nil? ? default : value

@@ -50,16 +50,13 @@ module Emcp
           return skip(message.chat_kind) unless hook.accepts_chat?(message)
 
           words = matched_words(message.text)
-          case hook.respond_when
-          when "never"
-            skip("never")
-          when "always"
-            deliver_decision("always", words)
-          when "word"
-            words.empty? ? skip("words") : deliver_decision("word", words)
-          else
-            message.mentions_owner? ? deliver_decision("mention", words) : skip("mention")
-          end
+          triggers = hook.selected_respond_whens
+          return skip("never") if triggers.empty?
+          return deliver_decision("always", words) if triggers.include?("always")
+          return deliver_decision("mention", words) if triggers.include?("mention") && message.mentions_owner?
+          return deliver_decision("word", words) if triggers.include?("word") && words.any?
+
+          skip(triggers.include?("mention") ? "mention" : "words")
         end
 
         private

@@ -10,7 +10,7 @@ module Emcp
           super(
             bin: ENV.fetch("OP_BIN", "op"),
             timeout: ENV.fetch("OP_TIMEOUT", "45").to_i,
-            max_chars: ENV.fetch("EMCP_MAX_CHARS", "100000").to_i,
+            max_bytes: Emcp.max_response_bytes("onepassword"),
             env: {},
           )
         end

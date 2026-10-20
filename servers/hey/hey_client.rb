@@ -8,7 +8,7 @@ module Emcp
           super(
             bin: ENV.fetch("HEY_BIN", "hey"),
             timeout: ENV.fetch("HEY_TIMEOUT", "60").to_i,
-            max_chars: ENV.fetch("EMCP_MAX_CHARS", "100000").to_i,
+            max_bytes: Emcp.max_response_bytes("hey"),
             env: { "HEY_NONINTERACTIVE" => "1" }.merge(env),
           )
         end

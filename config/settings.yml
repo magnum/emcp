@@ -12,6 +12,9 @@ servers:
   defaults:
     timeout: 30
     max_chars: 12000
+    # CLI/stdio tool output captured by context_call_tool. Override per server
+    # with max_response_bytes, or globally with EMCP_MAX_RESPONSE_BYTES.
+    max_response_bytes: 1048576
     allow_write: false
   hey:
     allow_write: true

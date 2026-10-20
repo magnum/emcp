@@ -26,9 +26,14 @@ module Emcp
           "broadcast" => "Broadcast lists",
         }.freeze
 
+        WHEN_OPTIONS = {
+          "always" => "Always (autoresponder)",
+          "mention" => "Mention",
+          "word" => "Word",
+        }.freeze
+
         enum :owner_status, { active: "active", away: "away" }, prefix: :owner, validate: true
         enum :respond_by_status, { every: "every", active: "active", away: "away" }, prefix: :respond, validate: true
-        enum :respond_when, { never: "never", always: "always", mention: "mention", word: "word" }, prefix: :trigger, validate: true
 
         normalizes :url, with: ->(value) { value.to_s.strip }
         normalizes :secret_header, with: ->(value) { value.to_s.strip }
@@ -51,6 +56,11 @@ module Emcp
           value.to_s.split(",").filter_map { |part| part.gsub(/\D/, "").presence }.join(", ")
         end
 
+        def self.normalize_respond_when(value)
+          picked = Array(value).flat_map { |part| part.to_s.split(",") }.map(&:strip).reject(&:blank?)
+          WHEN_OPTIONS.keys.select { |option| picked.include?(option) }.join(",")
+        end
+
         def self.normalize_chat_kinds(value)
           picked = Array(value).flat_map { |part| part.to_s.split(",") }.map(&:strip).reject(&:blank?)
           CHAT_KINDS.keys.select { |kind| picked.include?(kind) }.join(",")
@@ -62,6 +72,14 @@ module Emcp
 
         def selected_chat_kinds
           chat_kinds.to_s.split(",").map(&:strip).reject(&:blank?)
+        end
+
+        def respond_when=(value)
+          super(self.class.normalize_respond_when(value))
+        end
+
+        def selected_respond_whens
+          respond_when.to_s.split(",").map(&:strip).reject(&:blank?)
         end
 
         def accepts_chat?(message)

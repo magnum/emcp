@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require "json"
 require "open3"
 require "shellwords"
 
@@ -9,10 +10,10 @@ module Emcp
   class CliClient
     attr_reader :bin
 
-    def initialize(bin:, timeout: 30, max_chars: 12_000, env: {})
+    def initialize(bin:, timeout: 30, max_bytes: nil, max_chars: nil, env: {})
       @bin = bin
       @timeout = timeout
-      @max_chars = max_chars
+      @max_bytes = positive_bytes(max_bytes) || positive_bytes(max_chars) || Emcp.max_response_bytes
       @env = env
     end
 
@@ -32,8 +33,8 @@ module Emcp
 
       Open3.popen3(child_env, @bin, *args) do |stdin, stdout, stderr, wait_thr|
         stdin.close
-        out_reader = Thread.new { stdout.read }
-        err_reader = Thread.new { stderr.read }
+        out_reader = Thread.new { read_stream(stdout) }
+        err_reader = Thread.new { read_stream(stderr) }
 
         unless wait_thr.join(@timeout)
           Process.kill("KILL", wait_thr.pid)
@@ -63,10 +64,45 @@ module Emcp
       end
     end
 
-    def truncate_output(text)
-      return text if text.length <= @max_chars
+    def read_stream(io)
+      buffer = +"".b
+      loop do
+        chunk = io.readpartial(16_384)
+        buffer << chunk
+      rescue EOFError
+        break
+      end
+      buffer.force_encoding(Encoding::UTF_8).scrub
+    end
 
-      "#{text[0, @max_chars]}\n\n[... truncated, #{text.length - @max_chars} chars omitted]"
+    def truncate_output(text)
+      raw = text.to_s
+      total = raw.b.bytesize
+      return raw if total <= @max_bytes
+
+      kept = utf8_prefix(raw, @max_bytes)
+      JSON.generate(
+        "truncated" => true,
+        "total_bytes" => total,
+        "returned_bytes" => kept.b.bytesize,
+        "message" => "Response exceeded #{@max_bytes} bytes. Narrow the request with limit, page, or a filter, " \
+          "or raise EMCP_MAX_RESPONSE_BYTES or servers.<code>.max_response_bytes.",
+        "output" => kept
+      )
+    end
+
+    def utf8_prefix(text, max_bytes)
+      slice = text.b.byteslice(0, max_bytes).to_s
+      slice.force_encoding(Encoding::UTF_8)
+      slice = slice.byteslice(0...-1).force_encoding(Encoding::UTF_8) until slice.valid_encoding? || slice.empty?
+      slice
+    end
+
+    def positive_bytes(value)
+      return nil if value.nil? || value.to_s.strip.empty?
+
+      number = value.to_i
+      number.positive? ? number : nil
     end
   end
 end

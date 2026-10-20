@@ -43,7 +43,10 @@ class WhatsappInboundMessagesControllerTest < ActionDispatch::IntegrationTest
       assert_select "input[name='whatsapp_hook[chat_kinds][]'][value='status'][checked]", count: 0
       assert_select "input[name='whatsapp_hook[chat_kinds][]'][value='newsletter'][checked]", count: 0
       assert_select "input[name='whatsapp_hook[chat_kinds][]'][value='broadcast'][checked]", count: 0
-      assert_select "select[name='whatsapp_hook[respond_when]'] option[selected][value='mention']"
+      assert_select "input[name='whatsapp_hook[respond_when][]'][value='always'][checked]", count: 0
+      assert_select "input[name='whatsapp_hook[respond_when][]'][value='mention'][checked]"
+      assert_select "input[name='whatsapp_hook[respond_when][]'][value='word'][checked]", count: 0
+      assert_select "option", text: "Never", count: 0
       assert_select "input[name='whatsapp_hook[consider_words]'][value='bot']"
       assert_select "input[name='whatsapp_hook[history_limit]'][value='100']"
       assert_select "input[name='whatsapp_hook[respond_numbers_filtered_in]']", count: 0
@@ -52,7 +55,37 @@ class WhatsappInboundMessagesControllerTest < ActionDispatch::IntegrationTest
     refute_includes response.body, "supersecret"
   end
 
+  test "when saves every ticked trigger and an empty selection skips" do
+    post sign_in_path, params: { email: @user.email, password: "password123" }
+    hook = @server.whatsapp_hooks.sole
+
+    patch mcp_server_webhook_path(@server, hook), params: {
+      whatsapp_hook: hook_params(hook, respond_when: %w[mention word]),
+    }
+
+    assert_redirected_to mcp_server_path(@server)
+    assert_equal "mention,word", hook.reload.respond_when
+
+    patch mcp_server_webhook_path(@server, hook), params: {
+      whatsapp_hook: hook_params(hook, respond_when: [ "" ]),
+    }
+
+    assert_equal "", hook.reload.respond_when
+  end
+
   private
+
+  def hook_params(hook, respond_when:)
+    {
+      url: hook.url,
+      secret_header: hook.secret_header,
+      consider_words: hook.consider_words,
+      history_limit: "100",
+      chat_kinds: %w[direct group],
+      respond_when: respond_when,
+    }
+  end
+
 
   def payload
     {

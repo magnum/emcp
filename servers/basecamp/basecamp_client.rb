@@ -8,7 +8,7 @@ module Emcp
           super(
             bin: ENV.fetch("BASECAMP_BIN", "basecamp"),
             timeout: ENV.fetch("BASECAMP_TIMEOUT", "30").to_i,
-            max_chars: ENV.fetch("EMCP_MAX_CHARS", "100000").to_i,
+            max_bytes: Emcp.max_response_bytes("basecamp"),
             env: env,
           )
         end

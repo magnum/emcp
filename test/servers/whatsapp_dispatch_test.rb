@@ -50,6 +50,19 @@ class WhatsappDispatchTest < ActiveSupport::TestCase
     assert_equal "always", @hook.receipts.find_by!(message_id: "always").reason
   end
 
+  test "mention and word together send when either one matches" do
+    @hook.update!(respond_when: "mention,word", consider_words: "bot")
+
+    deliver(text: "ciao", group: true, mentions_owner: false, id: "neither")
+    assert @hook.receipts.find_by!(message_id: "neither").filtered?
+
+    deliver(text: "@Antonio", group: true, mentions_owner: true, id: "only-mention")
+    assert_equal "mention", @hook.receipts.find_by!(message_id: "only-mention").reason
+
+    deliver(text: "hey bot", group: true, mentions_owner: false, id: "only-word")
+    assert_equal "word", @hook.receipts.find_by!(message_id: "only-word").reason
+  end
+
   test "word matches a whole word and mention does not" do
     @hook.update!(respond_when: "mention")
     deliver(text: "hey bot", group: true, mentions_owner: false, id: "word-ignored")

@@ -73,12 +73,16 @@ module McpServers
       return basecamp_hook_params if @server.is_a?(Emcp::Servers::Basecamp::Server)
 
       permitted = params.expect(whatsapp_hook: [
-        :url, :secret, :secret_header, :respond_when, :consider_words, :history_limit,
+        :url, :secret, :secret_header, :consider_words, :history_limit,
         chat_kinds: [],
+        respond_when: [],
       ])
       permitted.delete(:secret) if permitted[:secret].blank?
       if permitted.key?(:chat_kinds)
         permitted[:chat_kinds] = Emcp::Servers::Whatsapp::Hook.normalize_chat_kinds(permitted[:chat_kinds])
+      end
+      if permitted.key?(:respond_when)
+        permitted[:respond_when] = Emcp::Servers::Whatsapp::Hook.normalize_respond_when(permitted[:respond_when])
       end
       if permitted.key?(:history_limit)
         raw = permitted[:history_limit].presence
