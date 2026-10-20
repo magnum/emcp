@@ -51,20 +51,27 @@
     </div>
     <p class="mt-1 text-stone-500 dark:text-zinc-400">Direct chats and groups start a webhook. Status, channels, and broadcast lists do not, until you tick them.</p>
   </fieldset>
-  <fieldset>
+  <fieldset data-controller="whatsapp-when">
     <legend class="mb-2 block font-semibold">When</legend>
     <%= hidden_field_tag "whatsapp_hook[respond_when][]", "" %>
     <div class="space-y-2">
       <% Emcp::Servers::Whatsapp::Hook::WHEN_OPTIONS.each do |value, label| %>
         <% field_id = "whatsapp_hook_#{f.object.id || "new"}_respond_when_#{value}" %>
+        <% always = value == "always" %>
         <label class="flex items-center gap-2" for="<%= field_id %>">
-          <%= check_box_tag "whatsapp_hook[respond_when][]", value, f.object.selected_respond_whens.include?(value),
-                id: field_id, class: "h-4 w-4 rounded border-stone-300" %>
+          <%= check_box_tag "whatsapp_hook[respond_when][]", value, f.object.respond_when_checked?(value),
+                id: field_id,
+                class: "h-4 w-4 rounded border-stone-300",
+                disabled: !always && f.object.selected_respond_whens.include?("always"),
+                data: {
+                  whatsapp_when_target: always ? "always" : "other",
+                  action: ("change->whatsapp-when#sync" if always),
+                } %>
           <span><%= label %></span>
         </label>
       <% end %>
     </div>
-    <p class="mt-1 text-stone-500 dark:text-zinc-400">Leave every box unticked and the call is skipped. Always sends every message from the chats ticked above. Mention sends when the message @mentions your WhatsApp account. Word sends when a word below matches. More than one box sends the message when any of them matches.</p>
+    <p class="mt-1 text-stone-500 dark:text-zinc-400">Leave every box unticked and the call is skipped. Always sends every message from the chats ticked above, so Mention and Word stay off. Mention sends when the message @mentions your WhatsApp account. Word sends when a word below matches. Mention and Word together send the message when either one matches.</p>
   </fieldset>
   <div>
     <%= f.label :consider_words, "Words", class: "mb-2 block font-semibold" %>

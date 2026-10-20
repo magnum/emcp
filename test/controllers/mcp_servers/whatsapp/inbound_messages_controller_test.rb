@@ -69,6 +69,17 @@ class WhatsappInboundMessagesControllerTest < ActionDispatch::IntegrationTest
     assert_equal "mention,word", hook.reload.respond_when
 
     patch mcp_server_webhook_path(@server, hook), params: {
+      whatsapp_hook: hook_params(hook, respond_when: %w[always mention word]),
+    }
+    assert_equal "always", hook.reload.respond_when
+
+    get mcp_server_edit_webhook_path(@server, hook)
+    assert_select "input[name='whatsapp_hook[respond_when][]'][value='always'][checked]"
+    assert_select "input[name='whatsapp_hook[respond_when][]'][value='always'][disabled]", count: 0
+    assert_select "input[name='whatsapp_hook[respond_when][]'][value='mention'][disabled]"
+    assert_select "input[name='whatsapp_hook[respond_when][]'][value='word'][disabled]"
+
+    patch mcp_server_webhook_path(@server, hook), params: {
       whatsapp_hook: hook_params(hook, respond_when: [ "" ]),
     }
 

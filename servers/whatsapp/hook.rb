@@ -58,7 +58,9 @@ module Emcp
 
         def self.normalize_respond_when(value)
           picked = Array(value).flat_map { |part| part.to_s.split(",") }.map(&:strip).reject(&:blank?)
-          WHEN_OPTIONS.keys.select { |option| picked.include?(option) }.join(",")
+          options = WHEN_OPTIONS.keys.select { |option| picked.include?(option) }
+          options = [ "always" ] if options.include?("always")
+          options.join(",")
         end
 
         def self.normalize_chat_kinds(value)
@@ -80,6 +82,13 @@ module Emcp
 
         def selected_respond_whens
           respond_when.to_s.split(",").map(&:strip).reject(&:blank?)
+        end
+
+        def respond_when_checked?(option)
+          selected = selected_respond_whens
+          return selected.include?("always") if option == "always"
+
+          selected.include?(option) && !selected.include?("always")
         end
 
         def accepts_chat?(message)
