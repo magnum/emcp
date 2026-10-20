@@ -94,6 +94,8 @@ module Emcp
             "mentions_owner" => message.mentions_owner?,
             "matched_words" => decision.matched_words,
             "match_reason" => decision.match_reason,
+            "message_prefix" => hook.message_prefix,
+            "message_suffix" => hook.message_suffix,
             "owner_status" => hook.owner_status,
             "media" => message.media,
             "history" => ChatHistory.for(hook.mcp_server_id, message.chat_jid, limit: hook.history_size),

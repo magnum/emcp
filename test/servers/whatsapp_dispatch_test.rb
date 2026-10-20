@@ -157,6 +157,8 @@ class WhatsappDispatchTest < ActiveSupport::TestCase
     assert_equal "message.received", parsed["event"]
     assert_equal @server.activity_log_code, parsed["instance"]
     assert_equal "mention", parsed["match_reason"]
+    assert_equal "Ⓜ️", parsed["message_prefix"]
+    assert_equal " - bot", parsed["message_suffix"]
     assert_equal [ "body" ], parsed["history"].map { |entry| entry["message_id"] }
     refute_includes parsed["history"].to_json, @hook.secret
   end

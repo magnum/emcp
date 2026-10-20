@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_20_100000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_20_140000) do
   create_table "api_keys", force: :cascade do |t|
     t.bigint "bearer_id", null: false
     t.string "bearer_type", null: false
@@ -386,6 +386,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_20_100000) do
     t.string "respond_when", default: "mention", null: false
     t.integer "history_limit"
     t.string "chat_kinds", default: "direct,group", null: false
+    t.string "message_prefix", default: "Ⓜ️", null: false
+    t.string "message_suffix", default: " - bot", null: false
     t.index ["mcp_server_id"], name: "index_whatsapp_hooks_on_mcp_server_id"
     t.check_constraint "owner_status IN ('active', 'away')", name: "whatsapp_hooks_owner_status"
     t.check_constraint "respond_by_status IN ('every', 'active', 'away')", name: "whatsapp_hooks_respond_by_status"

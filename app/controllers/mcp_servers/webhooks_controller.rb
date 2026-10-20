@@ -74,6 +74,7 @@ module McpServers
 
       permitted = params.expect(whatsapp_hook: [
         :url, :secret, :secret_header, :consider_words, :history_limit,
+        :message_prefix, :message_suffix,
         chat_kinds: [],
         respond_when: [],
       ])

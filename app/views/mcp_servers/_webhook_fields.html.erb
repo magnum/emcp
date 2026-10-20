@@ -72,6 +72,16 @@
     <p class="mt-1 text-stone-500 dark:text-zinc-400">Comma-separated, case-insensitive, whole word. Default bot.</p>
   </div>
   <div>
+    <%= f.label :message_prefix, "Message prefix", class: "mb-2 block font-semibold" %>
+    <%= f.text_field :message_prefix, class: field_class %>
+    <p class="mt-1 text-stone-500 dark:text-zinc-400">Sent as message_prefix. Default Ⓜ️.</p>
+  </div>
+  <div>
+    <%= f.label :message_suffix, "Message suffix", class: "mb-2 block font-semibold" %>
+    <%= f.text_field :message_suffix, class: field_class %>
+    <p class="mt-1 text-stone-500 dark:text-zinc-400">Sent as message_suffix. Default " - bot".</p>
+  </div>
+  <div>
     <%= f.label :history_limit, "Messages history", class: "mb-2 block font-semibold" %>
     <%= f.number_field :history_limit, value: history_value, min: 0, max: 1000, step: 1, required: !viewing, class: field_class %>
     <p class="mt-1 text-stone-500 dark:text-zinc-400">How many recent messages of this chat to include. 0 to 1000. The default comes from WHATSAPP_WEBHOOK_CHAT_HISTORY. A different number is used for this webhook.</p>

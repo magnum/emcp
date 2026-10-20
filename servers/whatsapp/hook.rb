@@ -105,6 +105,8 @@ module Emcp
               instance: mcp_server.activity_log_code,
               webhook_id: id,
               timestamp: Time.now.utc.iso8601,
+              message_prefix: message_prefix,
+              message_suffix: message_suffix,
             }.to_json,
             headers: request_headers,
             async: false,

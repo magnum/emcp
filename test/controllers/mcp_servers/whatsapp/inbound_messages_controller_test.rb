@@ -48,6 +48,8 @@ class WhatsappInboundMessagesControllerTest < ActionDispatch::IntegrationTest
       assert_select "input[name='whatsapp_hook[respond_when][]'][value='word'][checked]", count: 0
       assert_select "option", text: "Never", count: 0
       assert_select "input[name='whatsapp_hook[consider_words]'][value='bot']"
+      assert_select "input[name='whatsapp_hook[message_prefix]'][value='Ⓜ️']"
+      assert_select "input[name='whatsapp_hook[message_suffix]'][value=' - bot']"
       assert_select "input[name='whatsapp_hook[history_limit]'][value='100']"
       assert_select "input[name='whatsapp_hook[respond_numbers_filtered_in]']", count: 0
       assert_select "input[type=submit][value='Save']"
