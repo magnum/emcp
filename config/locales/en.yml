@@ -104,6 +104,10 @@ en:
       title: "Profile"
       back_to_list: "Back to list"
       back_to_home: "Back to home"
+      send_test_email: "Send test email"
+    test_email:
+      sent: "Test email sent to %{email}."
+      failed: "Could not send the test email: %{error}"
     edit:
       title: "Edit profile"
       submit: "Update"

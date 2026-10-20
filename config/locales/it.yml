@@ -84,6 +84,10 @@ it:
       title: "Profilo"
       back_to_list: "Torna all'elenco"
       back_to_home: "Torna alla home"
+      send_test_email: "Invia email di test"
+    test_email:
+      sent: "Email di test inviata a %{email}."
+      failed: "Invio non riuscito: %{error}"
     edit:
       title: "Modifica profilo"
       submit: "Aggiorna"

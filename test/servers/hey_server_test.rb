@@ -38,6 +38,53 @@ class HeyServerTest < ActiveSupport::TestCase
     assert_includes info[:error], "not authenticated"
   end
 
+  test "emcp_service_info tool stores a failed live check" do
+    client = @server.instance_variable_get(:@client)
+    client.define_singleton_method(:run) { |*_, **_| raise "not authenticated" }
+
+    result = @server.call_tool("emcp_service_info", {})
+    payload = JSON.parse(result.content.first[:text])
+
+    assert_equal false, payload["connected"]
+    assert_includes payload.dig("detail", "error"), "not authenticated"
+    assert @server.reload.disconnected?
+  end
+
+  test "an auth failure from a tool marks the server disconnected" do
+    client = @server.instance_variable_get(:@client)
+    client.define_singleton_method(:run) do |*|
+      raise Emcp::CliError, 'hey exited 3: {"code":"auth","error":"not authenticated"}'
+    end
+
+    result = @server.call_tool("hey_accounts", {})
+
+    assert_includes result.content.first[:text], "not authenticated"
+    @server.reload
+    assert @server.disconnected?
+    assert_equal false, @server.service_info["connected"]
+    assert_equal "not authenticated", @server.service_info.dig("detail", "error")
+  end
+
+  test "hey auth status with authenticated false marks the server disconnected" do
+    client = @server.instance_variable_get(:@client)
+    client.define_singleton_method(:run) { |*| '{"authenticated":false,"error":"signed out"}' }
+
+    @server.call_tool("hey_auth_status", {})
+
+    @server.reload
+    assert @server.disconnected?
+    assert_equal "signed out", @server.service_info.dig("detail", "error")
+  end
+
+  test "a non-auth tool error leaves the service state unchanged" do
+    client = @server.instance_variable_get(:@client)
+    client.define_singleton_method(:run) { |*| raise Emcp::CliError, "hey exited 1: unknown box" }
+
+    @server.call_tool("hey_accounts", {})
+
+    assert @server.reload.created?
+  end
+
   test "catalog covers hey-cli v1.8.1 families" do
     names = @server.tool_catalog.map { |tool| tool[:name] }
 

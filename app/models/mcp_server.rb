@@ -321,13 +321,18 @@ class McpServer < ApplicationRecord
   end
 
   def record_service_probe!
+    report = persist_service_probe!
+    report["connected"] == true ? nil : service_probe_failure(report)
+  end
+
+  def persist_service_probe!
     report = service_info_report
     apply_service_report!(report)
-    report["connected"] == true ? nil : service_probe_failure(report)
+    report
   rescue StandardError => e
     report = { "connected" => false, "detail" => { "error" => e.message } }
     apply_service_report!(report)
-    service_probe_failure(report)
+    report
   end
 
   def oauth_call(callback_url:, state:) = raise(NotImplementedError)

@@ -47,6 +47,9 @@ CLI-backed tools (HEY, Basecamp, Google Workspace, 1Password, Home Assistant) ca
 | `BROWSER_ALLOWED_ORIGINS` | Browser allowlist when the instance field is empty. Default `https://*/*`. Comma-separated Chrome match patterns |
 | `BROWSER_ALLOW_EVAL` | Enable `browser_eval_readonly`. Default off |
 | `BROWSER_WS_HEARTBEAT` | Seconds between extension heartbeats. Default `15`. A silent socket is treated as offline after three intervals |
+| `EMCP_MAX_RESPONSE_BYTES` | Max CLI/stdio bytes returned by a tool call, including `context_call_tool`. Default `1048576` (1 MiB). Override one server with `max_response_bytes` under `servers.<code>` in `config/settings.yml`, or with `<CODE>_MAX_RESPONSE_BYTES`. Past the limit the result stays valid JSON and sets `truncated`, `total_bytes`, and `returned_bytes` |
+| `EMCP_MAX_RESPONSE_BYTES` | Max CLI/stdio bytes returned by a tool call, including `context_call_tool`. Default `1048576` (1 MiB). Override one server with `max_response_bytes` under `servers.<code>` in `config/settings.yml`, or with `<CODE>_MAX_RESPONSE_BYTES`. Past the limit the result stays valid JSON and sets `truncated`, `total_bytes`, and `returned_bytes` |
+| `EMCP_MAX_RESPONSE_BYTES` | Max CLI/stdio bytes returned by a tool call, including `context_call_tool`. Default `1048576` (1 MiB). Override one server with `max_response_bytes` under `servers.<code>` in `config/settings.yml`, or with `<CODE>_MAX_RESPONSE_BYTES`. Past the limit the result stays valid JSON and sets `truncated`, `total_bytes`, and `returned_bytes` |
 
 Per-integration variables are in `.env.example` and `servers/<code>/README.md`. Prefer the auth form over putting provider tokens in `.env`.
 

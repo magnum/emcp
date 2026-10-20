@@ -34,7 +34,12 @@
 
     <div class="sm:col-span-2">
       <dt class="text-base font-medium text-gray-500"><%= t("activerecord.attributes.user.email") %></dt>
-      <dd class="mt-1 text-base text-gray-900 dark:text-zinc-100"><%= @user.email %></dd>
+      <dd class="mt-1 text-base text-gray-900 dark:text-zinc-100">
+        <p><%= @user.email %></p>
+        <%= button_to t("users.show.send_test_email"), test_email_user_path(@user),
+              class: "btn-emcp-outline mt-3",
+              form: { class: "mt-3" } %>
+      </dd>
     </div>
 
     <div>

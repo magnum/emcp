@@ -174,7 +174,11 @@ Rails.application.routes.draw do
   get "invitations/consume/:code", to: "invitations#consume", as: :invitation_consume_with_code
   post "invitations/consume", to: "invitations#consume"
 
-  resources :users, only: [ :index, :show, :edit, :update ]
+  resources :users, only: [ :index, :show, :edit, :update ] do
+    member do
+      post :test_email
+    end
+  end
 
   namespace :api do
     concerns :apiable

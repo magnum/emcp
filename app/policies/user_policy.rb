@@ -9,6 +9,10 @@ class UserPolicy < ApplicationPolicy
     user.present? && (admin? || record == user)
   end
 
+  def test_email?
+    show?
+  end
+
   def create?
     admin?
   end

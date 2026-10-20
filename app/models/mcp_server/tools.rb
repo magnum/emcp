@@ -6,6 +6,15 @@ module McpServer::Tools
   extend ActiveSupport::Concern
 
   MODERN_PROTOCOL_VERSION = "2026-07-28"
+  AUTH_FAILURE_PATTERN = /
+    \bnot\s+authenticated\b |
+    \bunauthenticated\b |
+    \bunauthorized\b |
+    \bauthentication\s+(?:failed|required)\b |
+    \binvalid_grant\b |
+    \brejected\s+the\s+token\b |
+    "code"\s*:\s*"auth"
+  /ix
   PROTOCOL_VERSION_META_KEY = "io.modelcontextprotocol/protocolVersion"
   SERVER_INFO_META_KEY = "io.modelcontextprotocol/serverInfo"
   CACHEABLE_RESULT_KEYS = %w[tools prompts resources resourceTemplates contents].freeze
@@ -157,7 +166,7 @@ module McpServer::Tools
     define_tool(
       name: "emcp_service_info",
       description: "EmCP info for this instance. connected is true only after a live read-only call to the upstream service.",
-    ) { api_response(service_info_report) }
+    ) { api_response(persist_service_probe!) }
   end
 
   def invoke_logged_tool(definition, arguments)
@@ -171,6 +180,7 @@ module McpServer::Tools
       nil
     end
     log_tool_activity(definition.name, filtered, result: result, error: error)
+    record_call_auth_failure!(definition, result, error)
     raise error if error
 
     result
@@ -194,6 +204,63 @@ module McpServer::Tools
     return "ko" if text.to_s.start_with?("ERROR:")
 
     "ok"
+  end
+
+  def record_call_auth_failure!(definition, result, error)
+    return if definition.name == "emcp_service_info"
+
+    message = auth_failure_message(result, error)
+    return if message.blank?
+
+    apply_service_report!(
+      "connected" => false,
+      "detail" => { "error" => message },
+    )
+  rescue StandardError => e
+    Rails.logger.error("[mcp] #{activity_log_code} auth state: #{e.class}: #{e.message}")
+  end
+
+  def auth_failure_message(result, error)
+    if error
+      detail = auth_failure_detail(error.message, from_error: true)
+      return detail if detail
+    end
+
+    auth_failure_detail(tool_activity_text(result), from_error: false)
+  end
+
+  def auth_failure_detail(text, from_error:)
+    raw = text.to_s
+    return if raw.blank?
+
+    parsed = json_object(raw)
+    if parsed
+      body = parsed["data"].is_a?(Hash) ? parsed["data"] : parsed
+      return if body["authenticated"] == true || body["connected"] == true
+      if body["authenticated"] == false || body["code"].to_s == "auth"
+        return body["error"].presence || body["error_description"].presence || "not authenticated"
+      end
+    end
+
+    return unless from_error || raw.start_with?("ERROR:")
+    return unless raw.match?(AUTH_FAILURE_PATTERN)
+
+    raw.sub(/\AERROR:\s*/, "")[0, 500]
+  end
+
+  def json_object(text)
+    stripped = text.to_s.strip.sub(/\AERROR:\s*/, "")
+    candidate = if stripped.start_with?("{")
+      stripped
+    else
+      stripped[/\{.*\}/m]
+    end
+    return if candidate.blank?
+
+    parsed = JSON.parse(candidate)
+    parsed.is_a?(Hash) ? parsed : nil
+  rescue JSON::ParserError
+    nil
   end
 
   def tool_activity_text(result)
