@@ -2,7 +2,7 @@
 
 ← [Back to project](https://github.com/magnum/emcp)
 
-EmCP integration for [Basecamp](https://basecamp.com), backed by the official [`basecamp/basecamp-cli`](https://github.com/basecamp/basecamp-cli) **v0.13.0**. Also exposes the `basecamp://skill` resource.
+EmCP integration for [Basecamp](https://basecamp.com), backed by the official [`basecamp/basecamp-cli`](https://github.com/basecamp/basecamp-cli) **v0.14.0**. Also exposes the `basecamp://skill` resource.
 
 ## MCP endpoint
 
