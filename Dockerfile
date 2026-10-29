@@ -10,9 +10,9 @@
 # Global build args must be declared before the first FROM (used by later FROM lines).
 ARG RUBY_VERSION=4.0.5
 ARG GWS_VERSION=0.22.5
-ARG HEY_VERSION=1.9.0
-ARG BASECAMP_VERSION=0.14.0
-ARG OP_VERSION=2.41.0
+ARG HEY_VERSION=1.10.1
+ARG BASECAMP_VERSION=0.21.0
+ARG OP_VERSION=2.41.1
 
 # --- MCP CLI binaries (hey, basecamp, gws, op) ---
 # Download official release tarballs. Do not git clone: GitHub prompts for a
