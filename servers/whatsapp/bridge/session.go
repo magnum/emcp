@@ -41,6 +41,7 @@ type Session struct {
 	messages     *MessageStore
 	logger       waLog.Logger
 	notifier     *inboundNotifier
+	typing       *typingKeeper
 	historyReady bool
 	qr           string
 	qrPNG        string
@@ -69,6 +70,7 @@ func NewSession(storeDir string, messages *MessageStore, notifier *inboundNotifi
 		notifier:     notifier,
 		historyReady: historyReadyFileExists(storeDir),
 	}
+	session.typing = newTypingKeeper(session.sendChatPresence, typingRefresh, typingFor)
 	if err := session.start(ctx); err != nil {
 		return nil, err
 	}
@@ -221,10 +223,14 @@ func (s *Session) Send(recipient, message string) error {
 	if err != nil {
 		return err
 	}
+	wasTyping := s.stopTyping(jid)
 	resp, err := client.SendMessage(context.Background(), jid, &waE2E.Message{
 		Conversation: proto.String(message),
 	})
 	if err != nil {
+		if wasTyping {
+			_ = s.sendChatPresence(jid, types.ChatPresencePaused)
+		}
 		return err
 	}
 	s.recordOutbound(client, jid, message, string(resp.ID), "text")
@@ -251,8 +257,12 @@ func (s *Session) SendPoll(recipient, question string, options []string, multipl
 	if err != nil {
 		return "", "", nil, err
 	}
+	wasTyping := s.stopTyping(jid)
 	resp, err := client.SendMessage(context.Background(), jid, client.BuildPollCreation(question, options, selectable))
 	if err != nil {
+		if wasTyping {
+			_ = s.sendChatPresence(jid, types.ChatPresencePaused)
+		}
 		return "", "", nil, err
 	}
 	s.recordOutbound(client, jid, question, string(resp.ID), "poll")
@@ -361,6 +371,9 @@ func (s *Session) Logout() error {
 }
 
 func (s *Session) Close() {
+	if s.typing != nil {
+		s.typing.StopAll()
+	}
 	s.mu.Lock()
 	client := s.client
 	s.client = nil
@@ -609,6 +622,39 @@ func refreshWAVersion(ctx context.Context, logger waLog.Logger) {
 	}
 	store.SetWAVersion(*latest)
 	logger.Infof("using WhatsApp Web version %s", latest.String())
+}
+
+// SetTyping shows or clears the standard WhatsApp composing indicator in a chat.
+func (s *Session) SetTyping(recipient string, composing bool) error {
+	if s.typing == nil {
+		return fmt.Errorf("not connected to WhatsApp")
+	}
+	jid, err := parseRecipient(recipient)
+	if err != nil {
+		return err
+	}
+	if !composing {
+		s.typing.Stop(jid, true)
+		return nil
+	}
+	return s.typing.Start(jid)
+}
+
+func (s *Session) stopTyping(jid types.JID) bool {
+	if s.typing == nil {
+		return false
+	}
+	return s.typing.Stop(jid, false)
+}
+
+func (s *Session) sendChatPresence(jid types.JID, state types.ChatPresence) error {
+	s.mu.RLock()
+	client := s.client
+	s.mu.RUnlock()
+	if client == nil || !client.IsConnected() {
+		return fmt.Errorf("not connected to WhatsApp")
+	}
+	return client.SendChatPresence(context.Background(), jid, state, types.ChatPresenceMediaText)
 }
 
 func parseRecipient(recipient string) (types.JID, error) {

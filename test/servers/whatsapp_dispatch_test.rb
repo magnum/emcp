@@ -87,6 +87,21 @@ class WhatsappDispatchTest < ActiveSupport::TestCase
     assert_equal [ "h2" ], history.map { |entry| entry["message_id"] }
   end
 
+  test "a delivered message shows the native typing indicator once" do
+    chats = []
+    client = @server.instance_variable_get(:@client)
+    client.define_singleton_method(:set_typing) { |recipient:, composing:| chats << [ recipient, composing ] }
+
+    @hook.update!(respond_when: "always")
+    @server.accept_inbound_message!(inbound(text: "ciao", id: "type-1"))
+    assert_equal [ [ "393331111111@s.whatsapp.net", true ] ], chats
+
+    @hook.update!(respond_when: "mention")
+    chats.clear
+    @server.accept_inbound_message!(inbound(text: "niente", id: "type-skip"))
+    assert_empty chats
+  end
+
   test "two hooks that share a url send the message once" do
     other = @server.whatsapp_hooks.create!(
       url: @hook.url,

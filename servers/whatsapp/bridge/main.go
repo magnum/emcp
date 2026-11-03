@@ -81,6 +81,29 @@ func main() {
 		}
 		writeJSON(w, http.StatusOK, map[string]any{"success": true, "message": "Message sent to " + req.Recipient})
 	})))
+	mux.Handle("/api/typing", requireToken(token, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		var req struct {
+			Recipient string `json:"recipient"`
+			Composing *bool  `json:"composing"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Composing == nil {
+			http.Error(w, "invalid request", http.StatusBadRequest)
+			return
+		}
+		session := live.require(w)
+		if session == nil {
+			return
+		}
+		if err := session.SetTyping(req.Recipient, *req.Composing); err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]any{"success": false, "message": err.Error()})
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"success": true, "composing": *req.Composing})
+	})))
 	mux.Handle("/api/poll", requireToken(token, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)

@@ -135,6 +135,14 @@ module Emcp
           post("/api/send", body: { recipient: recipient, message: message })
         end
 
+        # Native WhatsApp composing indicator ("typing..."). Refreshed by the
+        # bridge until the reply is sent or the wait expires.
+        def set_typing(recipient:, composing:)
+          return unless typing_available?
+
+          post("/api/typing", body: { recipient: recipient, composing: composing == true })
+        end
+
         def send_poll(recipient:, question:, options:, multiple: false)
           post("/api/poll", body: {
             recipient: recipient,
@@ -188,6 +196,13 @@ module Emcp
         end
 
         private
+
+        def typing_available?
+          return true if @transport
+          return @process.running? if managed?
+
+          @base_url.present?
+        end
 
         def health_ok?
           body = request(:get, "/health", auth: false)

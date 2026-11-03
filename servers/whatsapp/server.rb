@@ -182,7 +182,23 @@ module Emcp
             return
           end
 
-          whatsapp_hooks.enabled.find_each { |hook| hook.deliver_message!(message) }
+          delivered = false
+          whatsapp_hooks.enabled.find_each do |hook|
+            delivered = true if hook.deliver_message!(message)&.sent?
+          end
+          show_typing!(message) if delivered
+        end
+
+        # Standard WhatsApp "typing..." in the chat that is about to be answered.
+        # The bridge keeps it visible while the reply is prepared.
+        def show_typing!(message)
+          jid = message.chat_jid
+          return if jid.blank?
+          return unless @client.respond_to?(:set_typing)
+
+          @client.set_typing(recipient: jid, composing: true)
+        rescue StandardError => e
+          Rails.logger.info("[#{activity_log_code}] whatsapp typing skipped: #{e.class}: #{e.message}")
         end
 
         def set_owner_status!(status, webhook_id: nil)
