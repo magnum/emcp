@@ -68,6 +68,7 @@ env:
     SMTP_HOST: smtp-relay.brevo.com
     SMTP_PORT: 587
     SMTP_USERNAME: ac624b001@smtp-brevo.com
+    SMTP_FROM: service@emcp.it
 
     # Architecture A: Solid Queue runs only in emcp-worker. Must be the strings
     # 1/true/yes/on to enable — the literal "false" used to be truthy in Puma.

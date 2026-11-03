@@ -18,6 +18,4 @@ ActionMailer::Base.smtp_settings = {
   enable_starttls_auto: true,
 }
 
-from = ENV["SMTP_FROM"].to_s.strip
-from = ENV["SMTP_USERNAME"].to_s.strip if from.empty?
-ActionMailer::Base.default from: from if from.present?
+# From is set on ApplicationMailer so it is not overridden by that class default.
