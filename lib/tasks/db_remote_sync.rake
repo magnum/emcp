@@ -115,5 +115,6 @@ namespace :db do
     end
 
     puts "\n==> Remote pull complete."
+    puts "    Development reads that ciphertext with the production encryption keys when config/credentials/production.key is present."
   end
 end
