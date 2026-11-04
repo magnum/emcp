@@ -102,6 +102,7 @@ gem "ruby_llm", "~> 2.0"
 gem "mission_control-jobs"
 gem "heroicon"
 gem "httparty"
+gem "resend"
 
 # EmCP MCP host
 gem "mcp", "~> 0.25"

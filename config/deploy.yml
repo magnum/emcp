@@ -60,14 +60,10 @@ env:
     - RAILS_MASTER_KEY
     - GOOGLE_CLIENT_ID
     - GOOGLE_CLIENT_SECRET
-    - SMTP_PASSWORD
   clear:
     APP_HOST: https://emcp.it
     EMCP_PUBLIC_URL: https://emcp.it
     EMCP_STATUS_INTERVAL: 30
-    SMTP_HOST: smtp-relay.brevo.com
-    SMTP_PORT: 587
-    SMTP_USERNAME: ac624b001@smtp-brevo.com
     SMTP_FROM: service@emcp.it
 
     # Architecture A: Solid Queue runs only in emcp-worker. Must be the strings
