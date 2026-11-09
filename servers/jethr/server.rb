@@ -8,37 +8,53 @@ module Emcp
       class Server < ::McpServer
         server_id "jethr"
         display_name "Jethr"
-        description "Employees, payroll cycles, and company reports from a signed-in Jethr admin tab."
+        description "Employees, payroll cycles, and company reports through the Jethr API."
         version "0.1.0"
 
         def instructions
-          "Jethr has no API token. These tools reuse the Chrome session already signed in at " \
-            "https://admin.jethr.com. Pair a Browser instance, leave that admin tab open, and set " \
-            "JETHR_COMPANY_ID. jethr_employees lists people in force. jethr_employee reads one person. " \
+          "Jethr tools call https://backend.jethr.com with the session saved at login. " \
+            "Set JETHR_COMPANY_ID to the company number in the admin URL. " \
+            "jethr_employees lists people in force. jethr_employee reads one person. " \
             "jethr_payrolls lists payroll cycles and jethr_payroll reads one month, such as 9-2026. " \
-            "jethr_report reads one report section for a month. The session cookie stays in Chrome."
+            "jethr_report reads one report section for a month."
         end
 
         def auth_help_content
           {
-            title: "Connect Jethr through the signed-in browser",
-            description: "The admin app authenticates with an HttpOnly session cookie and a CSRF cookie. " \
-                         "Page JavaScript cannot read the session, and there is no bearer token to paste. " \
-                         "EmCP calls https://backend.jethr.com from the admin tab that the paired Chrome extension can see.",
+            title: "Sign in to Jethr",
+            description: "EmCP signs in at POST /api/v1/auth/login/ with your Jethr email and password. " \
+                         "The login response sets the session cookie. That session is stored on this instance " \
+                         "and sent on later API calls. Leave the password blank to keep the one already saved.",
             steps: [
-              "Pair a Browser instance in the Chrome profile that is signed in to Jethr.",
-              "Turn on Allow page JavaScript for that browser instance.",
-              "Leave a tab open on https://admin.jethr.com.",
-              "Enter the company id from the admin URL (the number after #/) and, if you have more than one browser, its instance id.",
+              "Use the same email and password you use at https://sso.jethr.com.",
+              "Enter the company id from the admin URL, for example 112 in #/112/dipendenti.",
+              "Save. EmCP logs in, stores the session, and checks that company.",
             ],
             commands: [],
-            note: "Saving this form stores the company id and the browser instance id. It does not copy the session cookie. " \
-                  "Sign in again in that Chrome window when the session expires.",
+            note: "The password and the session are stored encrypted on this instance. " \
+                  "A second factor on the account cannot be completed from this form. " \
+                  "When the session expires, EmCP signs in again with the saved password.",
           }
         end
 
         def auth_fields
           [
+            {
+              name: "jethr_email",
+              label: "Email",
+              type: "text",
+              required: true,
+              help: "The email you use to sign in to Jethr.",
+              env: "JETHR_EMAIL",
+            },
+            {
+              name: "jethr_password",
+              label: "Password",
+              type: "password",
+              required: true,
+              help: "Leave blank to keep the saved password.",
+              env: "JETHR_PASSWORD",
+            },
             {
               name: "jethr_company_id",
               label: "Company id",
@@ -46,14 +62,6 @@ module Emcp
               required: true,
               help: "The company number in the admin URL, for example 112 in #/112/dipendenti.",
               env: "JETHR_COMPANY_ID",
-            },
-            {
-              name: "jethr_browser_server_id",
-              label: "Browser instance id",
-              type: "text",
-              required: false,
-              help: "Numeric id of the paired Browser instance. Leave blank to use your first browser instance.",
-              env: "JETHR_BROWSER_SERVER_ID",
             },
           ]
         end
@@ -71,39 +79,57 @@ module Emcp
           {
             authenticated: probe[:company_id].to_s == company_id,
             company_id: company_id,
-            browser_server_id: probe[:browser_server_id],
-            tab_id: probe[:tab_id],
+            email: probe[:email],
           }
         rescue StandardError => e
           {
             authenticated: false,
             company_id: Emcp.sanitize_env_value(ENV["JETHR_COMPANY_ID"]),
-            browser_server_id: Emcp.sanitize_env_value(ENV["JETHR_BROWSER_SERVER_ID"]),
+            email: Emcp.sanitize_env_value(ENV["JETHR_EMAIL"]),
             error: e.message,
           }
         end
 
         def apply_credentials(params)
+          load_credentials!
+          email = params["jethr_email"].to_s.strip
+          password = params["jethr_password"].to_s.strip
           company_id = params["jethr_company_id"].to_s.strip
-          browser_id = params["jethr_browser_server_id"].to_s.strip
           raise "Company id is required" unless company_id.match?(/\A\d+\z/)
-          raise "Browser instance id must be numeric" if browser_id.present? && !browser_id.match?(/\A\d+\z/)
+          raise "Email is required" if email.empty? && Emcp.sanitize_env_value(ENV["JETHR_EMAIL"]).empty?
+          raise "Password is required" if password.empty? && Emcp.sanitize_env_value(ENV["JETHR_PASSWORD"]).empty?
 
-          apply_credentials_probe!(
-            {
-              "JETHR_COMPANY_ID" => company_id,
-              "JETHR_BROWSER_SERVER_ID" => browser_id,
-            },
-            rejection_message: "Jethr session was rejected",
-          )
+          updates = {
+            "JETHR_COMPANY_ID" => company_id,
+            "JETHR_SESSION" => nil,
+            "JETHR_CSRF" => nil,
+            "JETHR_TOKEN" => nil,
+          }
+          updates["JETHR_EMAIL"] = email if email.present?
+          updates["JETHR_PASSWORD"] = password if password.present?
+          apply_credentials_probe!(updates, rejection_message: "Jethr rejected the login")
+        ensure
+          password = nil
         end
 
         def clear_credentials!
           persist_credentials!(
+            "JETHR_EMAIL" => nil,
+            "JETHR_PASSWORD" => nil,
             "JETHR_COMPANY_ID" => nil,
-            "JETHR_BROWSER_SERVER_ID" => nil,
+            "JETHR_SESSION" => nil,
+            "JETHR_CSRF" => nil,
+            "JETHR_TOKEN" => nil,
           )
           replace_client!
+        end
+
+        def persist_session!(session:, csrf:, token:)
+          persist_credentials!(
+            "JETHR_SESSION" => session,
+            "JETHR_CSRF" => csrf,
+            "JETHR_TOKEN" => token,
+          )
         end
 
         def configure_tools
@@ -214,11 +240,11 @@ module Emcp
         end
 
         def replace_client!
-          @client = Client.new(self)
+          @client = Client.new(on_session: method(:persist_session!))
         end
 
         def credential_env_keys
-          %w[JETHR_COMPANY_ID JETHR_BROWSER_SERVER_ID]
+          %w[JETHR_EMAIL JETHR_PASSWORD JETHR_COMPANY_ID JETHR_SESSION JETHR_CSRF JETHR_TOKEN]
         end
 
         private

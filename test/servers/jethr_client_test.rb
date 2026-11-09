@@ -8,7 +8,7 @@ class JethrClientTest < ActiveSupport::TestCase
   end
 
   test "in-force list targets the company employees endpoint" do
-    client = Emcp::Servers::Jethr::Client.new(@server)
+    client = Emcp::Servers::Jethr::Client.new
 
     assert_equal(
       "https://backend.jethr.com/api/v1/employees/?company=112&contract_status=IN_FORCE",
@@ -25,7 +25,7 @@ class JethrClientTest < ActiveSupport::TestCase
   end
 
   test "payroll and report urls follow the admin pages" do
-    client = Emcp::Servers::Jethr::Client.new(@server)
+    client = Emcp::Servers::Jethr::Client.new
 
     assert_equal(
       "https://backend.jethr.com/api/v1/payrolls/?company=112&expand_provisional=true",
@@ -52,49 +52,63 @@ class JethrClientTest < ActiveSupport::TestCase
     assert_equal %w[gender_pay_gap], client.report_requests("trasparenza-retributiva", "112", 2026, 9).map(&:first)
   end
 
-  test "employees reads the admin tab and returns the reduced page" do
-    steps = [
-      { "tabs" => [{ "tab_id" => 5, "url" => "https://admin.jethr.com/#/112/dipendenti/tab-in-forza" }] },
-      { "value" => '{"started":true}' },
-      { "value" => '{"pending":false,"status":200,"body":{"total":1,"offset":0,"employees":[{"id":638,"full_name":"Ada"}]}}' },
-      { "value" => '{"deleted":true}' },
-    ]
-    relay = lambda do |_tool, _args, timeout:|
-      raise "missing timeout" unless timeout
-      steps.shift || raise("unexpected call")
+  test "employees uses the saved session and returns a short row" do
+    seen = nil
+    http = lambda do |_method, uri, headers, _body|
+      seen = [uri.to_s, headers["Cookie"]]
+      { status: 200, body: [{ "id" => 638, "full_name" => "Ada", "in_day_job_title" => "Dev", "ssn" => "hidden" }], cookies: {} }
     end
-    client = Emcp::Servers::Jethr::Client.new(@server, relay: relay)
+    client = Emcp::Servers::Jethr::Client.new(http: http)
 
-    with_env("JETHR_COMPANY_ID" => "112") do
+    with_env("JETHR_SESSION" => "sess-1", "JETHR_CSRF" => "csrf-1") do
       page = client.employees(company_id: "112")
       assert_equal 1, page["total"]
       assert_equal 638, page.dig("employees", 0, "id")
-      assert_equal "in_force", page["status"]
+      assert_equal "Dev", page.dig("employees", 0, "job_title")
+      refute page.dig("employees", 0).key?("ssn")
     end
-    assert_empty steps
+    assert_includes seen[0], "/api/v1/employees/"
+    assert_includes seen[1], "sessionid=sess-1"
+    refute_includes seen[1], "hidden"
+  end
+
+  test "login stores the session cookie from the response" do
+    saved = []
+    http = lambda do |method, uri, headers, body|
+      if method == :get
+        { status: 200, body: {}, cookies: { "csrftoken" => "csrf-1" } }
+      else
+        assert_equal "/api/v1/auth/login/", uri.path
+        assert_equal "ada@example.com", body["email"]
+        assert_equal "csrf-1", headers["X-CSRFTOKEN"]
+        { status: 200, body: {}, cookies: { "sessionid" => "sess-1", "csrftoken" => "csrf-2" } }
+      end
+    end
+    client = Emcp::Servers::Jethr::Client.new(http: http, on_session: ->(session:, csrf:, token:) { saved << [session, csrf, token] })
+
+    with_env("JETHR_EMAIL" => "ada@example.com", "JETHR_PASSWORD" => "secret", "JETHR_SESSION" => "", "JETHR_CSRF" => "", "JETHR_TOKEN" => "") do
+      client.ensure_session!
+    end
+    assert_equal [["sess-1", "csrf-2", nil]], saved
   end
 
   test "a rejected session does not include the response body" do
-    steps = [
-      { "tabs" => [{ "tab_id" => 5, "url" => "https://admin.jethr.com/#/112/" }] },
-      { "value" => '{"started":true}' },
-      { "value" => '{"pending":false,"status":403,"body":{"detail":"secret"}}' },
-      { "value" => '{"deleted":true}' },
-    ]
-    relay = lambda do |_tool, _args, timeout:|
-      steps.shift
+    http = lambda do |_method, _uri, _headers, _body|
+      { status: 403, body: { "detail" => "secret" }, cookies: {} }
     end
-    client = Emcp::Servers::Jethr::Client.new(@server, relay: relay)
+    client = Emcp::Servers::Jethr::Client.new(http: http)
 
     error = assert_raises(RuntimeError) do
-      client.employee(company_id: "112", employee_id: "638")
+      with_env("JETHR_SESSION" => "sess-1", "JETHR_CSRF" => "csrf-1") do
+        client.employee(company_id: "112", employee_id: "638")
+      end
     end
     assert_match(/session expired/, error.message)
     refute_match(/secret/, error.message)
   end
 
   test "ids must be numeric" do
-    client = Emcp::Servers::Jethr::Client.new(@server)
+    client = Emcp::Servers::Jethr::Client.new
 
     assert_raises(RuntimeError) { client.employee_url("638/admin") }
     assert_raises(RuntimeError) { client.employees_url("112?x=1", "nope") }

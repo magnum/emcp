@@ -6,7 +6,7 @@ class JethrServerTest < ActiveSupport::TestCase
   FakeClient = Struct.new(:calls, keyword_init: true) do
     def probe(company_id:)
       calls << [:probe, company_id]
-      { company_id: company_id, browser_server_id: 18, tab_id: 5 }
+      { company_id: company_id, email: "ada@example.com" }
     end
 
     def employees(company_id:, status:, offset:, limit:)
@@ -79,13 +79,13 @@ class JethrServerTest < ActiveSupport::TestCase
   test "auth status is the live company probe" do
     @server.persist_credentials!(
       "JETHR_COMPANY_ID" => "112",
-      "JETHR_BROWSER_SERVER_ID" => "18",
+      "JETHR_EMAIL" => "ada@example.com",
     )
 
     status = @server.fetch_auth_status
     assert_equal true, status[:authenticated]
     assert_equal "112", status[:company_id]
-    assert_equal 18, status[:browser_server_id]
+    assert_equal "ada@example.com", status[:email]
   end
 
   private

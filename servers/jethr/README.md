@@ -2,7 +2,7 @@
 
 ← [Back to project](https://github.com/magnum/emcp)
 
-Read employees, payroll cycles, and company reports from a Jethr admin session that is already open in Chrome.
+Read employees, payroll cycles, and company reports from the Jethr API after a login.
 
 ## MCP endpoint
 
@@ -14,14 +14,13 @@ Operator UI: `/servers/<id>/auth`
 
 ## Credentials
 
-Jethr does not issue a bearer token. The admin app at `https://admin.jethr.com` calls `https://backend.jethr.com` with the Chrome session cookie (`sessionid`, HttpOnly) and the `csrftoken` cookie. The session cookie is not readable from the page, so EmCP does not copy it.
+The admin login is `POST https://backend.jethr.com/api/v1/auth/login/` with email and password. The response sets the `sessionid` cookie and the `csrftoken` cookie. EmCP stores both, plus a bearer token when the JSON body includes one, and sends them on later calls.
 
-1. Pair a Browser instance in the Chrome profile that is signed in to Jethr.
-2. Turn on **Allow page JavaScript** for that browser instance.
-3. Leave a tab open on `https://admin.jethr.com`.
-4. On this instance, set `JETHR_COMPANY_ID` (the number in `#/112/...`) and, when you have more than one browser, `JETHR_BROWSER_SERVER_ID`.
+1. On `/servers/<id>/auth`, enter the Jethr email, password, and company id (`112` in `#/112/...`).
+2. Save. EmCP logs in, stores the session, and checks `GET /api/v1/companies/<id>/`.
+3. Leave the password blank on a later save to keep the current one.
 
-The form stores those two ids. Sign in again in that Chrome window when the session expires.
+When a call returns 401 or 403, EmCP signs in again with the saved password. An account that requires a second factor cannot be completed from this form.
 
 ## Tools
 
