@@ -139,7 +139,7 @@ module Emcp
               ),
             )
             replace_client!
-            @client.ensure_session!
+            @client.sign_in!
             if @client.mfa_challenge?
               mark_mfa_pending!(true)
               raise Client::MFA_MESSAGE

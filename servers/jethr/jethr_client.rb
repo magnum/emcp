@@ -36,10 +36,13 @@ module Emcp
           @http = http
         end
 
-        def ensure_session!
-          return if session_present?
-
+        def sign_in!
           login!
+        end
+
+        def ensure_session!
+          raise MFA_MESSAGE if mfa_pending?
+          raise "Jethr session expired. Sign in again from the Jethr auth page." unless session_present?
         end
 
         def mfa_challenge?
@@ -73,9 +76,16 @@ module Emcp
 
         def probe(company_id:)
           ensure_session!
-          body = get_json(company_url(company_id))
+          result = perform(:get, "#{API_ORIGIN}#{SELF_PATH}", auth: true, cookies: cookie_jar)
+          if [401, 403].include?(result[:status])
+            raise MFA_MESSAGE if mfa_pending?
+
+            raise "Jethr session expired. Sign in again from the Jethr auth page."
+          end
+          raise "Jethr API returned #{result[:status]}" unless result[:status].between?(200, 299)
+
           {
-            company_id: body.is_a?(Hash) ? body["id"].to_s.presence || company_id : company_id,
+            company_id: company_id,
             email: email,
           }
         end
@@ -325,16 +335,6 @@ module Emcp
 
         def request_with_refresh(url)
           ensure_session!
-          result = perform(:get, url, auth: true, cookies: cookie_jar)
-          return result unless [401, 403].include?(result[:status]) && can_login? && !mfa_pending?
-
-          login!
-          if mfa_challenge?
-            set_mfa_pending!(true)
-            return result
-          end
-
-          set_mfa_pending!(false)
           perform(:get, url, auth: true, cookies: cookie_jar)
         end
 
@@ -492,10 +492,6 @@ module Emcp
 
         def session_present?
           session.present? || token.present?
-        end
-
-        def can_login?
-          email.present? && password.present?
         end
 
         def mfa_pending?

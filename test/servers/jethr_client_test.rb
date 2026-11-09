@@ -87,7 +87,7 @@ class JethrClientTest < ActiveSupport::TestCase
     client = Emcp::Servers::Jethr::Client.new(http: http, on_session: ->(session:, csrf:, token:) { saved << [session, csrf, token] })
 
     with_env("JETHR_EMAIL" => "ada@example.com", "JETHR_PASSWORD" => "secret", "JETHR_SESSION" => "", "JETHR_CSRF" => "", "JETHR_TOKEN" => "") do
-      client.ensure_session!
+      client.sign_in!
     end
     assert_equal [["sess-1", "csrf-2", nil]], saved
   end
@@ -115,13 +115,14 @@ class JethrClientTest < ActiveSupport::TestCase
       "JETHR_CSRF" => "",
       "JETHR_MFA_PENDING" => "",
     ) do
-      client.ensure_session!
+      client.sign_in!
       assert client.mfa_challenge?
+      ENV["JETHR_MFA_PENDING"] = "true"
       error = assert_raises(RuntimeError) { client.employee(company_id: "112", employee_id: "638") }
       assert_match(/codice di 6 caratteri/i, error.message)
       refute_match(/secret/, error.message)
     end
-    assert_equal [true], flags
+    assert_empty flags
   end
 
   test "the security code is posted to the mfa endpoint" do
@@ -148,8 +149,10 @@ class JethrClientTest < ActiveSupport::TestCase
     assert_equal "full", saved.last
   end
 
-  test "a rejected session does not include the response body" do
-    http = lambda do |_method, _uri, _headers, _body|
+  test "a rejected session does not include the response body or start a new login" do
+    posts = 0
+    http = lambda do |method, uri, _headers, _body|
+      posts += 1 if method == :post && uri.path == "/api/v1/auth/login/"
       { status: 403, body: { "detail" => "secret" }, cookies: {} }
     end
     client = Emcp::Servers::Jethr::Client.new(http: http)
@@ -158,8 +161,8 @@ class JethrClientTest < ActiveSupport::TestCase
       with_env(
         "JETHR_SESSION" => "sess-1",
         "JETHR_CSRF" => "csrf-1",
-        "JETHR_EMAIL" => "",
-        "JETHR_PASSWORD" => "",
+        "JETHR_EMAIL" => "ada@example.com",
+        "JETHR_PASSWORD" => "secret",
         "JETHR_MFA_PENDING" => "",
       ) do
         client.employee(company_id: "112", employee_id: "638")
@@ -167,6 +170,7 @@ class JethrClientTest < ActiveSupport::TestCase
     end
     assert_match(/session expired/, error.message)
     refute_match(/secret/, error.message)
+    assert_equal 0, posts
   end
 
   test "ids must be numeric" do

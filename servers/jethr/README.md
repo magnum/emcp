@@ -20,7 +20,7 @@ The admin login is `POST https://backend.jethr.com/api/v1/auth/login/` with emai
 2. Jethr sends a 6-character code by email. Paste it into **Codice di sicurezza** and save again. That calls `POST /api/v1/auth/validate_mfa_otp/`.
 3. Leave the password blank on a later save to keep the current one.
 
-When a later call returns 401 or 403, EmCP signs in again. If a code is required, save that code on the auth page.
+A later 401 or 403 does not sign in again. Signing in sends a new email code and replaces the saved session, so the code is entered only from the auth page.
 
 ## Tools
 
