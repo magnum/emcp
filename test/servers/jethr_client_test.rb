@@ -92,6 +92,62 @@ class JethrClientTest < ActiveSupport::TestCase
     assert_equal [["sess-1", "csrf-2", nil]], saved
   end
 
+  test "a password login that still cannot read the profile needs the email code" do
+    http = lambda do |method, uri, headers, body|
+      if method == :get && uri.path == "/api/v1/auth/login/"
+        { status: 200, body: {}, cookies: { "csrftoken" => "csrf-1" } }
+      elsif method == :post && uri.path == "/api/v1/auth/login/"
+        assert_equal "csrf-1", headers["X-CSRFTOKEN"]
+        { status: 200, body: {}, cookies: { "sessionid" => "pre-mfa", "csrftoken" => "csrf-2" } }
+      elsif uri.path == "/api/v1/persons/self/"
+        { status: 403, body: { "detail" => "hidden" }, cookies: {} }
+      else
+        { status: 403, body: { "detail" => "secret" }, cookies: {} }
+      end
+    end
+    flags = []
+    client = Emcp::Servers::Jethr::Client.new(http: http, on_mfa: ->(pending:) { flags << pending })
+
+    with_env(
+      "JETHR_EMAIL" => "ada@example.com",
+      "JETHR_PASSWORD" => "secret",
+      "JETHR_SESSION" => "",
+      "JETHR_CSRF" => "",
+      "JETHR_MFA_PENDING" => "",
+    ) do
+      client.ensure_session!
+      assert client.mfa_challenge?
+      error = assert_raises(RuntimeError) { client.employee(company_id: "112", employee_id: "638") }
+      assert_match(/codice di 6 caratteri/i, error.message)
+      refute_match(/secret/, error.message)
+    end
+    assert_equal [true], flags
+  end
+
+  test "the security code is posted to the mfa endpoint" do
+    http = lambda do |method, uri, _headers, body|
+      if method == :post && uri.path == "/api/v1/auth/validate_mfa_otp/"
+        assert_equal "AB12CD", body["otp"]
+        { status: 200, body: {}, cookies: { "sessionid" => "full" } }
+      elsif uri.path == "/api/v1/persons/self/"
+        { status: 200, body: { "id" => 1 }, cookies: {} }
+      else
+        { status: 500, body: {}, cookies: {} }
+      end
+    end
+    saved = []
+    client = Emcp::Servers::Jethr::Client.new(
+      http: http,
+      on_session: ->(session:, csrf:, token:) { saved << session },
+    )
+
+    with_env("JETHR_SESSION" => "pre-mfa", "JETHR_CSRF" => "csrf-1", "JETHR_MFA_PENDING" => "true") do
+      client.submit_otp!("ab12cd")
+      refute client.mfa_challenge?
+    end
+    assert_equal "full", saved.last
+  end
+
   test "a rejected session does not include the response body" do
     http = lambda do |_method, _uri, _headers, _body|
       { status: 403, body: { "detail" => "secret" }, cookies: {} }
@@ -99,7 +155,13 @@ class JethrClientTest < ActiveSupport::TestCase
     client = Emcp::Servers::Jethr::Client.new(http: http)
 
     error = assert_raises(RuntimeError) do
-      with_env("JETHR_SESSION" => "sess-1", "JETHR_CSRF" => "csrf-1") do
+      with_env(
+        "JETHR_SESSION" => "sess-1",
+        "JETHR_CSRF" => "csrf-1",
+        "JETHR_EMAIL" => "",
+        "JETHR_PASSWORD" => "",
+        "JETHR_MFA_PENDING" => "",
+      ) do
         client.employee(company_id: "112", employee_id: "638")
       end
     end

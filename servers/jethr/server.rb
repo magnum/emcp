@@ -28,12 +28,12 @@ module Emcp
             steps: [
               "Use the same email and password you use at https://sso.jethr.com.",
               "Enter the company id from the admin URL, for example 112 in #/112/dipendenti.",
-              "Save. EmCP logs in, stores the session, and checks that company.",
+              "Save once with the security code empty. Jethr emails a 6-character code.",
+              "Paste that code into Codice di sicurezza and save again.",
             ],
             commands: [],
-            note: "The password and the session are stored encrypted on this instance. " \
-                  "A second factor on the account cannot be completed from this form. " \
-                  "When the session expires, EmCP signs in again with the saved password.",
+            note: "Dopo la password Jethr invia un codice di 6 caratteri. Incollalo nel campo Codice di sicurezza e salva di nuovo. " \
+                  "La password e la sessione restano cifrate su questa istanza.",
           }
         end
 
@@ -56,6 +56,13 @@ module Emcp
               env: "JETHR_PASSWORD",
             },
             {
+              name: "jethr_otp",
+              label: "Codice di sicurezza",
+              type: "text",
+              required: false,
+              help: "6 caratteri inviati via email dopo la password. Lascia vuoto al primo salvataggio.",
+            },
+            {
               name: "jethr_company_id",
               label: "Company id",
               type: "text",
@@ -75,6 +82,16 @@ module Emcp
         def fetch_auth_status
           load_credentials!
           company_id = required_company_id
+          if mfa_pending?
+            return {
+              authenticated: false,
+              mfa_required: true,
+              company_id: company_id,
+              email: Emcp.sanitize_env_value(ENV["JETHR_EMAIL"]),
+              error: Client::MFA_MESSAGE,
+            }
+          end
+
           probe = @client.probe(company_id: company_id)
           {
             authenticated: probe[:company_id].to_s == company_id,
@@ -95,21 +112,45 @@ module Emcp
           email = params["jethr_email"].to_s.strip
           password = params["jethr_password"].to_s.strip
           company_id = params["jethr_company_id"].to_s.strip
+          otp = params["jethr_otp"].to_s.strip
           raise "Company id is required" unless company_id.match?(/\A\d+\z/)
           raise "Email is required" if email.empty? && Emcp.sanitize_env_value(ENV["JETHR_EMAIL"]).empty?
           raise "Password is required" if password.empty? && Emcp.sanitize_env_value(ENV["JETHR_PASSWORD"]).empty?
 
-          updates = {
-            "JETHR_COMPANY_ID" => company_id,
-            "JETHR_SESSION" => nil,
-            "JETHR_CSRF" => nil,
-            "JETHR_TOKEN" => nil,
-          }
+          updates = { "JETHR_COMPANY_ID" => company_id }
           updates["JETHR_EMAIL"] = email if email.present?
           updates["JETHR_PASSWORD"] = password if password.present?
-          apply_credentials_probe!(updates, rejection_message: "Jethr rejected the login")
+
+          if otp.present?
+            persist_credentials!(updates)
+            replace_client!
+            @client.submit_otp!(otp)
+            mark_mfa_pending!(false)
+            confirm_login!
+          elsif mfa_pending? && password.empty?
+            raise Client::MFA_MESSAGE
+          else
+            persist_credentials!(
+              updates.merge(
+                "JETHR_SESSION" => nil,
+                "JETHR_CSRF" => nil,
+                "JETHR_TOKEN" => nil,
+                "JETHR_MFA_PENDING" => nil,
+              ),
+            )
+            replace_client!
+            @client.login!
+            if @client.mfa_challenge?
+              mark_mfa_pending!(true)
+              raise Client::MFA_MESSAGE
+            end
+
+            mark_mfa_pending!(false)
+            confirm_login!
+          end
         ensure
           password = nil
+          otp = nil
         end
 
         def clear_credentials!
@@ -120,6 +161,7 @@ module Emcp
             "JETHR_SESSION" => nil,
             "JETHR_CSRF" => nil,
             "JETHR_TOKEN" => nil,
+            "JETHR_MFA_PENDING" => nil,
           )
           replace_client!
         end
@@ -130,6 +172,10 @@ module Emcp
             "JETHR_CSRF" => csrf,
             "JETHR_TOKEN" => token,
           )
+        end
+
+        def mark_mfa_pending!(pending)
+          persist_credentials!("JETHR_MFA_PENDING" => pending ? "true" : nil)
         end
 
         def configure_tools
@@ -240,14 +286,26 @@ module Emcp
         end
 
         def replace_client!
-          @client = Client.new(on_session: method(:persist_session!))
+          @client = Client.new(on_session: method(:persist_session!), on_mfa: method(:mark_mfa_pending!))
         end
 
         def credential_env_keys
-          %w[JETHR_EMAIL JETHR_PASSWORD JETHR_COMPANY_ID JETHR_SESSION JETHR_CSRF JETHR_TOKEN]
+          %w[JETHR_EMAIL JETHR_PASSWORD JETHR_COMPANY_ID JETHR_SESSION JETHR_CSRF JETHR_TOKEN JETHR_MFA_PENDING]
         end
 
         private
+
+        def confirm_login!
+          status = auth_status(force: true)
+          return true if status[:authenticated]
+
+          detail = status[:error].to_s.strip
+          raise(detail.empty? ? "Jethr rejected the login" : "Jethr rejected the login: #{detail}")
+        end
+
+        def mfa_pending?
+          ActiveModel::Type::Boolean.new.cast(Emcp.sanitize_env_value(ENV["JETHR_MFA_PENDING"]))
+        end
 
         def required_company_id
           raw = Emcp.sanitize_env_value(ENV["JETHR_COMPANY_ID"])

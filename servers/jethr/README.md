@@ -16,11 +16,11 @@ Operator UI: `/servers/<id>/auth`
 
 The admin login is `POST https://backend.jethr.com/api/v1/auth/login/` with email and password. The response sets the `sessionid` cookie and the `csrftoken` cookie. EmCP stores both, plus a bearer token when the JSON body includes one, and sends them on later calls.
 
-1. On `/servers/<id>/auth`, enter the Jethr email, password, and company id (`112` in `#/112/...`).
-2. Save. EmCP logs in, stores the session, and checks `GET /api/v1/companies/<id>/`.
+1. On `/servers/<id>/auth`, enter the Jethr email, password, and company id (`112` in `#/112/...`). Leave the security code blank and save.
+2. Jethr sends a 6-character code by email. Paste it into **Codice di sicurezza** and save again. That calls `POST /api/v1/auth/validate_mfa_otp/`.
 3. Leave the password blank on a later save to keep the current one.
 
-When a call returns 401 or 403, EmCP signs in again with the saved password. An account that requires a second factor cannot be completed from this form.
+When a later call returns 401 or 403, EmCP signs in again. If a code is required, save that code on the auth page.
 
 ## Tools
 

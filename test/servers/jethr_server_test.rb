@@ -50,6 +50,21 @@ class JethrServerTest < ActiveSupport::TestCase
     assert_includes names, "jethr_report"
   end
 
+  test "auth asks for the security code while the second factor is pending" do
+    assert_includes @server.auth_fields.map { |field| field[:name] }, "jethr_otp"
+
+    @server.persist_credentials!(
+      "JETHR_COMPANY_ID" => "112",
+      "JETHR_EMAIL" => "ada@example.com",
+      "JETHR_MFA_PENDING" => "true",
+    )
+
+    status = @server.fetch_auth_status
+    assert_equal false, status[:authenticated]
+    assert_equal true, status[:mfa_required]
+    assert_match(/codice di 6 caratteri/i, status[:error])
+  end
+
   test "employees uses the configured company and the in-force filter" do
     with_env("JETHR_COMPANY_ID" => "112") do
       @server.call_tool("jethr_employees", {})
@@ -80,6 +95,7 @@ class JethrServerTest < ActiveSupport::TestCase
     @server.persist_credentials!(
       "JETHR_COMPANY_ID" => "112",
       "JETHR_EMAIL" => "ada@example.com",
+      "JETHR_MFA_PENDING" => nil,
     )
 
     status = @server.fetch_auth_status

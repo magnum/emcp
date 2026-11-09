@@ -29,6 +29,16 @@ class WhatsappClientTest < ActiveSupport::TestCase
     FileUtils.rm_rf(@client.instance_variable_get(:@store_dir))
   end
 
+  test "observed status is written without the pairing qr" do
+    @client.write_observed_status!("connected" => false, "pairing" => true, "qr" => "secret-qr", "qr_png_base64" => "png")
+
+    raw = JSON.parse(File.read(File.join(@client.store_dir, "bridge.status.json")))
+    refute raw.key?("qr")
+    refute raw.key?("qr_png_base64")
+    assert_equal true, raw["pairing"]
+    assert @client.read_observed_status
+  end
+
   test "reachable when health returns ok" do
     assert @client.reachable?
     assert_equal "/health", @calls.first[:path]

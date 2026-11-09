@@ -14,6 +14,8 @@ module Emcp
 
         include BridgeObservation
 
+        attr_reader :store_dir
+
         DEFAULT_BINARY = BridgeProcess::DEFAULT_BINARY
 
         def initialize(base_url: nil, token: nil, store_dir:, binary: nil, timeout: 30, transport: nil, inbound_url: nil)

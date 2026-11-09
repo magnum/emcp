@@ -11,6 +11,9 @@ module Emcp
       class Client
         API_ORIGIN = "https://backend.jethr.com"
         LOGIN_PATH = "/api/v1/auth/login/"
+        OTP_PATH = "/api/v1/auth/validate_mfa_otp/"
+        SELF_PATH = "/api/v1/persons/self/"
+        MFA_MESSAGE = "Jethr ha inviato un codice di 6 caratteri alla tua email. Inseriscilo nel campo Codice di sicurezza e salva di nuovo."
         STATUSES = %w[in_force all].freeze
         LIST_LIMIT = 40
         REPORT_SECTIONS = %w[
@@ -27,8 +30,9 @@ module Emcp
           f24_amount was_set_back_as_draft
         ].freeze
 
-        def initialize(on_session: nil, http: nil)
+        def initialize(on_session: nil, on_mfa: nil, http: nil)
           @on_session = on_session
+          @on_mfa = on_mfa
           @http = http
         end
 
@@ -36,6 +40,35 @@ module Emcp
           return if session_present?
 
           login!
+        end
+
+        def mfa_challenge?
+          result = perform(:get, "#{API_ORIGIN}#{SELF_PATH}", auth: true, cookies: cookie_jar)
+          [401, 403].include?(result[:status])
+        end
+
+        def submit_otp!(otp)
+          code = otp.to_s.strip.upcase
+          raise "Il codice di sicurezza è di 6 caratteri" unless code.match?(/\A[A-Z0-9]{6}\z/)
+          raise "Manca la sessione del login. Salva di nuovo email e password." unless session.present?
+
+          result = perform(
+            :post,
+            "#{API_ORIGIN}#{OTP_PATH}",
+            auth: true,
+            cookies: cookie_jar,
+            body: { "otp" => code },
+          )
+          absorb_cookies(result[:cookies])
+          detail = result[:body].is_a?(Hash) ? result[:body]["detail"].to_s : ""
+          if [401, 403].include?(result[:status]) && %w[no_attempts_left otp_expired].include?(detail)
+            clear_login!
+            raise "Codice scaduto o tentativi esauriti. Salva di nuovo email e password per riceverne un altro."
+          end
+          raise "Codice non valido" unless result[:status].between?(200, 299)
+          raise "Codice non valido" if mfa_challenge?
+
+          set_mfa_pending!(false)
         end
 
         def probe(company_id:)
@@ -237,15 +270,38 @@ module Emcp
         end
 
         def store_session!(session:, csrf:, token:)
-          ENV["JETHR_SESSION"] = session unless session.empty?
-          ENV["JETHR_CSRF"] = csrf unless csrf.empty?
-          ENV["JETHR_TOKEN"] = token unless token.to_s.empty?
+          assign_env("JETHR_SESSION", session)
+          assign_env("JETHR_CSRF", csrf)
+          assign_env("JETHR_TOKEN", token)
           @on_session&.call(session: session, csrf: csrf, token: token)
+        end
+
+        def absorb_cookies(cookies)
+          jar = cookie_jar.merge(cookies.to_h)
+          store_session!(
+            session: jar["sessionid"].to_s,
+            csrf: jar["csrftoken"].to_s,
+            token: token,
+          )
+        end
+
+        def clear_login!
+          store_session!(session: "", csrf: "", token: "")
+          set_mfa_pending!(false)
+        end
+
+        def set_mfa_pending!(pending)
+          assign_env("JETHR_MFA_PENDING", pending ? "true" : "")
+          @on_mfa&.call(pending: pending)
         end
 
         def get_json(url)
           result = request_with_refresh(url)
-          raise "Jethr session expired. Sign in again from the Jethr auth page." if [401, 403].include?(result[:status])
+          if [401, 403].include?(result[:status])
+            raise MFA_MESSAGE if mfa_pending?
+
+            raise "Jethr session expired. Sign in again from the Jethr auth page."
+          end
           raise "Jethr API returned #{result[:status]}" unless result[:status].between?(200, 299)
           raise "Jethr returned a non-JSON response" if result[:parse_error]
           raise "Jethr returned an empty response" unless result[:body].is_a?(Hash) || result[:body].is_a?(Array)
@@ -258,7 +314,11 @@ module Emcp
           return fit(result[:body]) if result[:status].between?(200, 299) && !result[:parse_error]
           return { "status" => result[:status] } if result[:status] == 404
 
-          raise "Jethr session expired. Sign in again from the Jethr auth page." if [401, 403].include?(result[:status])
+          if [401, 403].include?(result[:status])
+            raise MFA_MESSAGE if mfa_pending?
+
+            raise "Jethr session expired. Sign in again from the Jethr auth page."
+          end
 
           { "status" => result[:status] }
         end
@@ -266,9 +326,15 @@ module Emcp
         def request_with_refresh(url)
           ensure_session!
           result = perform(:get, url, auth: true, cookies: cookie_jar)
-          return result unless [401, 403].include?(result[:status]) && can_login?
+          return result unless [401, 403].include?(result[:status]) && can_login? && !mfa_pending?
 
           login!
+          if mfa_challenge?
+            set_mfa_pending!(true)
+            return result
+          end
+
+          set_mfa_pending!(false)
           perform(:get, url, auth: true, cookies: cookie_jar)
         end
 
@@ -310,7 +376,6 @@ module Emcp
           header_cookies = jar.compact_blank.map { |name, value| "#{name}=#{value}" }
           headers["Cookie"] = header_cookies.join("; ") if header_cookies.any?
           headers["X-CSRFTOKEN"] = jar["csrftoken"] if jar["csrftoken"].present?
-          headers["Authorization"] = "Bearer #{token}" if auth && token.present?
           headers
         end
 
@@ -431,6 +496,19 @@ module Emcp
 
         def can_login?
           email.present? && password.present?
+        end
+
+        def mfa_pending?
+          ActiveModel::Type::Boolean.new.cast(Emcp.sanitize_env_value(ENV["JETHR_MFA_PENDING"]))
+        end
+
+        def assign_env(key, value)
+          cleaned = value.to_s
+          if cleaned.empty?
+            ENV.delete(key)
+          else
+            ENV[key] = cleaned
+          end
         end
 
         def email = Emcp.sanitize_env_value(ENV["JETHR_EMAIL"])
