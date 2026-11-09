@@ -42,7 +42,9 @@ class CheckStatusJob < ApplicationJob
         job[:job] == self && argument_context_id(job[:args]) == context_id
       end
     elsif defined?(SolidQueue::Job)
-      scope = SolidQueue::Job.where(class_name: name, finished_at: nil)
+      # A failed row stays unfinished. Counting it as pending freezes the
+      # chain: ensure_running! never enqueues a replacement.
+      scope = SolidQueue::Job.where(class_name: name, finished_at: nil).where.missing(:failed_execution)
       scope = scope.where.not(active_job_id: except_job_id) if except_job_id.present?
       scope.any? { |record| argument_context_id(record.arguments) == context_id }
     else
@@ -66,14 +68,10 @@ class CheckStatusJob < ApplicationJob
   private
 
   def notify_unauthenticated(context)
-    failures = context.context_memberships.includes(:mcp_server).filter_map do |membership|
-      server = membership.mcp_server
-      failure = server.record_service_probe!
-      next unless failure
-
-      failure.merge(paused: !membership.active?)
-    end
+    rows = context.context_memberships.includes(:mcp_server).map { |membership| probe_membership(membership) }
     context.record_service_probe!
+    failures = rows.reject { |row| row[:connected] }
+    healthy = rows.select { |row| row[:connected] }
     key = self.class.signature_key(context.id)
     if failures.empty?
       Rails.cache.delete(key)
@@ -83,9 +81,22 @@ class CheckStatusJob < ApplicationJob
     signature = failures.map { |row| row[:id] }.sort.join(",")
     return if Rails.cache.read(key) == signature
 
-    ContextStatusMailer.unauthenticated(context, failures).deliver_now
+    ContextStatusMailer.unauthenticated(context, failures, healthy).deliver_now
     Rails.cache.write(key, signature, expires_in: 7.days)
   rescue StandardError => e
     Rails.logger.error("[check_status] context #{context.id}: #{e.class}: #{e.message}")
+  end
+
+  def probe_membership(membership)
+    server = membership.mcp_server
+    failure = server.record_service_probe!
+    {
+      id: server.id,
+      name: server.name,
+      instance: server.activity_log_code,
+      paused: !membership.active?,
+      error: failure && failure[:error],
+      connected: failure.nil?,
+    }
   end
 end

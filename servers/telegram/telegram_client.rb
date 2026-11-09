@@ -5,12 +5,16 @@ require "net/http"
 require "time"
 require "uri"
 require_relative "bridge_process"
+require_relative "../bridge_observation"
 
 module Emcp
   module Servers
     module Telegram
       class Client
         class Error < StandardError; end
+
+        include BridgeObservation
+        attr_reader :store_dir
 
         FLOOD_ATTEMPTS = 3
         FLOOD_SLEEP_CAP = 30

@@ -119,10 +119,10 @@ module Emcp
         def auth_status_cache_ttl = 0
 
         def emcp_service_info
-          fetch_auth_status
+          fetch_auth_status(start_bridge: false)
         end
 
-        def fetch_auth_status
+        def fetch_auth_status(start_bridge: true)
           load_credentials!
           unless @client.credentials_ready?
             return { authenticated: false, pairing: false, auth_step: "credentials", error: nil }
@@ -131,14 +131,34 @@ module Emcp
             return { authenticated: false, pairing: false, auth_step: "bridge", error: @client.unreachable_reason }
           end
 
-          @client.ensure_bridge! if @client.managed?
-          unless @client.reachable?
-            return { authenticated: false, pairing: false, auth_step: "bridge", error: @client.unreachable_reason }
+          @client.ensure_bridge! if start_bridge && @client.managed?
+          if @client.reachable?
+            body = @client.status
+            @client.write_observed_status!(body) if @client.respond_to?(:write_observed_status!)
+            return link_status(body)
           end
 
-          link_status(@client.status)
+          observed = @client.read_observed_status if @client.respond_to?(:read_observed_status)
+          return link_status(observed) if observed
+
+          { authenticated: false, pairing: false, auth_step: "bridge", error: @client.unreachable_reason }
         rescue StandardError => e
           { authenticated: false, pairing: false, auth_step: "error", error: e.message }
+        end
+
+        def record_bridge_observation!
+          load_credentials!
+          return unless @client.respond_to?(:write_observed_status!)
+
+          if @client.reachable?
+            @client.write_observed_status!(@client.status)
+          else
+            @client.write_observed_status!(
+              "connected" => false,
+              "logged_in" => false,
+              "error" => @client.unreachable_reason,
+            )
+          end
         end
 
         def keep_bridge_alive!

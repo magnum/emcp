@@ -9,17 +9,21 @@ class CheckStatusJobTest < ActiveSupport::TestCase
   setup do
     @user = users(:one)
     @hey = mcp_server_for("hey")
-    @context = create_context!(name: "House status", servers: [ @hey ])
+    @home = mcp_server_for("homeassistant")
+    @context = create_context!(name: "House status", servers: [ @hey, @home ])
     clear_enqueued_jobs
-    @original = Emcp::Servers::Hey::Server.instance_method(:emcp_service_info)
+    @hey_original = Emcp::Servers::Hey::Server.instance_method(:emcp_service_info)
+    @home_original = Emcp::Servers::HomeAssistant::Server.instance_method(:emcp_service_info)
   end
 
   teardown do
-    Emcp::Servers::Hey::Server.define_method(:emcp_service_info, @original) if @original
+    Emcp::Servers::Hey::Server.define_method(:emcp_service_info, @hey_original) if @hey_original
+    Emcp::Servers::HomeAssistant::Server.define_method(:emcp_service_info, @home_original) if @home_original
   end
 
   test "emails the context owner when a member fails the live check" do
     stub_hey(authenticated: false, error: "session rejected")
+    stub_home(authenticated: true)
 
     assert_emails 1 do
       CheckStatusJob.perform_now(@context.id)
@@ -31,6 +35,9 @@ class CheckStatusJobTest < ActiveSupport::TestCase
     assert_match(@hey.name, mail.body.encoded)
     assert_match(@hey.activity_log_code, mail.body.encoded)
     assert_match(/session rejected/, mail.body.encoded)
+    assert_match(/Not authenticated/, mail.body.encoded)
+    assert_match(/Authenticated/, mail.body.encoded)
+    assert_match(@home.name, mail.body.encoded)
     @hey.reload
     assert @hey.disconnected?
     assert_equal false, @hey.service_info["connected"]
@@ -39,6 +46,7 @@ class CheckStatusJobTest < ActiveSupport::TestCase
 
   test "does not email when every member is connected" do
     stub_hey(authenticated: true)
+    stub_home(authenticated: true)
 
     assert_no_emails do
       CheckStatusJob.perform_now(@context.id)
@@ -49,6 +57,7 @@ class CheckStatusJobTest < ActiveSupport::TestCase
 
   test "does not repeat the email while the same servers stay unauthenticated" do
     stub_hey(authenticated: false, error: "session rejected")
+    stub_home(authenticated: true)
     original_cache = Rails.cache
     Rails.cache = ActiveSupport::Cache::MemoryStore.new
 
@@ -64,6 +73,7 @@ class CheckStatusJobTest < ActiveSupport::TestCase
 
   test "schedules the next check after the interval" do
     stub_hey(authenticated: true)
+    stub_home(authenticated: true)
     clear_enqueued_jobs
 
     CheckStatusJob.perform_now(@context.id)
@@ -102,8 +112,16 @@ class CheckStatusJobTest < ActiveSupport::TestCase
   private
 
   def stub_hey(authenticated:, error: nil)
+    stub_service(Emcp::Servers::Hey::Server, authenticated:, error:)
+  end
+
+  def stub_home(authenticated:, error: nil)
+    stub_service(Emcp::Servers::HomeAssistant::Server, authenticated:, error:)
+  end
+
+  def stub_service(server_class, authenticated:, error: nil)
     payload = { authenticated: authenticated }
     payload[:error] = error if error
-    Emcp::Servers::Hey::Server.define_method(:emcp_service_info) { payload }
+    server_class.define_method(:emcp_service_info) { payload }
   end
 end

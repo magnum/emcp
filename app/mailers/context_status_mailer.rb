@@ -1,10 +1,11 @@
 # frozen_string_literal: true
 
 class ContextStatusMailer < ApplicationMailer
-  def unauthenticated(context, servers)
+  def unauthenticated(context, failures, healthy = [])
     @context = context
-    @servers = servers
-    count = servers.size
+    @failures = failures
+    @healthy = healthy
+    count = failures.size
     noun = count == 1 ? "server is" : "servers are"
 
     mail(

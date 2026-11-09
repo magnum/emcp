@@ -1,6 +1,8 @@
-<p><strong><%= @context.name %></strong> (context <%= @context.id %>) has servers whose live check reported connected: false:</p>
+<p><strong><%= @context.name %></strong></p>
+
+<p>Not authenticated:</p>
 <ul>
-  <% @servers.each do |server| %>
+  <% @failures.each do |server| %>
     <li>
       <%= server[:name] %> (<%= server[:instance] %>)
       <% if server[:paused] %>— paused<% end %>
@@ -8,4 +10,17 @@
     </li>
   <% end %>
 </ul>
-<p>Open that context in EmCP and sign those servers in again.</p>
+
+<p>Authenticated:</p>
+<% if @healthy.empty? %>
+  <p>none</p>
+<% else %>
+  <ul>
+    <% @healthy.each do |server| %>
+      <li>
+        <%= server[:name] %> (<%= server[:instance] %>)
+        <% if server[:paused] %>— paused<% end %>
+      </li>
+    <% end %>
+  </ul>
+<% end %>

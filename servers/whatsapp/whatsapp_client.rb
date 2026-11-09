@@ -4,12 +4,15 @@ require "json"
 require "net/http"
 require "uri"
 require_relative "bridge_process"
+require_relative "../bridge_observation"
 
 module Emcp
   module Servers
     module Whatsapp
       class Client
         class Error < StandardError; end
+
+        include BridgeObservation
 
         DEFAULT_BINARY = BridgeProcess::DEFAULT_BINARY
 

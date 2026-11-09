@@ -57,6 +57,22 @@ class WhatsappServerTest < ActiveSupport::TestCase
     assert_equal "WHATSAPP_BRIDGE_TOKEN", token[:env]
   end
 
+  test "service info reads the web snapshot and does not start a bridge" do
+    ensured = false
+    fake = FakeClient.new(reachable: false, status_payload: {}, ensure_ok: true)
+    fake.define_singleton_method(:ensure_bridge!) { ensured = true }
+    fake.define_singleton_method(:read_observed_status) do
+      { "connected" => false, "logged_in" => false, "error" => "WhatsApp logged this device out" }
+    end
+    @server.instance_variable_set(:@client, fake)
+
+    status = @server.emcp_service_info
+
+    refute ensured
+    refute status[:authenticated]
+    assert_equal "WhatsApp logged this device out", status[:error]
+  end
+
   test "fetch_auth_status is unauthenticated when the bridge is down" do
     install_fake_client!(reachable: false, status_payload: {})
 

@@ -96,6 +96,7 @@ module Emcp
 
         def ping(server)
           server.keep_bridge_alive!
+          server.record_bridge_observation!
         rescue StandardError => e
           Rails.logger.warn("[whatsapp keepalive] server=#{server.id} #{e.message}")
         end
