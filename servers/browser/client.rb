@@ -10,7 +10,7 @@ module Emcp
           @server = server
         end
 
-        def call(tool, args = {}, write: false)
+        def call(tool, args = {}, write: false, require_local: true, timeout: nil)
           policy = origin_policy
           arguments = args.to_h.transform_keys(&:to_s)
           ensure_allowed!(policy, tool, arguments)
@@ -26,7 +26,8 @@ module Emcp
               "allow_eval" => eval_allowed?,
               "max_chars" => max_chars,
             },
-            timeout: timeout,
+            timeout: timeout || self.timeout,
+            require_local: require_local,
           )
           raise reply["error"].to_s if reply["ok"] == false
 

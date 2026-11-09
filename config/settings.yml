@@ -92,6 +92,10 @@ servers:
     max_chars: 12000
     allow_eval: false
     heartbeat: 15
+  jethr:
+    allow_write: false
+    timeout: 20
+    max_chars: 12000
   reminders:
     allow_write: false
     timeout: 60

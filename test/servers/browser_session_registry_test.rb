@@ -35,4 +35,12 @@ class BrowserSessionRegistryTest < ActiveSupport::TestCase
       @registry.dispatch(7, { "tool" => "browser_status" }, timeout: 1)
     end
   end
+
+  test "dispatch can wait on the cache when this process has no socket" do
+    reply = @registry.dispatch(7, { "tool" => "browser_status" }, timeout: 1, require_local: false) do |payload|
+      @registry.complete(payload["request_id"], { "ok" => true, "result" => { "connected" => true } })
+    end
+
+    assert_equal true, reply["result"]["connected"]
+  end
 end

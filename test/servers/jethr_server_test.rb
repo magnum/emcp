@@ -1,0 +1,72 @@
+# frozen_string_literal: true
+
+require "test_helper"
+
+class JethrServerTest < ActiveSupport::TestCase
+  FakeClient = Struct.new(:calls, keyword_init: true) do
+    def probe(company_id:)
+      calls << [:probe, company_id]
+      { company_id: company_id, browser_server_id: 18, tab_id: 5 }
+    end
+
+    def employees(company_id:, status:, offset:, limit:)
+      calls << [:employees, company_id, status, offset, limit]
+      { "company_id" => company_id, "status" => status, "employees" => [{ "id" => 638 }] }
+    end
+
+    def employee(company_id:, employee_id:)
+      calls << [:employee, company_id, employee_id]
+      { "id" => employee_id, "company_id" => company_id }
+    end
+  end
+
+  setup do
+    @server = mcp_server_for("jethr")
+    @fake = FakeClient.new(calls: [])
+    @server.instance_variable_set(:@client, @fake)
+  end
+
+  test "catalog lists employees and one employee" do
+    names = @server.tool_catalog.map { |tool| tool[:name] }
+    assert_includes names, "jethr_employees"
+    assert_includes names, "jethr_employee"
+  end
+
+  test "employees uses the configured company and the in-force filter" do
+    with_env("JETHR_COMPANY_ID" => "112") do
+      @server.call_tool("jethr_employees", {})
+    end
+
+    assert_equal [:employees, "112", nil, 0, nil], @fake.calls.last
+  end
+
+  test "employee detail passes the id" do
+    with_env("JETHR_COMPANY_ID" => "112") do
+      @server.call_tool("jethr_employee", { "employee_id" => "638" })
+    end
+
+    assert_equal [:employee, "112", "638"], @fake.calls.last
+  end
+
+  test "auth status is the live company probe" do
+    @server.persist_credentials!(
+      "JETHR_COMPANY_ID" => "112",
+      "JETHR_BROWSER_SERVER_ID" => "18",
+    )
+
+    status = @server.fetch_auth_status
+    assert_equal true, status[:authenticated]
+    assert_equal "112", status[:company_id]
+    assert_equal 18, status[:browser_server_id]
+  end
+
+  private
+
+  def with_env(values)
+    previous = values.keys.to_h { |key| [key, ENV[key]] }
+    values.each { |key, value| ENV[key] = value }
+    yield
+  ensure
+    previous.each { |key, value| value.nil? ? ENV.delete(key) : ENV[key] = value }
+  end
+end

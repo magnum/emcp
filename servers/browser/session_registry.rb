@@ -87,8 +87,10 @@ module Emcp
           nil
         end
 
-        def dispatch(instance_id, message, timeout:)
-          raise Offline, "Chrome extension is offline" unless connected?(instance_id)
+        def dispatch(instance_id, message, timeout:, require_local: true)
+          # The extension socket lives in the web process. A worker can still
+          # broadcast and read the reply from the cache when require_local is false.
+          raise Offline, "Chrome extension is offline" if require_local && !connected?(instance_id)
 
           request_id = SecureRandom.uuid
           queue = Queue.new
