@@ -18,6 +18,21 @@ class JethrServerTest < ActiveSupport::TestCase
       calls << [:employee, company_id, employee_id]
       { "id" => employee_id, "company_id" => company_id }
     end
+
+    def payrolls(company_id:, offset:, limit:)
+      calls << [:payrolls, company_id, offset, limit]
+      { "company_id" => company_id, "payrolls" => [] }
+    end
+
+    def payroll(company_id:, period:, year:, month:, limit:)
+      calls << [:payroll, company_id, period, year, month, limit]
+      { "company_id" => company_id, "month" => 9, "year" => 2026 }
+    end
+
+    def report(company_id:, section:, year:, month:)
+      calls << [:report, company_id, section, year, month]
+      { "company_id" => company_id, "section" => section }
+    end
   end
 
   setup do
@@ -30,6 +45,9 @@ class JethrServerTest < ActiveSupport::TestCase
     names = @server.tool_catalog.map { |tool| tool[:name] }
     assert_includes names, "jethr_employees"
     assert_includes names, "jethr_employee"
+    assert_includes names, "jethr_payrolls"
+    assert_includes names, "jethr_payroll"
+    assert_includes names, "jethr_report"
   end
 
   test "employees uses the configured company and the in-force filter" do
@@ -46,6 +64,16 @@ class JethrServerTest < ActiveSupport::TestCase
     end
 
     assert_equal [:employee, "112", "638"], @fake.calls.last
+  end
+
+  test "payroll month is passed through as period" do
+    with_env("JETHR_COMPANY_ID" => "112") do
+      @server.call_tool("jethr_payroll", { "period" => "9-2026" })
+      @server.call_tool("jethr_report", { "section" => "personale", "year" => 2026, "month" => 9 })
+    end
+
+    assert_equal [:payroll, "112", "9-2026", nil, nil, nil], @fake.calls[-2]
+    assert_equal [:report, "112", "personale", 2026, 9], @fake.calls.last
   end
 
   test "auth status is the live company probe" do

@@ -24,6 +24,34 @@ class JethrClientTest < ActiveSupport::TestCase
     )
   end
 
+  test "payroll and report urls follow the admin pages" do
+    client = Emcp::Servers::Jethr::Client.new(@server)
+
+    assert_equal(
+      "https://backend.jethr.com/api/v1/payrolls/?company=112&expand_provisional=true",
+      client.payrolls_url("112"),
+    )
+    assert_equal(
+      "https://backend.jethr.com/api/v1/payrolls/get_by_year_monthly_pay/112/2026/9/?expand_provisional=true",
+      client.payroll_url("112", 2026, 9),
+    )
+    requests = client.report_requests("personale", "112", 2026, 9).to_h
+    assert_equal(
+      "https://backend.jethr.com/api/v1/monthly_reports/?company=112&month=9&scope=age&year=2026",
+      requests["age"],
+    )
+    assert_equal(
+      "https://backend.jethr.com/api/v1/employee_monthly_reports/?company=112&from_year_month=2026-9&scope=person&to_year_month=2026-9",
+      requests["employees"],
+    )
+    expenses = client.report_requests("rimborsi-spese", "112", 2026, "09").to_h
+    assert_includes expenses["expenses"], "status=APPROVED"
+    assert_includes expenses["expenses"], "from_year_month=2026-9"
+    tfr = client.report_requests("tfr-azienda", "112", 2026, 9).to_h
+    assert_includes tfr["tfr"], "scope=tfr"
+    assert_equal %w[gender_pay_gap], client.report_requests("trasparenza-retributiva", "112", 2026, 9).map(&:first)
+  end
+
   test "employees reads the admin tab and returns the reduced page" do
     steps = [
       { "tabs" => [{ "tab_id" => 5, "url" => "https://admin.jethr.com/#/112/dipendenti/tab-in-forza" }] },

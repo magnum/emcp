@@ -8,14 +8,15 @@ module Emcp
       class Server < ::McpServer
         server_id "jethr"
         display_name "Jethr"
-        description "Employee list and employee detail from a signed-in Jethr admin tab."
+        description "Employees, payroll cycles, and company reports from a signed-in Jethr admin tab."
         version "0.1.0"
 
         def instructions
           "Jethr has no API token. These tools reuse the Chrome session already signed in at " \
             "https://admin.jethr.com. Pair a Browser instance, leave that admin tab open, and set " \
             "JETHR_COMPANY_ID. jethr_employees lists people in force. jethr_employee reads one person. " \
-            "The session cookie stays in Chrome."
+            "jethr_payrolls lists payroll cycles and jethr_payroll reads one month, such as 9-2026. " \
+            "jethr_report reads one report section for a month. The session cookie stays in Chrome."
         end
 
         def auth_help_content
@@ -141,6 +142,72 @@ module Emcp
               @client.employee(
                 company_id: company_id.presence || required_company_id,
                 employee_id: employee_id,
+              ),
+            )
+          end
+
+          define_tool(
+            name: "jethr_payrolls",
+            description: "List payroll cycles (cedolini) for the company. Each row is one month: description, year, " \
+                         "status, due date, and amounts shown on the cedolini page.",
+            properties: {
+              company_id: string_prop("Company id. Defaults to JETHR_COMPANY_ID."),
+              offset: integer_prop("Number of cycles to skip. Default 0."),
+              limit: integer_prop("Page size, default 40, maximum 80."),
+            },
+          ) do |company_id: nil, offset: 0, limit: nil|
+            api_response(
+              @client.payrolls(
+                company_id: company_id.presence || required_company_id,
+                offset: offset,
+                limit: limit,
+              ),
+            )
+          end
+
+          define_tool(
+            name: "jethr_payroll",
+            description: "Read one payroll month, the same page as cedolini/9-2026. " \
+                         "Pass period as month-year, for example 9-2026. Includes the payslips of that cycle.",
+            properties: {
+              period: string_prop("Month-year as in the admin URL, for example 9-2026."),
+              year: integer_prop("Year, used when period is omitted."),
+              month: integer_prop("Month 1-12, used when period is omitted."),
+              company_id: string_prop("Company id. Defaults to JETHR_COMPANY_ID."),
+              limit: integer_prop("Maximum payslip rows, default 40, maximum 80."),
+            },
+          ) do |period: nil, year: nil, month: nil, company_id: nil, limit: nil|
+            api_response(
+              @client.payroll(
+                company_id: company_id.presence || required_company_id,
+                period: period,
+                year: year,
+                month: month,
+                limit: limit,
+              ),
+            )
+          end
+
+          define_tool(
+            name: "jethr_report",
+            description: "Read one company report for a month. section is personale, presenze-assenze, rimborsi-spese, " \
+                         "costo-aziendale, trasparenza-retributiva, or tfr-azienda. " \
+                         "Omit year and month to use the latest period Jethr publishes. " \
+                         "Tables return the first 25 rows.",
+            properties: {
+              section: string_prop("Report slug: personale, presenze-assenze, rimborsi-spese, costo-aziendale, trasparenza-retributiva, tfr-azienda."),
+              year: integer_prop("Year. Omit with month to use the latest period."),
+              month: integer_prop("Month 1-12. Omit with year to use the latest period."),
+              company_id: string_prop("Company id. Defaults to JETHR_COMPANY_ID."),
+            },
+            required: ["section"],
+          ) do |section:, year: nil, month: nil, company_id: nil|
+            api_response(
+              @client.report(
+                company_id: company_id.presence || required_company_id,
+                section: section,
+                year: year,
+                month: month,
               ),
             )
           end
