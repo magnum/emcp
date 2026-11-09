@@ -50,6 +50,27 @@ class JethrServerTest < ActiveSupport::TestCase
     assert_includes names, "jethr_report"
   end
 
+  test "saving credentials signs in through the public session method" do
+    client = @fake
+    @server.define_singleton_method(:replace_client!) { @client = client }
+    client.define_singleton_method(:ensure_session!) { calls << [ :ensure_session ] }
+    client.define_singleton_method(:mfa_challenge?) { false }
+    @server.persist_credentials!(
+      "JETHR_EMAIL" => "ada@example.com",
+      "JETHR_PASSWORD" => "secret",
+      "JETHR_COMPANY_ID" => "112",
+      "JETHR_MFA_PENDING" => nil,
+    )
+
+    @server.apply_credentials(
+      "jethr_email" => "ada@example.com",
+      "jethr_password" => "secret",
+      "jethr_company_id" => "112",
+    )
+
+    assert_includes @fake.calls, [ :ensure_session ]
+  end
+
   test "auth asks for the security code while the second factor is pending" do
     assert_includes @server.auth_fields.map { |field| field[:name] }, "jethr_otp"
 
