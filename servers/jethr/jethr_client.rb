@@ -321,10 +321,10 @@ module Emcp
 
         def report_part(url)
           result = request_with_refresh(url)
-          return fit(result[:body]) if result[:status].between?(200, 299) && !result[:parse_error]
-          return { "status" => result[:status] } if result[:status] == 404
+          return scrub(fit(result[:body])) if result[:status].between?(200, 299) && !result[:parse_error]
+          return { "status" => result[:status] } if [403, 404].include?(result[:status])
 
-          if [401, 403].include?(result[:status])
+          if result[:status] == 401
             raise MFA_MESSAGE if mfa_pending?
 
             raise "Jethr session expired. Sign in again from the Jethr auth page."
@@ -460,6 +460,21 @@ module Emcp
             out["employee"] = { "id" => employee["id"], "full_name" => employee["full_name"] }
           end
           out
+        end
+
+        def scrub(value)
+          case value
+          when Array
+            value.map { |item| scrub(item) }
+          when Hash
+            value.each_with_object({}) do |(key, item), copy|
+              next if %w[ssn iban].include?(key.to_s)
+
+              copy[key] = scrub(item)
+            end
+          else
+            value
+          end
         end
 
         def fit(value, depth = 0)

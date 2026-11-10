@@ -173,6 +173,29 @@ class JethrClientTest < ActiveSupport::TestCase
     assert_equal 0, posts
   end
 
+  test "a forbidden contractor report does not expire the session" do
+    http = lambda do |_method, uri, _headers, _body|
+      if uri.path.include?("contractor")
+        { status: 403, body: { "detail" => "Non hai l'autorizzazione" }, cookies: {} }
+      elsif uri.path.include?("employee_monthly_reports")
+        { status: 200, body: [{ "first_name" => "Ada", "business_cost" => "1", "ssn" => "hidden" }], cookies: {} }
+      else
+        { status: 200, body: { "is_empty" => false }, cookies: {} }
+      end
+    end
+    client = Emcp::Servers::Jethr::Client.new(http: http)
+
+    report = with_env("JETHR_SESSION" => "sess-1", "JETHR_CSRF" => "csrf-1", "JETHR_MFA_PENDING" => "") do
+      client.report(company_id: "112", section: "costo-aziendale", year: 2026, month: 9)
+    end
+
+    assert_equal 403, report.dig("parts", "staff", "status")
+    assert_equal 403, report.dig("parts", "contractors", "status")
+    assert_equal "Ada", report.dig("parts", "employees", 0, "first_name")
+    assert_equal "1", report.dig("parts", "employees", 0, "business_cost")
+    refute report.dig("parts", "employees", 0).key?("ssn")
+  end
+
   test "ids must be numeric" do
     client = Emcp::Servers::Jethr::Client.new
 
