@@ -44,4 +44,13 @@
   <%= render "mcp_servers/context_memberships", context: @server if @server.context? %>
   <%= render "mcp_servers/webhooks", server: @server if @server.is_a?(Emcp::Servers::Whatsapp::Server) || @server.is_a?(Emcp::Servers::Telegram::Server) %>
   <%= render "mcp_servers/basecamp_links", server: @server if @server.is_a?(Emcp::Servers::Basecamp::Server) %>
+
+  <p class="mt-16 text-sm">
+    <%= link_to "delete", @server,
+          data: {
+            turbo_method: :delete,
+            turbo_confirm: "Delete this #{@server.context? ? "context" : "server"}?"
+          },
+          class: "text-stone-400 underline decoration-stone-300 underline-offset-2 hover:text-stone-700 dark:text-zinc-500 dark:decoration-zinc-700 dark:hover:text-zinc-200" %>
+  </p>
 </div>

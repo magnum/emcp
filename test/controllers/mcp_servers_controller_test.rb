@@ -186,6 +186,10 @@ class McpServersControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "h1", text: server.name
+    assert_select "a[href=?][data-turbo-method=delete][data-turbo-confirm=?]",
+      mcp_server_path(server),
+      "Delete this server?",
+      text: "delete"
     assert_select "form[action=?] button[aria-label=?]", service_state_mcp_server_path(server), "Run service check"
     assert_select "[role=tooltip]", text: /Disconnected/
     assert_match(/session rejected/, response.body)
